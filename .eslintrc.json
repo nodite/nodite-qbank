@@ -1,3 +1,28 @@
 {
-  "extends": ["oclif", "oclif-typescript", "prettier"]
+  "env": {
+    "es2021": true,
+    "jest": true,
+    "node": true
+  },
+  "extends": [
+    "oclif",
+    "oclif-typescript",
+    "eslint:recommended",
+    "plugin:@typescript-eslint/recommended",
+    "prettier",
+    "plugin:prettier/recommended"
+  ],
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "ecmaVersion": 2017,
+    "sourceType": "module"
+  },
+  "rules": {
+    "max-len": ["error", {"code": 120}],
+    "no-warning-comments": "off",
+    "semi": ["error", "never"],
+    "valid-jsdoc": "off",
+    "@typescript-eslint/no-explicit-any": "warn",
+    "new-cap": "off"
+  }
 }

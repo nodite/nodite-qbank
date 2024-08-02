@@ -2,15 +2,23 @@
   "name": "qbank",
   "description": "The framework working for track online question banks",
   "version": "0.0.0",
-  "author": "Oscaner Miao",
+  "author": "Oscaner",
   "bin": {
     "qbank": "./bin/run.js"
   },
-  "bugs": "https://github.com/Oscaner Miao/https://github.com/Oscaner/qbank/issues",
+  "bugs": "https://github.com/Oscaner/qbank/issues",
   "dependencies": {
     "@oclif/core": "^4",
     "@oclif/plugin-help": "^6",
-    "@oclif/plugin-plugins": "^5"
+    "@oclif/plugin-plugins": "^5",
+    "@resolid/cache-manager-sqlite": "^5",
+    "@type-cacheable/core": "^14",
+    "axios": "^1",
+    "axios-cache-interceptor": "^1",
+    "better-sqlite3": "^11",
+    "cache-manager": "^5",
+    "inquirer": "^10",
+    "user-agents": "^1"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.3.0",
@@ -18,20 +26,26 @@
     "@commitlint/types": "^19.0.3",
     "@oclif/prettier-config": "^0.2.1",
     "@oclif/test": "^4",
+    "@types/better-sqlite3": "^7.6.11",
     "@types/chai": "^4",
     "@types/mocha": "^10",
     "@types/node": "^18",
+    "@types/user-agents": "^1.0.4",
+    "@typescript-eslint/eslint-plugin": "^6",
+    "@typescript-eslint/parser": "^6",
     "chai": "^4",
     "eslint": "^8",
     "eslint-config-oclif": "^5",
     "eslint-config-oclif-typescript": "^3",
-    "eslint-config-prettier": "^9",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.2.1",
     "husky": "^9.1.4",
     "mocha": "^10",
     "oclif": "^4",
+    "prettier": "^3.3.3",
     "shx": "^0.3.3",
     "ts-node": "^10",
-    "typescript": "^5"
+    "typescript": "<5.4.0"
   },
   "engines": {
     "node": ">=18.0.0"
@@ -52,6 +66,11 @@
     "bin": "qbank",
     "dirname": "qbank",
     "commands": "./dist/commands",
+    "hooks": {
+      "init": [
+        "./dist/hooks/cache"
+      ]
+    },
     "plugins": [
       "@oclif/plugin-help",
       "@oclif/plugin-plugins"
@@ -67,6 +86,7 @@
   "scripts": {
     "build": "shx rm -rf dist && tsc -b",
     "lint": "eslint . --ext .ts",
+    "lint:fix": "eslint . --fix --ext .ts",
     "postpack": "shx rm -f oclif.manifest.json",
     "posttest": "npm run lint",
     "prepack": "oclif manifest && oclif readme",
