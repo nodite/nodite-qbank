@@ -2,15 +2,19 @@ import type {CacheRequestConfig} from 'axios-cache-interceptor'
 
 import {Cacheable} from '@type-cacheable/core'
 
-import {Vendor} from './main.js'
-
-const VENDOR_NAME = 'demo'
+import {Bank} from '../../types/bank.js'
+import {HashKeyScope, Vendor, cacheKeyBuilder, hashKeyBuilder} from './main.js'
 
 export default class Demo extends Vendor {
-  public static name: string = VENDOR_NAME
+  public static VENDOR_NAME: string = 'demo'
 
-  @Cacheable({cacheKey: (args) => args[0], hashKey: `${VENDOR_NAME}:login`})
-  public async login(username: string, password: string): Promise<CacheRequestConfig> {
+  public async getBankList(): Promise<Bank[]> {
+    throw new Error('Method not implemented.')
+  }
+
+  @Cacheable({cacheKey: cacheKeyBuilder(), hashKey: hashKeyBuilder(HashKeyScope.LOGIN)})
+  public async login(password: string): Promise<CacheRequestConfig> {
+    const username = this.getUsername()
     return {
       headers: {password},
       params: {username},

@@ -10,4 +10,4 @@ oclif.manifest.json
 yarn.lock
 pnpm-lock.yaml
 
-cache.sqlite3
+cache.sqlite3*

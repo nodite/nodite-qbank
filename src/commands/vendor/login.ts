@@ -1,11 +1,13 @@
 import {Args, Command, Flags} from '@oclif/core'
+import {CacheClear} from '@type-cacheable/core'
 import inquirer from 'inquirer'
 
 import VendorManager from '../../components/vendor/index.js'
+import {HashKeyScope, Vendor, cacheKeyBuilder, hashKeyBuilder} from '../../components/vendor/main.js'
 
 export default class Login extends Command {
   static args = {
-    vendor: Args.string({description: '题库供应商', options: VendorManager.getNames(), required: true}),
+    vendor: Args.string({description: '题库供应商', options: VendorManager.getVendorNames(), required: true}),
   }
 
   static description = 'Login to vendor'
@@ -17,8 +19,9 @@ Login to vendor (./src/commands/vendor/login.ts)
   ]
 
   static flags = {
+    invalidate: Flags.boolean({char: 'i', default: false, description: '清除缓存'}),
     password: Flags.string({char: 'p', default: '', description: '密码'}),
-    username: Flags.string({char: 'n', default: '', description: '用户名/邮箱/手机号'}),
+    username: Flags.string({char: 'u', default: '', description: '用户名/邮箱/手机号'}),
   }
 
   async run(): Promise<void> {
@@ -42,12 +45,16 @@ Login to vendor (./src/commands/vendor/login.ts)
     }
 
     // Login to vendor
-    const Vendor = VendorManager.getClass(args.vendor)
-    const vendor = new Vendor()
+    const vendor = new (VendorManager.getClass(args.vendor))(flags.username)
 
-    const config = await vendor.login(flags.username, flags.password)
+    if (flags.invalidate) await this._invalidate(vendor)
+
+    const config = await vendor.login(flags.password)
 
     this.log(`Login to ${args.vendor} successfully! (./src/commands/vendor/login.ts)`)
     this.log(`config: ${JSON.stringify(config, null, 2)}`)
   }
+
+  @CacheClear({cacheKey: cacheKeyBuilder(), hashKey: hashKeyBuilder(HashKeyScope.LOGIN)})
+  async _invalidate(_: Vendor): Promise<void> {}
 }

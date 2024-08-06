@@ -1,20 +1,18 @@
 import Demo from './demo.js'
-import Fenbi from './fenbi.js'
-import {Vendor} from './main.js'
-
-type VendorClass = new () => Vendor
+import FenbiKaoyan from './fenbi-kaoyan.js'
+import {VendorClass} from './main.js'
 
 export default class VendorManager {
   private static vendors: {[key: string]: VendorClass} = {
-    [Demo.name]: Demo,
-    [Fenbi.name]: Fenbi,
+    [Demo.VENDOR_NAME]: Demo,
+    [FenbiKaoyan.VENDOR_NAME]: FenbiKaoyan,
   }
 
   public static getClass(name: string): VendorClass {
     return this.vendors[name]
   }
 
-  public static getNames(): string[] {
+  public static getVendorNames(): string[] {
     return Object.keys(this.vendors)
   }
 }
