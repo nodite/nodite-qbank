@@ -3,42 +3,68 @@ import type {CacheRequestConfig} from 'axios-cache-interceptor'
 import {CacheKeyBuilder, Cacheable} from '@type-cacheable/core'
 
 import {Bank} from '../../types/bank.js'
+import {Category} from '../../types/category.js'
 
 enum HashKeyScope {
   BANKS = 'banks',
+  CATEGORIES = 'categories',
   LOGIN = 'login',
 }
 
-const cacheKeyBuilder = (): CacheKeyBuilder<unknown[], unknown> => {
+const cacheKeyBuilder = (builder?: CacheKeyBuilder): CacheKeyBuilder => {
   return (args, context): string => {
-    if (args.length > 0 && args[0] instanceof Vendor) {
-      return args[0].getUsername()
-    }
+    const keys = []
 
     if (context instanceof Vendor) {
-      return context.getUsername()
+      keys.push(context.getUsername())
+    } else if (args.length > 0 && args[0] instanceof Vendor) {
+      keys.push(args[0].getUsername())
     }
 
-    throw new Error('Invalid cache key')
+    if (builder) {
+      keys.push(builder(args, context))
+    }
+
+    if (keys.length === 0) {
+      throw new Error('Invalid cache key')
+    }
+
+    return keys.join(':')
   }
 }
 
-const hashKeyBuilder = (scope: HashKeyScope): CacheKeyBuilder<unknown[], unknown> => {
+const hashKeyBuilder = (scope: HashKeyScope, builder?: CacheKeyBuilder): CacheKeyBuilder => {
   return (args, context): string => {
-    if (args.length > 0 && args[0] instanceof Vendor) {
-      return `${(args[0].constructor as typeof Vendor).VENDOR_NAME}:${scope}`
-    }
+    const keys = []
 
     if (context instanceof Vendor) {
-      return `${(context.constructor as typeof Vendor).VENDOR_NAME}:${scope}`
+      keys.push((context.constructor as typeof Vendor).VENDOR_NAME)
+    } else if (args.length > 0 && args[0] instanceof Vendor) {
+      keys.push((args[0].constructor as typeof Vendor).VENDOR_NAME)
     }
 
-    throw new Error('Invalid hash key')
+    keys.push(scope)
+
+    if (builder) {
+      keys.push(builder(args, context))
+    }
+
+    if (keys.length === 0) {
+      throw new Error('Invalid hash key')
+    }
+
+    return keys.join(':')
   }
 }
 
 abstract class Vendor {
   public static VENDOR_NAME: string
+
+  /**
+   * Get username
+   * @returns
+   */
+  public getUsername = () => this.username
 
   private username: string
 
@@ -50,36 +76,62 @@ abstract class Vendor {
     this.username = username
   }
 
-  /**
-   * Get request config
-   */
-  @Cacheable({cacheKey: cacheKeyBuilder(), hashKey: hashKeyBuilder(HashKeyScope.LOGIN)})
-  public async getRequestConfig(): Promise<CacheRequestConfig> {
+  public async banks(): Promise<Bank[]>
+
+  public async banks(fromCache: true): Promise<Bank[]>
+
+  public async banks(fromCache?: true): Promise<Bank[]> {
+    return fromCache ? this._banks() : this.getBanks()
+  }
+
+  public async categories(keyOrId: number | string): Promise<Category[]>
+
+  public async categories(keyOrId: number | string, fromCache: true): Promise<Category[]>
+
+  public async categories(keyOrId: number | string, fromCache?: true): Promise<Category[]> {
+    return fromCache ? this._categories(keyOrId) : this.getCategories(keyOrId)
+  }
+
+  public async login(): Promise<CacheRequestConfig>
+
+  public async login(password: string): Promise<CacheRequestConfig>
+
+  public async login(password?: string): Promise<CacheRequestConfig> {
+    return password === undefined ? this._login() : this.toLogin(password)
+  }
+
+  @Cacheable({cacheKey: cacheKeyBuilder(), hashKey: hashKeyBuilder(HashKeyScope.BANKS)})
+  protected async _banks(): Promise<Bank[]> {
     throw new Error(
-      `Please run 'vendor login ${(this.constructor as typeof Vendor).VENDOR_NAME} -u ${
-        this.username
-      }' command to login first.`,
+      `Please run 'bank list -v ${
+        (this.constructor as typeof Vendor).VENDOR_NAME
+      } -u ${this.getUsername()}' command to get banks first.`,
     )
   }
 
-  /**
-   * Get username
-   * @returns
-   */
-  public getUsername(): string {
-    return this.username
+  @Cacheable({cacheKey: cacheKeyBuilder((args) => args[0]), hashKey: hashKeyBuilder(HashKeyScope.CATEGORIES)})
+  protected async _categories(keyOrId: number | string): Promise<Category[]> {
+    throw new Error(
+      `Please run 'category list -v ${
+        (this.constructor as typeof Vendor).VENDOR_NAME
+      } -u ${this.getUsername()} -p ${keyOrId}' command to get categories first.`,
+    )
   }
 
-  /**
-   * Get course list
-   */
-  public abstract getBankList(): Promise<Bank[]>
+  @Cacheable({cacheKey: cacheKeyBuilder(), hashKey: hashKeyBuilder(HashKeyScope.LOGIN)})
+  protected async _login(): Promise<CacheRequestConfig> {
+    throw new Error(
+      `Please run 'vendor login ${
+        (this.constructor as typeof Vendor).VENDOR_NAME
+      } -u ${this.getUsername()}' command to login first.`,
+    )
+  }
 
-  /**
-   * Login to vendor
-   * @param password
-   */
-  public abstract login(password: string): Promise<CacheRequestConfig>
+  protected abstract getBanks(): Promise<Bank[]>
+
+  protected abstract getCategories(keyOrId: number | string): Promise<Category[]>
+
+  protected abstract toLogin(password: string): Promise<CacheRequestConfig>
 }
 
 // Vendor class type

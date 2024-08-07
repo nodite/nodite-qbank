@@ -48,16 +48,16 @@ List banks (./src/commands/course/list.ts)
 
     if (flags.invalidate) await this._invalidate(vendor)
 
-    const banks = await vendor.getBankList()
+    const banks = await vendor.banks()
 
     this.log(
       ttyTable(
         [
           {align: 'left', value: 'id'},
           {align: 'left', value: 'name'},
-          {align: 'left', value: 'prefix'},
+          {align: 'left', value: 'key'},
         ],
-        banks.map((bank) => [bank.id, bank.name, bank.prefix]),
+        banks.map((bank) => [bank.id, bank.name, bank.key]),
       ).render(),
     )
   }
