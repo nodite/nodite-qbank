@@ -1,8 +1,8 @@
 import {Hook} from '@oclif/core'
 
-import '../cache/index.js'
+import '../../cache/index.js'
 
-const hook: Hook<'init'> = async () => {
+const hook: Hook.Init = async () => {
   // This hook is run before any command
 }
 

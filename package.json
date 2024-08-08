@@ -13,14 +13,18 @@
     "@oclif/plugin-plugins": "^5",
     "@resolid/cache-manager-sqlite": "^5",
     "@type-cacheable/core": "^14",
+    "async-stream-emitter": "^7.0.1",
     "axios": "^1",
     "axios-cache-interceptor": "^1",
     "better-sqlite3": "^11",
     "cache-manager": "^5",
+    "cli-progress": "^3.12.0",
     "inquirer": "^10",
     "lodash": "^4",
     "object-treeify": "^4.0.1",
     "playwright": "^1",
+    "random-number": "^0.0.9",
+    "sleep-promise": "^9.1.0",
     "tty-table": "^4.2.3",
     "user-agents": "^1"
   },
@@ -30,11 +34,14 @@
     "@commitlint/types": "^19.0.3",
     "@oclif/prettier-config": "^0.2.1",
     "@oclif/test": "^4",
+    "@types/async-stream-emitter": "^7.0.0",
     "@types/better-sqlite3": "^7.6.11",
     "@types/chai": "^4",
+    "@types/cli-progress": "^3.11.6",
     "@types/lodash": "^4",
     "@types/mocha": "^10",
     "@types/node": "^18",
+    "@types/random-number": "^0.0.4",
     "@types/user-agents": "^1.0.4",
     "@typescript-eslint/eslint-plugin": "^6",
     "@typescript-eslint/parser": "^6",
@@ -73,7 +80,8 @@
     "commands": "./dist/commands",
     "hooks": {
       "init": [
-        "./dist/hooks/cache"
+        "./dist/hooks/init/cache",
+        "./dist/hooks/init/event"
       ]
     },
     "plugins": [

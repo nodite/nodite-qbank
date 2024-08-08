@@ -1,33 +1,32 @@
 import {Flags} from '@oclif/core'
-import lodash from 'lodash'
-// @ts-expect-error because object-treeify v2 is not typed
-import treeify from 'object-treeify'
+import {Presets, SingleBar} from 'cli-progress'
 
 import BaseCommand from '../../base.js'
 import VendorManager from '../../components/vendor/index.js'
-import {HashKeyScope} from '../../components/vendor/main.js'
 import {Bank} from '../../types/bank.js'
 import {Category} from '../../types/category.js'
+import {emitter} from '../../utils/event.js'
 import {find} from '../../utils/index.js'
 
-export default class List extends BaseCommand {
+export default class Fetch extends BaseCommand {
   static args = {}
 
-  static description = 'List categories'
+  static description = 'Fetch questions'
 
   static example = [
     `<%= config.bin %> <%= command.id %>
-List categories (./src/commands/category/list.ts)
+Fetch questions (./src/commands/question/fetch.ts)
 `,
   ]
 
   static flags = {
     bank: Flags.string({char: 'b', default: '', description: '题库ID/名称/Key'}),
+    category: Flags.string({char: 'c', default: '', description: '分类ID/名称'}),
     invalidate: Flags.boolean({char: 'i', default: false, description: '清除缓存'}),
   }
 
   async run(): Promise<void> {
-    const {flags} = await this.parse(List)
+    const {flags} = await this.parse(Fetch)
 
     await this.ensureFlags(flags)
 
@@ -38,20 +37,22 @@ List categories (./src/commands/category/list.ts)
     const banks = await vendor.banks()
     const bank = find<Bank>(banks, flags.bank) as Bank
 
-    // categories.
-    if (flags.invalidate) await vendor.invalidate(HashKeyScope.CATEGORIES, bank)
-
+    // category.
     const categories = await vendor.categories(bank)
+    const category = find<Category>(categories, flags.category, {excludeKey: ['children']}) as Category
 
-    const _convert = (cts: Category[]): unknown => {
-      return lodash
-        .chain(cts)
-        .keyBy((ct) => `${ct.name} (${ct.id}, ${ct.count})`)
-        .mapValues((ct) => (ct.children.length === 0 ? '' : _convert(ct.children)))
-        .value()
+    // questions.
+    vendor.fetchOriginQuestions(bank, category)
+
+    // processing.
+    const bar = new SingleBar({}, Presets.rect)
+
+    bar.start(category.count, 0)
+
+    for await (const data of emitter.listener('count')) {
+      bar.update(data as number)
     }
 
-    this.log('')
-    this.log(treeify(_convert(categories), {separator: ''}))
+    bar.stop()
   }
 }

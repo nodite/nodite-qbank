@@ -1,6 +1,7 @@
 export type Category = {
   children: Category[]
   count: number
-  id: number | string
+  fetch?: boolean
+  id: string
   name: string
 }
