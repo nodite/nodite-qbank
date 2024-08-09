@@ -1,6 +1,7 @@
 import type {CacheRequestConfig} from 'axios-cache-interceptor'
 
 import {Cacheable} from '@type-cacheable/core'
+import chunk from 'chunk'
 import lodash from 'lodash'
 import random from 'random-number'
 import sleep from 'sleep-promise'
@@ -8,18 +9,158 @@ import UserAgent from 'user-agents'
 
 import {Bank} from '../../types/bank.js'
 import {Category} from '../../types/category.js'
+import {AssertString, ConvertOptions, FetchOptions} from '../../types/common.js'
+import {Question, QuestionType} from '../../types/question.js'
 import axios from '../../utils/axios.js'
 import {emitter} from '../../utils/event.js'
 import {PUBLIC_KEY, encrypt} from '../../utils/fenbi.js'
-import {CACHE_KEY_ORIGIN_QUESTION_ITEM, CACHE_KEY_ORIGIN_QUESTION_PROCESSING} from '../cache-pattern.js'
+import * as parser from '../../utils/parser.js'
+import {
+  CACHE_KEY_ORIGIN_QUESTION_ITEM,
+  CACHE_KEY_ORIGIN_QUESTION_PROCESSING,
+  CACHE_KEY_QUESTION_ITEM,
+} from '../cache-pattern.js'
 import {HashKeyScope, Vendor, hashKeyBuilder} from './main.js'
 
 export default class FenbiKaoyan extends Vendor {
   public static VENDOR_NAME: string = 'fenbi-kaoyan'
 
   /**
+   * Categories.
+   */
+  public async convertQuestions(bank: Bank, category: Category, options?: ConvertOptions): Promise<void> {
+    // prepare.
+    const cacheClient = this.getCacheClient()
+
+    // cache key.
+    const cacheKeyParams = {
+      bankId: bank.id,
+      categoryId: category.id,
+      username: this.getUsername(),
+      vendorName: (this.constructor as typeof Vendor).VENDOR_NAME,
+    }
+
+    // check origin questions.
+    const originQuestionItemCacheKey = lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)(cacheKeyParams)
+
+    const originQuestionIds = lodash.map(
+      await cacheClient.keys(originQuestionItemCacheKey + ':*'),
+      (key) => key.split(':').pop() as string,
+    )
+
+    // check questions.
+    const questionItemCacheKey = lodash.template(CACHE_KEY_QUESTION_ITEM)(cacheKeyParams)
+
+    if (options?.reconvert) {
+      await cacheClient.delHash(questionItemCacheKey + ':*')
+    }
+
+    const questionIds = lodash.map(
+      await cacheClient.keys(questionItemCacheKey + ':*'),
+      (key) => key.split(':').pop() as string,
+    )
+
+    const diffQuestionIds = lodash.difference(originQuestionIds, questionIds)
+
+    // convert.
+    emitter.emit('questions.convert.count', questionIds.length)
+
+    for (const _questionId of diffQuestionIds) {
+      // emit.
+      emitter.emit('questions.convert.count', questionIds.length)
+
+      const _originQuestion = await cacheClient.get(originQuestionItemCacheKey + ':' + _questionId)
+
+      const {
+        accessories,
+        content: _content,
+        correctAnswer: _correctAnswer,
+        solution: _solution,
+        type: _type,
+      } = _originQuestion
+
+      // ====================
+      const _questionType: QuestionType = ((_type) => {
+        if (_type === 1) return 'SingleChoice'
+        if (_type === 2) return 'MultiChoice'
+        if (_type === 61) return 'BlankFilling'
+        throw new Error('Unknown question type')
+      })(_type)
+
+      const _question = {
+        content: await parser.html(_content),
+        id: _questionId,
+        solution: await parser.html(_solution.solution),
+        type: _questionType,
+      } as Question
+
+      // ====================
+      // accessories.
+      const _accessories = lodash.filter(
+        accessories,
+        (accessory) =>
+          ![1001].includes(accessory.type) ||
+          // 1001: choiceTranslations
+          (accessory.type === 1001 && !lodash.isEmpty(accessory.choiceTranslations)),
+      )
+
+      // multi accessories.
+      if (_accessories.length === 0) {
+        _question.answerAccessory = undefined
+      }
+      // todo: multi accessories.
+      else if (_accessories.length > 1) {
+        console.log(JSON.stringify(_originQuestion, null, 2))
+        throw new Error('Multi accessories')
+      }
+      // 101: choice. 102: pure choice.
+      else if (_accessories[0].type === 101 || _accessories[0].type === 102) {
+        _question.answerAccessory = await Promise.all(
+          lodash.map(_accessories[0].options, (option) => parser.html(option)),
+        )
+      }
+      // unknown.
+      else {
+        console.log(JSON.stringify(_originQuestion, null, 2))
+        throw new Error('Unknown accessories type')
+      }
+
+      // ====================
+      // answer.
+      // 201: choice.
+      if (_correctAnswer.type === 201) {
+        _question.answer = lodash.map(
+          _correctAnswer.choice.split(','),
+          (choice) => (_question.answerAccessory as AssertString[])[choice],
+        )
+      }
+      // 202: blank filling.
+      else if (_correctAnswer.type === 202) {
+        _question.answer = await Promise.all(lodash.map(_correctAnswer.blanks, (blank) => parser.html(blank)))
+      }
+      // unknown.
+      else {
+        console.log(JSON.stringify(_originQuestion, null, 2))
+        throw new Error('Unknown answer type')
+      }
+
+      // ====================
+      await cacheClient.set(questionItemCacheKey + ':' + _questionId, _question)
+
+      if (!questionIds.includes(_questionId)) questionIds.push(_questionId)
+
+      await sleep(100)
+    }
+
+    emitter.emit('questions.convert.count', questionIds.length)
+
+    await sleep(1000)
+
+    emitter.closeListener('questions.convert.count')
+  }
+
+  /**
    * Banks.
-   * @returns
    */
   @Cacheable({cacheKey: () => '', hashKey: hashKeyBuilder(HashKeyScope.BANKS)})
   protected async fetchBanks(): Promise<Bank[]> {
@@ -76,7 +217,7 @@ export default class FenbiKaoyan extends Vendor {
   /**
    * Origin questions.
    */
-  public async fetchOriginQuestions(bank: Bank, category: Category): Promise<void> {
+  public async fetchQuestions(bank: Bank, category: Category, options?: FetchOptions): Promise<void> {
     // prepare.
     const cacheClient = this.getCacheClient()
     const requestConfig = await this.login()
@@ -86,12 +227,11 @@ export default class FenbiKaoyan extends Vendor {
     const cacheKeyParams = {
       bankId: bank.id,
       categoryId: category.id,
-      scope: HashKeyScope.ORIGIN_QUESTIONS,
       username: this.getUsername(),
       vendorName: (this.constructor as typeof Vendor).VENDOR_NAME,
     }
 
-    const questionsItemCacheKey = lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)(cacheKeyParams)
+    const questionItemCacheKey = lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)(cacheKeyParams)
 
     const exerciseProcessingCacheKey = lodash.template(CACHE_KEY_ORIGIN_QUESTION_PROCESSING)({
       ...cacheKeyParams,
@@ -105,25 +245,37 @@ export default class FenbiKaoyan extends Vendor {
     )
 
     const questionIds = lodash.map(
-      await cacheClient.keys(questionsItemCacheKey + ':*'),
+      await cacheClient.keys(questionItemCacheKey + ':*'),
       (key) => key.split(':').pop() as string,
     )
 
+    if (options?.refetch) {
+      for (const [_idx, _chunk] of chunk(questionIds, 100).entries()) {
+        exerciseIds.push(`_${_idx}`)
+        await cacheClient.set(exerciseProcessingCacheKey + `:_${_idx}`, _chunk)
+      }
+
+      questionIds.length = 0
+    }
+
     // fetch.
-    emitter.emit('count', questionIds.length)
+    emitter.emit('questions.fetch.count', questionIds.length)
 
     while (questionIds.length < category.count || exerciseIds.length > 0) {
       // emit count.
-      emitter.emit('count', questionIds.length)
+      emitter.emit('questions.fetch.count', questionIds.length)
 
-      // cache exercise.
+      // exercise processing.
       let _exerciseId
       let _questionIds
 
+      // existing exercise.
       if (exerciseIds.length > 0) {
         _exerciseId = exerciseIds.shift()
         _questionIds = await cacheClient.get(exerciseProcessingCacheKey + ':' + _exerciseId)
-      } else {
+      }
+      // new exercise.
+      else {
         const exerciseResponse = await axios.post(
           `https://schoolapi.fenbi.com/kaoyan/api/${bankPrefix}/exercises`,
           {
@@ -136,11 +288,11 @@ export default class FenbiKaoyan extends Vendor {
 
         _exerciseId = lodash.get(exerciseResponse.data, 'id', 0)
         _questionIds = lodash.get(exerciseResponse.data, 'sheet.questionIds', [])
+
+        await cacheClient.set(exerciseProcessingCacheKey + ':' + _exerciseId, _questionIds)
       }
 
-      await cacheClient.set(exerciseProcessingCacheKey + ':' + _exerciseId, _questionIds)
-
-      // cache questions.
+      // questions processing.
       const questionsResponse = await axios.get(
         `https://schoolapi.fenbi.com/kaoyan/api/${bankPrefix}/universal/questions`,
         lodash.merge({}, requestConfig, {params: {questionIds: _questionIds.join(',')}}),
@@ -152,51 +304,57 @@ export default class FenbiKaoyan extends Vendor {
       )
 
       const _questions: Record<string, unknown>[] = lodash.get(questionsResponse.data, 'questions', [])
+      const _materials: Record<string, unknown>[] = lodash.get(questionsResponse.data, 'materials', [])
       const _solutions: Record<string, unknown>[] = solutionsResponse.data
 
       for (const [_questionIdx, _question] of _questions.entries()) {
         _question.solution = lodash.find(_solutions, {id: _question.id})
+        _question.materials = lodash.map(_question.materialIndexes || [], (materialIndex) => _materials[materialIndex])
 
-        await cacheClient.set(questionsItemCacheKey + ':' + _question.id, _question)
+        await cacheClient.set(questionItemCacheKey + ':' + _question.id, _question)
 
         // answer.
-        await axios.post(
-          `https://schoolapi.fenbi.com/kaoyan/api/${bankPrefix}/async/exercises/${_exerciseId}/incr`,
-          [
-            {
-              answer: _question.correctAnswer,
-              flag: 0,
-              questionId: _question.id,
-              questionIndex: _questionIdx,
-              time: random({integer: true, max: 10, min: 1}),
-            },
-          ],
-          lodash.merge({}, requestConfig, {params: {forceUpdateAnswer: 1}}),
-        )
+        if (!String(_exerciseId).startsWith('_')) {
+          await axios.post(
+            `https://schoolapi.fenbi.com/kaoyan/api/${bankPrefix}/async/exercises/${_exerciseId}/incr`,
+            [
+              {
+                answer: _question.correctAnswer,
+                flag: 0,
+                questionId: _question.id,
+                questionIndex: _questionIdx,
+                time: random({integer: true, max: 10, min: 1}),
+              },
+            ],
+            lodash.merge({}, requestConfig, {params: {forceUpdateAnswer: 1}}),
+          )
+        }
 
         // update.
         if (!questionIds.includes(String(_question.id))) questionIds.push(String(_question.id))
-        emitter.emit('count', questionIds.length)
+        emitter.emit('questions.fetch.count', questionIds.length)
 
         // delay.
-        await sleep(500)
+        await sleep(100)
       }
 
       // submit exercise.
-      await axios.post(
-        `https://schoolapi.fenbi.com/kaoyan/api/${bankPrefix}/async/exercises/${_exerciseId}/submit`,
-        {status: 1},
-        lodash.merge({}, requestConfig, {headers: {'Content-Type': 'application/x-www-form-urlencoded'}}),
-      )
+      if (!String(_exerciseId).startsWith('_')) {
+        await axios.post(
+          `https://schoolapi.fenbi.com/kaoyan/api/${bankPrefix}/async/exercises/${_exerciseId}/submit`,
+          {status: 1},
+          lodash.merge({}, requestConfig, {headers: {'Content-Type': 'application/x-www-form-urlencoded'}}),
+        )
+      }
 
       await cacheClient.del(exerciseProcessingCacheKey + ':' + _exerciseId)
     }
 
-    emitter.emit('count', questionIds.length)
+    emitter.emit('questions.fetch.count', questionIds.length)
 
     await sleep(1000)
 
-    emitter.closeListener('count')
+    emitter.closeListener('questions.fetch.count')
   }
 
   /**

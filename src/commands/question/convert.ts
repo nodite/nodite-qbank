@@ -8,25 +8,25 @@ import {Category} from '../../types/category.js'
 import {emitter} from '../../utils/event.js'
 import {find} from '../../utils/index.js'
 
-export default class Fetch extends BaseCommand {
+export default class Convert extends BaseCommand {
   static args = {}
 
-  static description = 'Fetch questions'
+  static description = 'Convert questions'
 
   static example = [
     `<%= config.bin %> <%= command.id %>
-Fetch questions (./src/commands/question/fetch.ts)
+Convert questions (./src/commands/question/convert.ts)
 `,
   ]
 
   static flags = {
     bank: Flags.string({char: 'b', default: '', description: '题库ID/名称/Key'}),
     category: Flags.string({char: 'c', default: '', description: '分类ID/名称'}),
-    refetch: Flags.boolean({char: 'r', default: false, description: '重新抓取'}),
+    reconvert: Flags.boolean({char: 'r', default: false, description: '重新转换'}),
   }
 
   async run(): Promise<void> {
-    const {flags} = await this.parse(Fetch)
+    const {flags} = await this.parse(Convert)
 
     await this.ensureFlags(flags)
 
@@ -42,14 +42,14 @@ Fetch questions (./src/commands/question/fetch.ts)
     const category = find<Category>(categories, flags.category, {excludeKey: ['children']}) as Category
 
     // questions.
-    vendor.fetchQuestions(bank, category, {refetch: flags.refetch})
+    vendor.convertQuestions(bank, category, {reconvert: flags.reconvert})
 
     // processing.
     const bar = new SingleBar({}, Presets.rect)
 
     bar.start(category.count, 0)
 
-    for await (const data of emitter.listener('questions.fetch.count')) {
+    for await (const data of emitter.listener('questions.convert.count')) {
       bar.update(data as number)
     }
 

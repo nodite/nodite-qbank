@@ -4,10 +4,15 @@ import {Cacheable} from '@type-cacheable/core'
 
 import {Bank} from '../../types/bank.js'
 import {Category} from '../../types/category.js'
+import {FetchOptions} from '../../types/common.js'
 import {HashKeyScope, Vendor, hashKeyBuilder} from './main.js'
 
 export default class Demo extends Vendor {
   public static VENDOR_NAME: string = 'demo'
+
+  public async convertQuestions(_bank: Bank, _category: Category): Promise<void> {
+    throw new Error('Method not implemented.')
+  }
 
   @Cacheable({cacheKey: () => '', hashKey: hashKeyBuilder(HashKeyScope.BANKS)})
   protected async fetchBanks(): Promise<Bank[]> {
@@ -19,7 +24,7 @@ export default class Demo extends Vendor {
     throw new Error('Method not implemented.')
   }
 
-  public async fetchOriginQuestions(_bank: Bank, _category: Category): Promise<void> {
+  public async fetchQuestions(_bank: Bank, _category: Category, _options?: FetchOptions): Promise<void> {
     throw new Error('Method not implemented.')
   }
 

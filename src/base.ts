@@ -59,10 +59,10 @@ export default abstract class BaseCommand extends Command {
         if (_categories.length !== 1) {
           const answers = await inquirer.prompt([
             {
-              choices: lodash.map(_categories, (ct) => ({
-                name: `${ct.name}${ct.fetch ? ' [完成]' : ''}`,
-                value: ct.name,
-              })),
+              choices: lodash.map(_categories, (ct) => {
+                const tags = [ct.fetch ? '[fetch]' : '', ct.convert ? '[convert]' : ''].join(' ')
+                return {name: `${ct.name} ${tags}`, value: ct.name}
+              }),
               message: '分类:',
               name: 'category',
               type: 'list',

@@ -5,7 +5,13 @@ import lodash from 'lodash'
 
 import {Bank} from '../../types/bank.js'
 import {Category} from '../../types/category.js'
-import {CACHE_KEY_ORIGIN_QUESTION_ITEM, CACHE_KEY_PREFIX, HashKeyScope} from '../cache-pattern.js'
+import {ConvertOptions, FetchOptions} from '../../types/common.js'
+import {
+  CACHE_KEY_ORIGIN_QUESTION_ITEM,
+  CACHE_KEY_PREFIX,
+  CACHE_KEY_QUESTION_ITEM,
+  HashKeyScope,
+} from '../cache-pattern.js'
 
 /**
  * Hash key builder
@@ -75,17 +81,21 @@ abstract class Vendor {
     const categories = await (fromCache ? this._categories(bank) : this.fetchCategories(bank))
 
     for (const category of categories) {
-      const questionItemCacheKey = lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)({
+      const cacheKeyParams = {
         bankId: bank.id,
         categoryId: category.id,
-        scope: HashKeyScope.ORIGIN_QUESTIONS,
         username: this.getUsername(),
         vendorName: (this.constructor as typeof Vendor).VENDOR_NAME,
-      })
+      }
 
+      const originQuestionItemCacheKey = lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)(cacheKeyParams)
+      const questionItemCacheKey = lodash.template(CACHE_KEY_QUESTION_ITEM)(cacheKeyParams)
+
+      const originQuestionCount = (await this.cacheClient.keys(originQuestionItemCacheKey + ':*')).length
       const questionCount = (await this.cacheClient.keys(questionItemCacheKey + ':*')).length
 
-      category.fetch = questionCount >= category.count
+      category.fetch = originQuestionCount >= category.count
+      category.convert = questionCount >= category.count
     }
 
     return categories
@@ -165,11 +175,13 @@ abstract class Vendor {
   //
   // abstract
   //
+  public abstract convertQuestions(bank: Bank, category: Category, options?: ConvertOptions): Promise<void>
+
   protected abstract fetchBanks(): Promise<Bank[]>
 
   protected abstract fetchCategories(bank: Bank): Promise<Category[]>
 
-  public abstract fetchOriginQuestions(bank: Bank, category: Category): Promise<void>
+  public abstract fetchQuestions(bank: Bank, category: Category, options?: FetchOptions): Promise<void>
 
   protected abstract toLogin(password: string): Promise<CacheRequestConfig>
 }
