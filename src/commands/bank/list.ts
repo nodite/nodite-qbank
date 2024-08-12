@@ -2,8 +2,8 @@ import {Flags} from '@oclif/core'
 import ttyTable from 'tty-table'
 
 import BaseCommand from '../../base.js'
+import {HashKeyScope} from '../../components/vendor/common.js'
 import VendorManager from '../../components/vendor/index.js'
-import {HashKeyScope} from '../../components/vendor/main.js'
 
 export default class List extends BaseCommand {
   static args = {}

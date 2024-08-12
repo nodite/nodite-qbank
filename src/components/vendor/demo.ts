@@ -5,7 +5,8 @@ import {Cacheable} from '@type-cacheable/core'
 import {Bank} from '../../types/bank.js'
 import {Category} from '../../types/category.js'
 import {FetchOptions} from '../../types/common.js'
-import {HashKeyScope, Vendor, hashKeyBuilder} from './main.js'
+import {Sheet} from '../../types/sheet.js'
+import {HashKeyScope, Vendor, hashKeyBuilder} from './common.js'
 
 export default class Demo extends Vendor {
   public static VENDOR_NAME: string = 'demo'
@@ -24,7 +25,11 @@ export default class Demo extends Vendor {
     throw new Error('Method not implemented.')
   }
 
-  public async fetchQuestions(_bank: Bank, _category: Category, _options?: FetchOptions): Promise<void> {
+  public async fetchQuestions(_bank: Bank, _category: Category, _sheet: Sheet, _options?: FetchOptions): Promise<void> {
+    throw new Error('Method not implemented.')
+  }
+
+  public fetchSheet(_bank: Bank, _category: Category, _options?: FetchOptions): Promise<Sheet[]> {
     throw new Error('Method not implemented.')
   }
 

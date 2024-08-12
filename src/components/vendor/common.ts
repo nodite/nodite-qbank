@@ -6,6 +6,7 @@ import lodash from 'lodash'
 import {Bank} from '../../types/bank.js'
 import {Category} from '../../types/category.js'
 import {ConvertOptions, FetchOptions} from '../../types/common.js'
+import {Sheet} from '../../types/sheet.js'
 import {
   CACHE_KEY_ORIGIN_QUESTION_ITEM,
   CACHE_KEY_PREFIX,
@@ -62,10 +63,6 @@ abstract class Vendor {
   /**
    * Banks.
    */
-  public async banks(): Promise<Bank[]>
-
-  public async banks(fromCache: true): Promise<Bank[]>
-
   public async banks(fromCache?: true): Promise<Bank[]> {
     return fromCache ? this._banks() : this.fetchBanks()
   }
@@ -73,10 +70,6 @@ abstract class Vendor {
   /**
    * Categories.
    */
-  public async categories(bank: Bank): Promise<Category[]>
-
-  public async categories(bank: Bank, fromCache: true): Promise<Category[]>
-
   public async categories(bank: Bank, fromCache?: true): Promise<Category[]> {
     const categories = await (fromCache ? this._categories(bank) : this.fetchCategories(bank))
 
@@ -84,6 +77,7 @@ abstract class Vendor {
       const cacheKeyParams = {
         bankId: bank.id,
         categoryId: category.id,
+        sheetId: '*',
         username: this.getUsername(),
         vendorName: (this.constructor as typeof Vendor).VENDOR_NAME,
       }
@@ -104,7 +98,7 @@ abstract class Vendor {
   /**
    * Invalidate cache.
    */
-  public async invalidate(scope: HashKeyScope, bank?: Bank): Promise<void> {
+  public async invalidate(scope: HashKeyScope, bank?: Bank, category?: Category): Promise<void> {
     switch (scope) {
       case HashKeyScope.BANKS: {
         return this._banksInvalidate()
@@ -112,6 +106,10 @@ abstract class Vendor {
 
       case HashKeyScope.CATEGORIES: {
         return bank ? this._categoriesInvalidate(bank) : Promise.resolve()
+      }
+
+      case HashKeyScope.SHEETS: {
+        return bank && category ? this._sheetsInvalidate(bank, category) : Promise.resolve()
       }
 
       case HashKeyScope.LOGIN: {
@@ -127,12 +125,15 @@ abstract class Vendor {
   /**
    * Login.
    */
-  public async login(): Promise<CacheRequestConfig>
-
-  public async login(password: string): Promise<CacheRequestConfig>
-
   public async login(password?: string): Promise<CacheRequestConfig> {
     return password === undefined ? this._login() : this.toLogin(password)
+  }
+
+  /**
+   * Sheets.
+   */
+  public async sheets(bank: Bank, category: Category, fromCache?: true): Promise<Sheet[]> {
+    return fromCache ? this._sheets(bank, category) : this.fetchSheet(bank, category)
   }
 
   /**
@@ -172,16 +173,36 @@ abstract class Vendor {
   @CacheClear({cacheKey: () => '', hashKey: hashKeyBuilder(HashKeyScope.LOGIN)})
   protected async _loginInvalidate(): Promise<void> {}
 
+  /**
+   * Sheets.
+   */
+  @Cacheable({cacheKey: (args) => `${args[0].id}:${args[1].id}`, hashKey: hashKeyBuilder(HashKeyScope.SHEETS)})
+  protected async _sheets(bank: Bank, category: Category): Promise<Sheet[]> {
+    const vendorName = (this.constructor as typeof Vendor).VENDOR_NAME
+    const command = `sheet list -v ${vendorName} -u ${this.getUsername()} -b ${bank.name} -c ${category.name}`
+    throw new Error(`Please run '${command}' command to get sheets first.`)
+  }
+
+  @CacheClear({cacheKey: (args) => `${args[0].id}:${args[1].id}`, hashKey: hashKeyBuilder(HashKeyScope.SHEETS)})
+  protected async _sheetsInvalidate(_bank: Bank, _category: Category): Promise<void> {}
+
   //
   // abstract
   //
-  public abstract convertQuestions(bank: Bank, category: Category, options?: ConvertOptions): Promise<void>
+  public abstract convertQuestions(
+    bank: Bank,
+    category: Category,
+    sheet: Sheet,
+    options?: ConvertOptions,
+  ): Promise<void>
 
   protected abstract fetchBanks(): Promise<Bank[]>
 
   protected abstract fetchCategories(bank: Bank): Promise<Category[]>
 
-  public abstract fetchQuestions(bank: Bank, category: Category, options?: FetchOptions): Promise<void>
+  public abstract fetchQuestions(bank: Bank, category: Category, sheet: Sheet, options?: FetchOptions): Promise<void>
+
+  protected abstract fetchSheet(bank: Bank, category: Category): Promise<Sheet[]>
 
   protected abstract toLogin(password: string): Promise<CacheRequestConfig>
 }

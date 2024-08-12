@@ -11,6 +11,7 @@ import {Bank} from '../../types/bank.js'
 import {Category} from '../../types/category.js'
 import {AssertString, ConvertOptions, FetchOptions} from '../../types/common.js'
 import {Question, QuestionType} from '../../types/question.js'
+import {Sheet} from '../../types/sheet.js'
 import axios from '../../utils/axios.js'
 import {emitter} from '../../utils/event.js'
 import {PUBLIC_KEY, encrypt} from '../../utils/fenbi.js'
@@ -20,7 +21,7 @@ import {
   CACHE_KEY_ORIGIN_QUESTION_PROCESSING,
   CACHE_KEY_QUESTION_ITEM,
 } from '../cache-pattern.js'
-import {HashKeyScope, Vendor, hashKeyBuilder} from './main.js'
+import {HashKeyScope, Vendor, hashKeyBuilder} from './common.js'
 
 export default class FenbiKaoyan extends Vendor {
   public static VENDOR_NAME: string = 'fenbi-kaoyan'
@@ -28,7 +29,7 @@ export default class FenbiKaoyan extends Vendor {
   /**
    * Categories.
    */
-  public async convertQuestions(bank: Bank, category: Category, options?: ConvertOptions): Promise<void> {
+  public async convertQuestions(bank: Bank, category: Category, sheet: Sheet, options?: ConvertOptions): Promise<void> {
     // prepare.
     const cacheClient = this.getCacheClient()
 
@@ -36,6 +37,7 @@ export default class FenbiKaoyan extends Vendor {
     const cacheKeyParams = {
       bankId: bank.id,
       categoryId: category.id,
+      sheetId: sheet.id,
       username: this.getUsername(),
       vendorName: (this.constructor as typeof Vendor).VENDOR_NAME,
     }
@@ -217,7 +219,7 @@ export default class FenbiKaoyan extends Vendor {
   /**
    * Origin questions.
    */
-  public async fetchQuestions(bank: Bank, category: Category, options?: FetchOptions): Promise<void> {
+  public async fetchQuestions(bank: Bank, category: Category, sheet: Sheet, options?: FetchOptions): Promise<void> {
     // prepare.
     const cacheClient = this.getCacheClient()
     const requestConfig = await this.login()
@@ -227,6 +229,7 @@ export default class FenbiKaoyan extends Vendor {
     const cacheKeyParams = {
       bankId: bank.id,
       categoryId: category.id,
+      sheetId: sheet.id,
       username: this.getUsername(),
       vendorName: (this.constructor as typeof Vendor).VENDOR_NAME,
     }
@@ -249,6 +252,25 @@ export default class FenbiKaoyan extends Vendor {
       (key) => key.split(':').pop() as string,
     )
 
+    // sheet.
+    if (sheet.id !== '0') {
+      const exerciseResponse = await axios.post(
+        `https://schoolapi.fenbi.com/kaoyan/api/${bankPrefix}/exercises`,
+        {sheetId: sheet.id, type: 151},
+        lodash.merge({}, requestConfig, {headers: {'Content-Type': 'application/x-www-form-urlencoded'}}),
+      )
+
+      const exerciseId = lodash.get(exerciseResponse.data, 'id', 0)
+
+      await cacheClient.set(
+        exerciseProcessingCacheKey + ':' + exerciseId,
+        lodash.get(exerciseResponse.data, 'sheet.questionIds', []),
+      )
+
+      exerciseIds.push(exerciseId)
+    }
+
+    // refetch.
     if (options?.refetch) {
       for (const [_idx, _chunk] of chunk(questionIds, 100).entries()) {
         exerciseIds.push(`_${_idx}`)
@@ -259,9 +281,12 @@ export default class FenbiKaoyan extends Vendor {
     }
 
     // fetch.
+    let _prevCount = questionIds.length
+    let _times = 0
+
     emitter.emit('questions.fetch.count', questionIds.length)
 
-    while (questionIds.length < category.count || exerciseIds.length > 0) {
+    while ((questionIds.length < sheet.count || exerciseIds.length > 0) && _times < 5) {
       // emit count.
       emitter.emit('questions.fetch.count', questionIds.length)
 
@@ -278,11 +303,7 @@ export default class FenbiKaoyan extends Vendor {
       else {
         const exerciseResponse = await axios.post(
           `https://schoolapi.fenbi.com/kaoyan/api/${bankPrefix}/exercises`,
-          {
-            keypointId: category.id,
-            limit: 100,
-            type: 151,
-          },
+          {keypointId: category.id, limit: 100, type: 151},
           lodash.merge({}, requestConfig, {headers: {'Content-Type': 'application/x-www-form-urlencoded'}}),
         )
 
@@ -315,15 +336,34 @@ export default class FenbiKaoyan extends Vendor {
 
         // answer.
         if (!String(_exerciseId).startsWith('_')) {
+          const elapsedTime = random({integer: true, max: 100, min: 1})
+
+          let {correctAnswer, id: questionId} = _question
+
+          // 101: 翻译. 102: 英语大作文. 103: 英语小作文.
+          if ([101, 102, 103].includes(Number(_question.type))) {
+            correctAnswer = {
+              answer: lodash.get(
+                lodash.find(lodash.get(_question, 'solution.solutionAccessories', []) as never, {
+                  label: 'reference',
+                }),
+                'content',
+                '',
+              ),
+              elapsedTime,
+              type: 204,
+            }
+          }
+
           await axios.post(
             `https://schoolapi.fenbi.com/kaoyan/api/${bankPrefix}/async/exercises/${_exerciseId}/incr`,
             [
               {
-                answer: _question.correctAnswer,
+                answer: correctAnswer,
                 flag: 0,
-                questionId: _question.id,
+                questionId,
                 questionIndex: _questionIdx,
-                time: random({integer: true, max: 10, min: 1}),
+                time: elapsedTime,
               },
             ],
             lodash.merge({}, requestConfig, {params: {forceUpdateAnswer: 1}}),
@@ -348,6 +388,11 @@ export default class FenbiKaoyan extends Vendor {
       }
 
       await cacheClient.del(exerciseProcessingCacheKey + ':' + _exerciseId)
+
+      // repeat fetch.
+      _times = questionIds.length === _prevCount ? _times + 1 : 0
+      _prevCount = questionIds.length
+      emitter.emit('questions.fetch.times', _times)
     }
 
     emitter.emit('questions.fetch.count', questionIds.length)
@@ -355,6 +400,64 @@ export default class FenbiKaoyan extends Vendor {
     await sleep(1000)
 
     emitter.closeListener('questions.fetch.count')
+  }
+
+  /**
+   * Sheet.
+   */
+  @Cacheable({cacheKey: (args) => `${args[0].id}:${args[1].id}`, hashKey: hashKeyBuilder(HashKeyScope.SHEETS)})
+  protected async fetchSheet(bank: Bank, category: Category): Promise<Sheet[]> {
+    // const bankPrefix = lodash.filter(bank.key.split('|')).pop() as string
+    // const requestConfig = await this.login()
+
+    // const moduleResponse = await axios.get(
+    //   `https://schoolapi.fenbi.com/kaoyan/api/${bankPrefix}/course/getCustomExerciseModule/0`,
+    //   requestConfig,
+    // )
+
+    // const modules = lodash.filter(moduleResponse.data.datas ?? [], {keyPointId: Number(category.id)})
+
+    const sheets = [] as Sheet[]
+
+    // for (const module of modules) {
+    //   let page = 0
+    //   let total = 0
+    //   let count = 0
+
+    //   do {
+    //     const sheetResponse = await axios.get(
+    //       `https://schoolapi.fenbi.com/kaoyan/api/${bankPrefix}/course/customExerciseQuestions/0`,
+    //       lodash.merge({}, requestConfig, {params: {moduleId: module.id, pageSize: 100, toPage: page}}),
+    //     )
+
+    //     const sheetPage = sheetResponse.data.data.questionSheetVOPage ?? {
+    //       list: [],
+    //       pageInfo: {currentPage: 0, pageSize: 100, totalItem: 0, totalPage: 1},
+    //     }
+
+    //     // total.
+    //     total = sheetPage.pageInfo.totalItem
+
+    //     // count.
+    //     count += sheetPage.list.length
+
+    //     // page.
+    //     page += 1
+
+    //     // sheets.
+    //     sheets.push(
+    //       ...lodash.map(sheetPage.list, (sheet) => ({
+    //         count: 0,
+    //         id: String(sheet.sheetId),
+    //         name: sheet.content,
+    //       })),
+    //     )
+    //   } while (count < total)
+    // }
+
+    if (sheets.length === 0) sheets.push({count: category.count, id: '0', name: '默认'})
+
+    return sheets
   }
 
   /**

@@ -1,6 +1,6 @@
+import {VendorClass} from './common.js'
 import Demo from './demo.js'
 import FenbiKaoyan from './fenbi-kaoyan.js'
-import {VendorClass} from './main.js'
 
 export default class VendorManager {
   private static vendors: {[key: string]: VendorClass} = {

@@ -2,8 +2,8 @@ import {Flags} from '@oclif/core'
 import inquirer from 'inquirer'
 
 import BaseCommand from '../../base.js'
+import {HashKeyScope} from '../../components/vendor/common.js'
 import VendorManager from '../../components/vendor/index.js'
-import {HashKeyScope} from '../../components/vendor/main.js'
 
 export default class Login extends BaseCommand {
   static description = 'Login to vendor'

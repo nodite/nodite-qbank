@@ -5,6 +5,7 @@ import BaseCommand from '../../base.js'
 import VendorManager from '../../components/vendor/index.js'
 import {Bank} from '../../types/bank.js'
 import {Category} from '../../types/category.js'
+import {Sheet} from '../../types/sheet.js'
 import {emitter} from '../../utils/event.js'
 import {find} from '../../utils/index.js'
 
@@ -23,6 +24,7 @@ Convert questions (./src/commands/question/convert.ts)
     bank: Flags.string({char: 'b', default: '', description: '题库ID/名称/Key'}),
     category: Flags.string({char: 'c', default: '', description: '分类ID/名称'}),
     reconvert: Flags.boolean({char: 'r', default: false, description: '重新转换'}),
+    sheet: Flags.string({char: 's', default: '', description: '试卷ID/名称'}),
   }
 
   async run(): Promise<void> {
@@ -41,8 +43,12 @@ Convert questions (./src/commands/question/convert.ts)
     const categories = await vendor.categories(bank)
     const category = find<Category>(categories, flags.category, {excludeKey: ['children']}) as Category
 
+    // sheet.
+    const sheets = await vendor.sheets(bank, category)
+    const sheet = find<Sheet>(sheets, flags.sheet) as Sheet
+
     // questions.
-    vendor.convertQuestions(bank, category, {reconvert: flags.reconvert})
+    vendor.convertQuestions(bank, category, sheet, {reconvert: flags.reconvert})
 
     // processing.
     const bar = new SingleBar({}, Presets.rect)

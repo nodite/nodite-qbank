@@ -4,6 +4,7 @@ import lodash from 'lodash'
 
 import VendorManager from './components/vendor/index.js'
 import {Bank} from './types/bank.js'
+import {Category} from './types/category.js'
 import {find, findAll} from './utils/index.js'
 
 export default abstract class BaseCommand extends Command {
@@ -59,10 +60,7 @@ export default abstract class BaseCommand extends Command {
         if (_categories.length !== 1) {
           const answers = await inquirer.prompt([
             {
-              choices: lodash.map(_categories, (ct) => {
-                const tags = [ct.fetch ? '[fetch]' : '', ct.convert ? '[convert]' : ''].join(' ')
-                return {name: `${ct.name} ${tags}`, value: ct.name}
-              }),
+              choices: lodash.map(_categories, (ct) => ({name: ct.name, value: ct.name})),
               message: '分类:',
               name: 'category',
               type: 'list',
@@ -70,6 +68,26 @@ export default abstract class BaseCommand extends Command {
           ] as never)
 
           Object.assign(flags, answers)
+        }
+
+        if (lodash.has(flags, 'sheet') && flags.category) {
+          // sheet
+          const category = find<Category>(categories, flags.category) as Category
+          const sheets = await vendor.sheets(bank, category)
+          const _sheets = findAll(sheets, flags.sheet) || sheets
+
+          if (_sheets.length !== 1) {
+            const answers = await inquirer.prompt([
+              {
+                choices: lodash.map(_sheets, (sheet) => ({name: sheet.name, value: sheet.name})),
+                message: '试卷:',
+                name: 'sheet',
+                type: 'list',
+              },
+            ] as never)
+
+            Object.assign(flags, answers)
+          }
         }
       }
     }
