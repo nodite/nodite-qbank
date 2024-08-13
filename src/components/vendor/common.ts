@@ -1,18 +1,15 @@
 import type {CacheRequestConfig} from 'axios-cache-interceptor'
 
-import cacheManager, {CacheClear, CacheKeyBuilder, Cacheable} from '@type-cacheable/core'
+import {CacheClear, CacheKeyBuilder, Cacheable} from '@type-cacheable/core'
 import lodash from 'lodash'
 
 import {Bank} from '../../types/bank.js'
 import {Category} from '../../types/category.js'
-import {ConvertOptions, FetchOptions} from '../../types/common.js'
+import {FetchOptions} from '../../types/common.js'
 import {Sheet} from '../../types/sheet.js'
-import {
-  CACHE_KEY_ORIGIN_QUESTION_ITEM,
-  CACHE_KEY_PREFIX,
-  CACHE_KEY_QUESTION_ITEM,
-  HashKeyScope,
-} from '../cache-pattern.js'
+import {CACHE_KEY_ORIGIN_QUESTION_ITEM, CACHE_KEY_PREFIX, HashKeyScope} from '../cache-pattern.js'
+import {Component} from '../common.js'
+import {OutputClass} from '../output/common.js'
 
 /**
  * Hash key builder
@@ -25,11 +22,9 @@ const hashKeyBuilder = (scope: HashKeyScope, builder?: CacheKeyBuilder): CacheKe
     const tempArgs: Record<string, string> = {scope}
 
     if (context instanceof Vendor) {
-      tempArgs.vendorName = (context.constructor as typeof Vendor).VENDOR_NAME
-      tempArgs.username = context.getUsername()
+      tempArgs.vendorKey = (context.constructor as typeof Vendor).META.key
     } else if (args.length > 0 && args[0] instanceof Vendor) {
-      tempArgs.vendorName = (args[0].constructor as typeof Vendor).VENDOR_NAME
-      tempArgs.username = args[0].getUsername()
+      tempArgs.vendorKey = (args[0].constructor as typeof Vendor).META.key
     }
 
     const hashKeyPrefix = lodash.template(CACHE_KEY_PREFIX)(tempArgs)
@@ -41,25 +36,7 @@ const hashKeyBuilder = (scope: HashKeyScope, builder?: CacheKeyBuilder): CacheKe
 /**
  * Vendor class
  */
-abstract class Vendor {
-  public static VENDOR_NAME: string
-
-  public getCacheClient = () => this.cacheClient
-
-  public getUsername = () => this.username
-
-  private cacheClient = (cacheManager.default.client ?? cacheManager.default.fallbackClient) as cacheManager.CacheClient
-
-  private username: string
-
-  /**
-   * Constructor
-   * @param username
-   */
-  constructor(username: string) {
-    this.username = username
-  }
-
+abstract class Vendor extends Component {
   /**
    * Banks.
    */
@@ -78,18 +55,14 @@ abstract class Vendor {
         bankId: bank.id,
         categoryId: category.id,
         sheetId: '*',
-        username: this.getUsername(),
-        vendorName: (this.constructor as typeof Vendor).VENDOR_NAME,
+        vendorKey: (this.constructor as typeof Vendor).META.key,
       }
 
       const originQuestionItemCacheKey = lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)(cacheKeyParams)
-      const questionItemCacheKey = lodash.template(CACHE_KEY_QUESTION_ITEM)(cacheKeyParams)
 
-      const originQuestionCount = (await this.cacheClient.keys(originQuestionItemCacheKey + ':*')).length
-      const questionCount = (await this.cacheClient.keys(questionItemCacheKey + ':*')).length
+      const originQuestionCount = (await this.getCacheClient().keys(originQuestionItemCacheKey + ':*')).length
 
       category.fetch = originQuestionCount >= category.count
-      category.convert = questionCount >= category.count
     }
 
     return categories
@@ -141,8 +114,8 @@ abstract class Vendor {
    */
   @Cacheable({cacheKey: () => '', hashKey: hashKeyBuilder(HashKeyScope.BANKS)})
   protected async _banks(): Promise<Bank[]> {
-    const vendorName = (this.constructor as typeof Vendor).VENDOR_NAME
-    throw new Error(`Please run 'bank list -v ${vendorName} -u ${this.getUsername()}' command to get banks first.`)
+    const vendorKey = (this.constructor as typeof Vendor).META.key
+    throw new Error(`Please run 'bank list -v ${vendorKey} -u ${this.getUsername()}' command to get banks first.`)
   }
 
   @CacheClear({cacheKey: () => '', hashKey: hashKeyBuilder(HashKeyScope.BANKS)})
@@ -153,8 +126,8 @@ abstract class Vendor {
    */
   @Cacheable({cacheKey: (args) => args[0].id, hashKey: hashKeyBuilder(HashKeyScope.CATEGORIES)})
   protected async _categories(bank: Bank): Promise<Category[]> {
-    const vendorName = (this.constructor as typeof Vendor).VENDOR_NAME
-    const command = `category list -v ${vendorName} -u ${this.getUsername()} -b ${bank.id}`
+    const vendorKey = (this.constructor as typeof Vendor).META.key
+    const command = `category list -v ${vendorKey} -u ${this.getUsername()} -b ${bank.id}`
     throw new Error(`Please run '${command}' command to get categories first.`)
   }
 
@@ -164,13 +137,13 @@ abstract class Vendor {
   /**
    * Login.
    */
-  @Cacheable({cacheKey: () => '', hashKey: hashKeyBuilder(HashKeyScope.LOGIN)})
+  @Cacheable({cacheKey: (_, context) => context.getUsername(), hashKey: hashKeyBuilder(HashKeyScope.LOGIN)})
   protected async _login(): Promise<CacheRequestConfig> {
-    const vendorName = (this.constructor as typeof Vendor).VENDOR_NAME
-    throw new Error(`Please run 'vendor login ${vendorName} -u ${this.getUsername()}' command to login first.`)
+    const vendorKey = (this.constructor as typeof Vendor).META.key
+    throw new Error(`Please run 'vendor login -v ${vendorKey} -u ${this.getUsername()}' command to login first.`)
   }
 
-  @CacheClear({cacheKey: () => '', hashKey: hashKeyBuilder(HashKeyScope.LOGIN)})
+  @CacheClear({cacheKey: (_, context) => context.getUsername(), hashKey: hashKeyBuilder(HashKeyScope.LOGIN)})
   protected async _loginInvalidate(): Promise<void> {}
 
   /**
@@ -178,8 +151,8 @@ abstract class Vendor {
    */
   @Cacheable({cacheKey: (args) => `${args[0].id}:${args[1].id}`, hashKey: hashKeyBuilder(HashKeyScope.SHEETS)})
   protected async _sheets(bank: Bank, category: Category): Promise<Sheet[]> {
-    const vendorName = (this.constructor as typeof Vendor).VENDOR_NAME
-    const command = `sheet list -v ${vendorName} -u ${this.getUsername()} -b ${bank.name} -c ${category.name}`
+    const vendorKey = (this.constructor as typeof Vendor).META.key
+    const command = `sheet list -v ${vendorKey} -u ${this.getUsername()} -b ${bank.name} -c ${category.name}`
     throw new Error(`Please run '${command}' command to get sheets first.`)
   }
 
@@ -189,12 +162,7 @@ abstract class Vendor {
   //
   // abstract
   //
-  public abstract convertQuestions(
-    bank: Bank,
-    category: Category,
-    sheet: Sheet,
-    options?: ConvertOptions,
-  ): Promise<void>
+  public abstract get allowedOutputs(): Record<string, OutputClass>
 
   protected abstract fetchBanks(): Promise<Bank[]>
 

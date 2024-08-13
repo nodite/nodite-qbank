@@ -9,12 +9,12 @@ export enum HashKeyScope {
   SHEETS = 'sheets',
 }
 
-export const CACHE_KEY_PREFIX = '{{vendorName}}:{{username}}:{{scope}}'
+export const CACHE_KEY_PREFIX = '{{vendorKey}}:{{scope}}'
 
 //
 // origin questions.
 //
-export const CACHE_KEY_ORIGIN_QUESTION_PREFIX = `{{vendorName}}:{{username}}:${HashKeyScope.ORIGIN_QUESTIONS}:{{bankId}}:{{categoryId}}:{{sheetId}}`
+export const CACHE_KEY_ORIGIN_QUESTION_PREFIX = `{{vendorKey}}:${HashKeyScope.ORIGIN_QUESTIONS}:{{bankId}}:{{categoryId}}:{{sheetId}}`
 
 export const CACHE_KEY_ORIGIN_QUESTION_PROCESSING = `${CACHE_KEY_ORIGIN_QUESTION_PREFIX}:processing:{{processScope}}`
 
@@ -23,6 +23,8 @@ export const CACHE_KEY_ORIGIN_QUESTION_ITEM = `${CACHE_KEY_ORIGIN_QUESTION_PREFI
 //
 // questions.
 //
-export const CACHE_KEY_QUESTION_PREFIX = `{{vendorName}}:{{username}}:${HashKeyScope.QUESTIONS}:{{bankId}}:{{categoryId}}:{{sheetId}}`
+export const CACHE_KEY_QUESTION_PREFIX = `{{vendorKey}}:${HashKeyScope.QUESTIONS}:{{bankId}}:{{categoryId}}:{{sheetId}}:{{outputKey}}`
 
 export const CACHE_KEY_QUESTION_ITEM = `${CACHE_KEY_QUESTION_PREFIX}:item`
+
+export const CACHE_KEY_QUESTION_UPLOAD = `${CACHE_KEY_QUESTION_PREFIX}:upload`

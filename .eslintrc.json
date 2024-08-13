@@ -22,9 +22,12 @@
     "no-warning-comments": "off",
     "semi": ["error", "never"],
     "valid-jsdoc": "off",
-    "@typescript-eslint/no-explicit-any": "warn",
+    "@typescript-eslint/no-explicit-any": "off",
     "new-cap": "off",
     "camelcase": "off",
-    "no-await-in-loop": "off"
+    "no-await-in-loop": "off",
+    "import/default": "off",
+    "import/no-named-as-default-member": "off",
+    "unicorn/no-array-for-each": "off"
   }
 }

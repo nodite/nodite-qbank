@@ -9,156 +9,28 @@ import UserAgent from 'user-agents'
 
 import {Bank} from '../../types/bank.js'
 import {Category} from '../../types/category.js'
-import {AssertString, ConvertOptions, FetchOptions} from '../../types/common.js'
-import {Question, QuestionType} from '../../types/question.js'
+import {FetchOptions} from '../../types/common.js'
 import {Sheet} from '../../types/sheet.js'
 import axios from '../../utils/axios.js'
 import {emitter} from '../../utils/event.js'
 import {PUBLIC_KEY, encrypt} from '../../utils/fenbi.js'
-import * as parser from '../../utils/parser.js'
-import {
-  CACHE_KEY_ORIGIN_QUESTION_ITEM,
-  CACHE_KEY_ORIGIN_QUESTION_PROCESSING,
-  CACHE_KEY_QUESTION_ITEM,
-} from '../cache-pattern.js'
+import {CACHE_KEY_ORIGIN_QUESTION_ITEM, CACHE_KEY_ORIGIN_QUESTION_PROCESSING} from '../cache-pattern.js'
+import {OutputClass} from '../output/common.js'
+import Markji from '../output/fenbi/markji.js'
+import File from '../output/file.js'
 import {HashKeyScope, Vendor, hashKeyBuilder} from './common.js'
 
 export default class FenbiKaoyan extends Vendor {
-  public static VENDOR_NAME: string = 'fenbi-kaoyan'
+  public static META = {key: 'fenbi-kaoyan', name: '粉笔考研'}
 
   /**
-   * Categories.
+   * Allowed outputs.
    */
-  public async convertQuestions(bank: Bank, category: Category, sheet: Sheet, options?: ConvertOptions): Promise<void> {
-    // prepare.
-    const cacheClient = this.getCacheClient()
-
-    // cache key.
-    const cacheKeyParams = {
-      bankId: bank.id,
-      categoryId: category.id,
-      sheetId: sheet.id,
-      username: this.getUsername(),
-      vendorName: (this.constructor as typeof Vendor).VENDOR_NAME,
+  public get allowedOutputs(): Record<string, OutputClass> {
+    return {
+      [File.META.key]: File,
+      [Markji.META.key]: Markji,
     }
-
-    // check origin questions.
-    const originQuestionItemCacheKey = lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)(cacheKeyParams)
-
-    const originQuestionIds = lodash.map(
-      await cacheClient.keys(originQuestionItemCacheKey + ':*'),
-      (key) => key.split(':').pop() as string,
-    )
-
-    // check questions.
-    const questionItemCacheKey = lodash.template(CACHE_KEY_QUESTION_ITEM)(cacheKeyParams)
-
-    if (options?.reconvert) {
-      await cacheClient.delHash(questionItemCacheKey + ':*')
-    }
-
-    const questionIds = lodash.map(
-      await cacheClient.keys(questionItemCacheKey + ':*'),
-      (key) => key.split(':').pop() as string,
-    )
-
-    const diffQuestionIds = lodash.difference(originQuestionIds, questionIds)
-
-    // convert.
-    emitter.emit('questions.convert.count', questionIds.length)
-
-    for (const _questionId of diffQuestionIds) {
-      // emit.
-      emitter.emit('questions.convert.count', questionIds.length)
-
-      const _originQuestion = await cacheClient.get(originQuestionItemCacheKey + ':' + _questionId)
-
-      const {
-        accessories,
-        content: _content,
-        correctAnswer: _correctAnswer,
-        solution: _solution,
-        type: _type,
-      } = _originQuestion
-
-      // ====================
-      const _questionType: QuestionType = ((_type) => {
-        if (_type === 1) return 'SingleChoice'
-        if (_type === 2) return 'MultiChoice'
-        if (_type === 61) return 'BlankFilling'
-        throw new Error('Unknown question type')
-      })(_type)
-
-      const _question = {
-        content: await parser.html(_content),
-        id: _questionId,
-        solution: await parser.html(_solution.solution),
-        type: _questionType,
-      } as Question
-
-      // ====================
-      // accessories.
-      const _accessories = lodash.filter(
-        accessories,
-        (accessory) =>
-          ![1001].includes(accessory.type) ||
-          // 1001: choiceTranslations
-          (accessory.type === 1001 && !lodash.isEmpty(accessory.choiceTranslations)),
-      )
-
-      // multi accessories.
-      if (_accessories.length === 0) {
-        _question.answerAccessory = undefined
-      }
-      // todo: multi accessories.
-      else if (_accessories.length > 1) {
-        console.log(JSON.stringify(_originQuestion, null, 2))
-        throw new Error('Multi accessories')
-      }
-      // 101: choice. 102: pure choice.
-      else if (_accessories[0].type === 101 || _accessories[0].type === 102) {
-        _question.answerAccessory = await Promise.all(
-          lodash.map(_accessories[0].options, (option) => parser.html(option)),
-        )
-      }
-      // unknown.
-      else {
-        console.log(JSON.stringify(_originQuestion, null, 2))
-        throw new Error('Unknown accessories type')
-      }
-
-      // ====================
-      // answer.
-      // 201: choice.
-      if (_correctAnswer.type === 201) {
-        _question.answer = lodash.map(
-          _correctAnswer.choice.split(','),
-          (choice) => (_question.answerAccessory as AssertString[])[choice],
-        )
-      }
-      // 202: blank filling.
-      else if (_correctAnswer.type === 202) {
-        _question.answer = await Promise.all(lodash.map(_correctAnswer.blanks, (blank) => parser.html(blank)))
-      }
-      // unknown.
-      else {
-        console.log(JSON.stringify(_originQuestion, null, 2))
-        throw new Error('Unknown answer type')
-      }
-
-      // ====================
-      await cacheClient.set(questionItemCacheKey + ':' + _questionId, _question)
-
-      if (!questionIds.includes(_questionId)) questionIds.push(_questionId)
-
-      await sleep(100)
-    }
-
-    emitter.emit('questions.convert.count', questionIds.length)
-
-    await sleep(1000)
-
-    emitter.closeListener('questions.convert.count')
   }
 
   /**
@@ -230,8 +102,7 @@ export default class FenbiKaoyan extends Vendor {
       bankId: bank.id,
       categoryId: category.id,
       sheetId: sheet.id,
-      username: this.getUsername(),
-      vendorName: (this.constructor as typeof Vendor).VENDOR_NAME,
+      vendorKey: (this.constructor as typeof Vendor).META.key,
     }
 
     const questionItemCacheKey = lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)(cacheKeyParams)
@@ -407,63 +278,13 @@ export default class FenbiKaoyan extends Vendor {
    */
   @Cacheable({cacheKey: (args) => `${args[0].id}:${args[1].id}`, hashKey: hashKeyBuilder(HashKeyScope.SHEETS)})
   protected async fetchSheet(bank: Bank, category: Category): Promise<Sheet[]> {
-    // const bankPrefix = lodash.filter(bank.key.split('|')).pop() as string
-    // const requestConfig = await this.login()
-
-    // const moduleResponse = await axios.get(
-    //   `https://schoolapi.fenbi.com/kaoyan/api/${bankPrefix}/course/getCustomExerciseModule/0`,
-    //   requestConfig,
-    // )
-
-    // const modules = lodash.filter(moduleResponse.data.datas ?? [], {keyPointId: Number(category.id)})
-
-    const sheets = [] as Sheet[]
-
-    // for (const module of modules) {
-    //   let page = 0
-    //   let total = 0
-    //   let count = 0
-
-    //   do {
-    //     const sheetResponse = await axios.get(
-    //       `https://schoolapi.fenbi.com/kaoyan/api/${bankPrefix}/course/customExerciseQuestions/0`,
-    //       lodash.merge({}, requestConfig, {params: {moduleId: module.id, pageSize: 100, toPage: page}}),
-    //     )
-
-    //     const sheetPage = sheetResponse.data.data.questionSheetVOPage ?? {
-    //       list: [],
-    //       pageInfo: {currentPage: 0, pageSize: 100, totalItem: 0, totalPage: 1},
-    //     }
-
-    //     // total.
-    //     total = sheetPage.pageInfo.totalItem
-
-    //     // count.
-    //     count += sheetPage.list.length
-
-    //     // page.
-    //     page += 1
-
-    //     // sheets.
-    //     sheets.push(
-    //       ...lodash.map(sheetPage.list, (sheet) => ({
-    //         count: 0,
-    //         id: String(sheet.sheetId),
-    //         name: sheet.content,
-    //       })),
-    //     )
-    //   } while (count < total)
-    // }
-
-    if (sheets.length === 0) sheets.push({count: category.count, id: '0', name: '默认'})
-
-    return sheets
+    return [{count: category.count, id: '0', name: '默认'}]
   }
 
   /**
    * Login.
    */
-  @Cacheable({cacheKey: () => '', hashKey: hashKeyBuilder(HashKeyScope.LOGIN)})
+  @Cacheable({cacheKey: (_, context) => context.getUsername(), hashKey: hashKeyBuilder(HashKeyScope.LOGIN)})
   protected async toLogin(password: string): Promise<CacheRequestConfig> {
     const userAgent = new UserAgent({
       deviceCategory: 'mobile',

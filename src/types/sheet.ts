@@ -3,3 +3,7 @@ export type Sheet = {
   id: string
   name: string
 }
+
+export type MarkjiSheet = {
+  cardIds: string[]
+} & Sheet

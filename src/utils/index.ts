@@ -1,21 +1,35 @@
+import fs from 'fs-extra'
 import lodash from 'lodash'
 
 export type FindOptions<T = object> = {
   excludeKey?: (keyof T)[]
+  fuzzy?: boolean
 }
 
 export function find<T>(items: T[], substring: unknown, options?: FindOptions<T>): T | undefined {
   return lodash.find(items, (item) => {
     if (lodash.isArray(item)) {
-      return Boolean(find(item, substring))
+      return (
+        // accurate
+        Boolean(find(item, substring, {...options, fuzzy: false})) ||
+        // fuzzy
+        Boolean(find(item, substring, {...options, fuzzy: true}))
+      )
     }
 
     if (lodash.isObject(item)) {
-      const subItems = Object.values(options?.excludeKey ? lodash.omit(item, options.excludeKey) : item)
-      return Boolean(find(subItems, substring))
+      const subItems: never[] = Object.values(options?.excludeKey ? lodash.omit(item, options.excludeKey) : item)
+      return (
+        // accurate
+        Boolean(find(subItems, substring, {...options, fuzzy: false})) ||
+        // fuzzy
+        Boolean(find(subItems, substring, {...options, fuzzy: true}))
+      )
     }
 
-    return lodash.toString(item).includes(lodash.toString(substring))
+    return options?.fuzzy
+      ? lodash.toString(item).includes(lodash.toString(substring))
+      : lodash.isEqual(lodash.toString(item), lodash.toString(substring))
   })
 }
 
@@ -32,4 +46,9 @@ export function findAll<T>(items: T[], substring: unknown, options?: FindOptions
 
     return lodash.toString(item).includes(lodash.toString(substring))
   })
+}
+
+export function throwError(message: string, data: unknown): never {
+  fs.writeJsonSync('tmp/error.json', {data, message}, {spaces: 2})
+  throw new Error(message)
 }

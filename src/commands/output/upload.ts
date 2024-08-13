@@ -9,31 +9,36 @@ import {Sheet} from '../../types/sheet.js'
 import {emitter} from '../../utils/event.js'
 import {find} from '../../utils/index.js'
 
-export default class Convert extends BaseCommand {
+export default class Upload extends BaseCommand {
   static args = {}
 
-  static description = 'Convert questions'
+  static description = 'Upload questions'
 
   static example = [
     `<%= config.bin %> <%= command.id %>
-Convert questions (./src/commands/question/convert.ts)
+Upload questions (./src/commands/output/upload.ts)
 `,
   ]
 
   static flags = {
     bank: Flags.string({char: 'b', default: '', description: '题库ID/名称/Key'}),
     category: Flags.string({char: 'c', default: '', description: '分类ID/名称'}),
-    reconvert: Flags.boolean({char: 'r', default: false, description: '重新转换'}),
+    output: Flags.string({char: 'o', default: '', description: '接收方'}),
+    outputUsername: Flags.string({default: '', description: '接收方用户名'}),
+    reupload: Flags.boolean({char: 'r', default: false, description: '重新上传'}),
     sheet: Flags.string({char: 's', default: '', description: '试卷ID/名称'}),
   }
 
   async run(): Promise<void> {
-    const {flags} = await this.parse(Convert)
+    const {flags} = await this.parse(Upload)
 
     await this.ensureFlags(flags)
 
     // vendor.
     const vendor = new (VendorManager.getClass(flags.vendor))(flags.username)
+
+    // output.
+    const output = new vendor.allowedOutputs[flags.output](flags.username, flags.outputUsername)
 
     // bank.
     const banks = await vendor.banks()
@@ -47,15 +52,15 @@ Convert questions (./src/commands/question/convert.ts)
     const sheets = await vendor.sheets(bank, category)
     const sheet = find<Sheet>(sheets, flags.sheet) as Sheet
 
-    // questions.
-    vendor.convertQuestions(bank, category, sheet, {reconvert: flags.reconvert})
+    // upload.
+    output.upload({bank, category, sheet, vendor}, {reupload: flags.reupload})
 
     // processing.
     const bar = new SingleBar({}, Presets.rect)
 
-    bar.start(category.count, 0)
+    bar.start(sheet.count || 1, 0)
 
-    for await (const data of emitter.listener('questions.convert.count')) {
+    for await (const data of emitter.listener('output.upload.count')) {
       bar.update(data as number)
     }
 

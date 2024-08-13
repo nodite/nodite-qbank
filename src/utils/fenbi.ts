@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import * as playwright from 'playwright'
 
 export const PUBLIC_KEY =

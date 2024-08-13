@@ -10,3 +10,11 @@ export type FetchOptions = {
 export type ConvertOptions = {
   reconvert?: boolean
 }
+
+export type ImageOptions = {
+  width?: number
+}
+
+export type UploadOptions = {
+  reupload?: boolean
+}

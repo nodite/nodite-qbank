@@ -6,21 +6,23 @@ import {Bank} from '../../types/bank.js'
 import {Category} from '../../types/category.js'
 import {FetchOptions} from '../../types/common.js'
 import {Sheet} from '../../types/sheet.js'
+import {OutputClass} from '../output/common.js'
+import File from '../output/file.js'
 import {HashKeyScope, Vendor, hashKeyBuilder} from './common.js'
 
 export default class Demo extends Vendor {
-  public static VENDOR_NAME: string = 'demo'
+  public static META = {key: 'demo', name: 'Demo'}
 
-  public async convertQuestions(_bank: Bank, _category: Category): Promise<void> {
-    throw new Error('Method not implemented.')
+  public get allowedOutputs(): Record<string, OutputClass> {
+    return {
+      [File.META.key]: File,
+    }
   }
 
-  @Cacheable({cacheKey: () => '', hashKey: hashKeyBuilder(HashKeyScope.BANKS)})
   protected async fetchBanks(): Promise<Bank[]> {
     throw new Error('Method not implemented.')
   }
 
-  @Cacheable({cacheKey: (args) => args[0].id, hashKey: hashKeyBuilder(HashKeyScope.CATEGORIES)})
   protected async fetchCategories(_bank: Bank): Promise<Category[]> {
     throw new Error('Method not implemented.')
   }
@@ -29,16 +31,18 @@ export default class Demo extends Vendor {
     throw new Error('Method not implemented.')
   }
 
-  public fetchSheet(_bank: Bank, _category: Category, _options?: FetchOptions): Promise<Sheet[]> {
+  public async fetchSheet(_bank: Bank, _category: Category, _options?: FetchOptions): Promise<Sheet[]> {
     throw new Error('Method not implemented.')
   }
 
-  @Cacheable({cacheKey: () => '', hashKey: hashKeyBuilder(HashKeyScope.LOGIN)})
+  @Cacheable({
+    cacheKey: (_, context) => context.getUsername(),
+    hashKey: hashKeyBuilder(HashKeyScope.LOGIN),
+  })
   protected async toLogin(password: string): Promise<CacheRequestConfig> {
-    const username = this.getUsername()
     return {
       headers: {password},
-      params: {username},
+      params: {username: this.getUsername()},
     }
   }
 }

@@ -7,13 +7,14 @@ const axiosInstance = setupCache(Axios, {
   ttl: 1000 * 60,
 })
 
-axiosInstance.interceptors.request.use(
+axiosInstance.interceptors.response.use(
   (response) => {
     return response
   },
   (error) => {
     console.log('request:', error?.request?.path)
-    console.log('error:', error)
+    console.log('response:', error?.response?.data)
+    // console.log('error:', error)
     return Promise.reject(error)
   },
 )
