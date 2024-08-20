@@ -90,6 +90,17 @@ export default class Markji extends Output {
           break
         }
 
+        // 5. TrueOrFlase, 判断题
+        case 5: {
+          if (!lodash.some(_originQuestion.accessories, {type: 101})) {
+            _originQuestion.accessories.push({options: [{text: '正确'}, {text: '错误'}], type: 101})
+          }
+
+          output = await this._processChoice(_originQuestion)
+
+          break
+        }
+
         // 61. BlankFilling, 填空题
         case 61: {
           output = await this._processBlankFilling(_originQuestion)
