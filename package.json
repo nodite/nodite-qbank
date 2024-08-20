@@ -56,7 +56,7 @@
     "@types/lodash": "^4",
     "@types/md5": "^2.3.5",
     "@types/mocha": "^10",
-    "@types/node": "^18",
+    "@types/node": "^22",
     "@types/puppeteer": "^7.0.4",
     "@types/random-number": "^0.0.4",
     "@types/streamifier": "^0.1.2",
