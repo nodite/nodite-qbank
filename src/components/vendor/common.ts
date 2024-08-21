@@ -78,11 +78,19 @@ abstract class Vendor extends Component {
       }
 
       case HashKeyScope.CATEGORIES: {
-        return bank ? this._categoriesInvalidate(bank) : Promise.resolve()
+        if (!bank) {
+          throw new Error('Bank is required')
+        }
+
+        return this._categoriesInvalidate(bank)
       }
 
       case HashKeyScope.SHEETS: {
-        return bank && category ? this._sheetsInvalidate(bank, category) : Promise.resolve()
+        if (!bank || !category) {
+          throw new Error('Bank and Category are required')
+        }
+
+        return this._sheetsInvalidate(bank, category)
       }
 
       case HashKeyScope.LOGIN: {

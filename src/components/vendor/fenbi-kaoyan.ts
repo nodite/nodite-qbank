@@ -57,11 +57,13 @@ export default class FenbiKaoyan extends Vendor {
         lodash.get(bank, 'course.prefix', ''),
         lodash.get(bank, 'quiz.prefix', ''),
       ].join('|'),
-      name: [
-        lodash.get(bank, 'courseSet.name', ''),
-        lodash.get(bank, 'course.name', ''),
-        lodash.get(bank, 'quiz.name', ''),
-      ].join('|'),
+      name: lodash
+        .filter([
+          lodash.get(bank, 'courseSet.name', ''),
+          lodash.get(bank, 'course.name', ''),
+          lodash.get(bank, 'quiz.name', ''),
+        ])
+        .join(' > '),
     }))
   }
 

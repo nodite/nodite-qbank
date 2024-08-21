@@ -13,12 +13,7 @@ import {emitter} from '../../../utils/event.js'
 import html from '../../../utils/html.js'
 import {find, throwError} from '../../../utils/index.js'
 import parser from '../../../utils/parser.js'
-import {
-  CACHE_KEY_ORIGIN_QUESTION_ITEM,
-  CACHE_KEY_QUESTION_ITEM,
-  CACHE_KEY_QUESTION_UPLOAD,
-  HashKeyScope,
-} from '../../cache-pattern.js'
+import {CACHE_KEY_ORIGIN_QUESTION_ITEM, CACHE_KEY_QUESTION_ITEM, HashKeyScope} from '../../cache-pattern.js'
 import {Vendor} from '../../vendor/common.js'
 import VendorManager from '../../vendor/index.js'
 import {Output, Params} from '../common.js'
@@ -152,8 +147,9 @@ export default class Markji extends Output {
     const requestConfig = await markji.login()
 
     // markji folders.
-    let folders = await markji.banks()
-    let folder = find<Bank>(folders, vendorMeta.name) as Bank
+    await markji.invalidate(HashKeyScope.BANKS)
+    const folders = await markji.banks()
+    let folder = find<Bank>(folders, vendorMeta.name)
 
     if (!folder) {
       await axios.post(
@@ -161,14 +157,16 @@ export default class Markji extends Output {
         {name: vendorMeta.name, order: folders.length},
         requestConfig,
       )
+
+      await sleep(500)
       await markji.invalidate(HashKeyScope.BANKS)
-      folders = await markji.banks()
-      folder = find<Bank>(folders, vendorMeta.name) as Bank
+      folder = find<Bank>(await markji.banks(), vendorMeta.name) as Bank
     }
 
     // markji decks.
-    let decks = await markji.categories(folder)
-    let deck = find<Category>(decks, params.bank.name) as Category
+    await markji.invalidate(HashKeyScope.CATEGORIES, folder)
+    const decks = await markji.categories(folder)
+    let deck = find<Category>(decks, params.bank.name)
 
     if (!deck) {
       await axios.post(
@@ -176,14 +174,16 @@ export default class Markji extends Output {
         {folder_id: folder.id, is_private: false, name: params.bank.name},
         requestConfig,
       )
+
+      await sleep(500)
       await markji.invalidate(HashKeyScope.CATEGORIES, folder)
-      decks = await markji.categories(folder)
-      deck = find<Category>(decks, params.bank.name) as Category
+      deck = find<Category>(await markji.categories(folder), params.bank.name) as Category
     }
 
     // markji chapters.
-    let chapters = (await markji.sheets(folder, deck)) as MarkjiSheet[]
-    let chapter = find<MarkjiSheet>(chapters, params.category.name) as MarkjiSheet
+    await markji.invalidate(HashKeyScope.SHEETS, folder, deck)
+    const chapters = (await markji.sheets(folder, deck)) as MarkjiSheet[]
+    let chapter = find<MarkjiSheet>(chapters, params.category.name)
 
     if (!chapter) {
       await axios.post(
@@ -191,9 +191,13 @@ export default class Markji extends Output {
         {name: params.category.name, order: chapters.length},
         requestConfig,
       )
+
+      await sleep(500)
       await markji.invalidate(HashKeyScope.SHEETS, folder, deck)
-      chapters = (await markji.sheets(folder, deck)) as MarkjiSheet[]
-      chapter = find<MarkjiSheet>(chapters, params.category.name) as MarkjiSheet
+      chapter = find<MarkjiSheet>(
+        (await markji.sheets(folder, deck)) as MarkjiSheet[],
+        params.category.name,
+      ) as MarkjiSheet
     }
 
     return {chapter, deck, folder}
@@ -207,10 +211,7 @@ export default class Markji extends Output {
 
     const requestConfig = await markji.login()
     const cacheClient = this.getCacheClient()
-
-    let markjiInfo = await this.getMarkjiInfo(params)
-    await markji.invalidate(HashKeyScope.SHEETS, markjiInfo.folder, markjiInfo.deck)
-    markjiInfo = await this.getMarkjiInfo(params)
+    const markjiInfo = await this.getMarkjiInfo(params)
 
     // cache key
     const cacheKeyParams = {
@@ -228,8 +229,7 @@ export default class Markji extends Output {
       // asc.
       .sort((a, b) => Number(a) - Number(b))
 
-    const questionUploadCacheKey = lodash.template(CACHE_KEY_QUESTION_UPLOAD)(cacheKeyParams)
-    const questionUploadedCount = options?.reupload ? 0 : (await cacheClient.get(questionUploadCacheKey)) || 0
+    const questionUploadedCount = options?.reupload ? 0 : markjiInfo.chapter.count || 0
 
     // upload.
     emitter.emit('output.upload.count', questionUploadedCount || 0)
@@ -274,7 +274,6 @@ export default class Markji extends Output {
           ))
 
       // emit.
-      await cacheClient.set(questionUploadCacheKey, _questionIdx + 1)
       emitter.emit('output.upload.count', _questionIdx + 1)
       await sleep(500)
     }
@@ -352,7 +351,7 @@ export default class Markji extends Output {
     const htmlStyle = [
       '<style type="text/css">',
       'html { font-size: 42px; }',
-      `img { min-height: ${42 + (42 * 12) / 42}px; }`,
+      `img { min-height: 42px; }`,
       '</style>',
     ].join(' ')
 
@@ -407,16 +406,18 @@ export default class Markji extends Output {
 
         // 102: 富文本选项
         case 102: {
+          const _htmlStyle = ['<style type="text/css">', 'p { display: inline-block; }', '</style>'].join(' ')
+
           // add A/B/C/D/... prefix for options
           const _options: string[] = []
 
           for (const option of accessory.options) {
             const point = String.fromCodePoint(65 + _options.length)
-            _options.push(`${point}. ${option.text}`)
+            _options.push(`${point}. ${option}`)
             _meta.options.push({asserts: [] as never, text: point})
           }
 
-          const _optionsContent = await html.toImage(`${htmlStyle}\n${_options.join('<br>')}`)
+          const _optionsContent = await html.toImage(`${htmlStyle}\n${_htmlStyle}\n${_options.join('<br>')}`)
 
           _meta.content.text += `\n${_optionsContent.text}`
           _meta.content.asserts = lodash.merge({}, _meta.content.asserts, _optionsContent.asserts)
@@ -572,7 +573,12 @@ export default class Markji extends Output {
     // _translation.
     const translation = find<any>(question.solution.solutionAccessories, 'reference')
     if (!translation) throwError('Unsupported solution accessory.', question)
+
     _meta.translation = await html.toText(translation.content)
+
+    if (_meta.translation.text.length > 800 || find(Object.values(_meta.translation.asserts), 'data:')) {
+      _meta.translation = await html.toImage(translation.content)
+    }
 
     // ===========================
     // _explain.
@@ -603,7 +609,7 @@ export default class Markji extends Output {
         .replaceAll('\n', '<br>'),
     )
 
-    output.asserts = lodash.merge({}, _meta.content.asserts, _meta.explain.asserts)
+    output.asserts = lodash.merge({}, _meta.content.asserts, _meta.translation.asserts, _meta.explain.asserts)
 
     return output
   }
