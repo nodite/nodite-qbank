@@ -23,7 +23,7 @@ List categories (./src/commands/category/list.ts)
 
   static flags = {
     bank: Flags.string({char: 'b', default: '', description: '题库ID/名称/Key'}),
-    invalidate: Flags.boolean({char: 'i', default: false, description: '清除缓存'}),
+    clean: Flags.boolean({char: 'r', default: false, description: '清除缓存'}),
     rich: Flags.boolean({default: false, description: '详细信息'}),
   }
 
@@ -40,7 +40,7 @@ List categories (./src/commands/category/list.ts)
     const bank = find<Bank>(banks, flags.bank) as Bank
 
     // categories.
-    if (flags.invalidate) await vendor.invalidate(HashKeyScope.CATEGORIES, bank)
+    if (flags.clean) await vendor.invalidate(HashKeyScope.CATEGORIES, bank)
 
     const categories = await vendor.categories(bank)
 

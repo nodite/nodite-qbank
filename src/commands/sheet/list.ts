@@ -22,7 +22,7 @@ List sheets (./src/commands/sheet/list.ts)
   static flags = {
     bank: Flags.string({char: 'b', default: '', description: '题库ID/名称/Key'}),
     category: Flags.string({char: 'c', default: '', description: '分类ID/名称/Key'}),
-    invalidate: Flags.boolean({char: 'i', default: false, description: '清除缓存'}),
+    clean: Flags.boolean({char: 'r', default: false, description: '清除缓存'}),
   }
 
   async run(): Promise<void> {
@@ -42,7 +42,7 @@ List sheets (./src/commands/sheet/list.ts)
     const category = find<Category>(categories, flags.category) as Category
 
     // Invalidate cache.
-    if (flags.invalidate) await vendor.invalidate(HashKeyScope.SHEETS, bank, category)
+    if (flags.clean) await vendor.invalidate(HashKeyScope.SHEETS, bank, category)
 
     // sheets.
     const sheets = await vendor.sheets(bank, category)

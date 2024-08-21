@@ -6,7 +6,7 @@ export type FindOptions<T = object> = {
   fuzzy?: boolean
 }
 
-export function find<T>(items: T[], substring: unknown, options?: FindOptions<T>): T | undefined {
+export function find<T>(items: T[], substring: string, options?: FindOptions<T>): T | undefined {
   return lodash.find(items, (item) => {
     if (lodash.isArray(item)) {
       return (
@@ -27,24 +27,34 @@ export function find<T>(items: T[], substring: unknown, options?: FindOptions<T>
       )
     }
 
+    if (lodash.isEmpty(substring)) return true
+
     return options?.fuzzy
       ? lodash.toString(item).includes(lodash.toString(substring))
       : lodash.isEqual(lodash.toString(item), lodash.toString(substring))
   })
 }
 
-export function findAll<T>(items: T[], substring: unknown, options?: FindOptions<T>): T[] {
+export function findAll<T>(items: T[], substring: string | string[], options?: FindOptions<T>): T[] {
   return lodash.filter(items, (item) => {
     if (lodash.isArray(item)) {
-      return !lodash.isEmpty(findAll(item, substring))
+      return !lodash.isEmpty(findAll(item, substring, options))
     }
 
     if (lodash.isObject(item)) {
-      const subItems = Object.values(options?.excludeKey ? lodash.omit(item, options.excludeKey) : item)
-      return !lodash.isEmpty(findAll(subItems, substring))
+      const subItems = Object.values(options?.excludeKey ? lodash.omit(item, options.excludeKey) : item) as any[]
+      return !lodash.isEmpty(findAll(subItems, substring, options))
     }
 
-    return lodash.toString(item).includes(lodash.toString(substring))
+    const _strs = lodash.filter(lodash.isArray(substring) ? substring : [substring])
+
+    if (lodash.isEmpty(_strs)) return true
+
+    return lodash.some(_strs, (str) =>
+      options?.fuzzy
+        ? lodash.toString(item).includes(lodash.toString(str))
+        : lodash.isEqual(lodash.toString(item), lodash.toString(str)),
+    )
   })
 }
 

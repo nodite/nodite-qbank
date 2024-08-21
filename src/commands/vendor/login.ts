@@ -15,7 +15,7 @@ Login to vendor (./src/commands/vendor/login.ts)
   ]
 
   static flags = {
-    invalidate: Flags.boolean({char: 'i', default: false, description: '清除缓存'}),
+    clean: Flags.boolean({char: 'r', default: false, description: '清除缓存'}),
     password: Flags.string({char: 'p', default: '', description: '密码'}),
   }
 
@@ -33,7 +33,7 @@ Login to vendor (./src/commands/vendor/login.ts)
     // Login to vendor
     const vendor = new (VendorManager.getClass(flags.vendor))(flags.username)
 
-    if (flags.invalidate) await vendor.invalidate(HashKeyScope.LOGIN)
+    if (flags.clean) await vendor.invalidate(HashKeyScope.LOGIN)
 
     const config = await vendor.login(flags.password)
 

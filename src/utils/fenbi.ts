@@ -6,7 +6,7 @@ export const PUBLIC_KEY =
   'NQTyfZkw0Uo+MytAkjj17BXOpY4o6+BToi7rRKf' +
   'TGl6J60/XBZcGSzN1XVZ80ElSjaGE8Ocg8wbPN18tbmsy761zN5SuIl'
 
-export async function encrypt(data1: any | null, data2: any | null): Promise<null | string> {
+const encrypt = async (data1: any | null, data2: any | null): Promise<null | string> => {
   const browser = await playwright.webkit.launch()
   const context = await browser.newContext()
   const page = await context.newPage()
@@ -20,3 +20,5 @@ export async function encrypt(data1: any | null, data2: any | null): Promise<nul
   await browser.close()
   return encrypt as string
 }
+
+export default {PUBLIC_KEY, encrypt}

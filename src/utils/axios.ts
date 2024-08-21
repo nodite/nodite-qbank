@@ -4,7 +4,7 @@ import {buildMemoryStorage, setupCache} from 'axios-cache-interceptor'
 const axiosInstance = setupCache(Axios, {
   interpretHeader: false,
   storage: buildMemoryStorage(),
-  ttl: 1000 * 60,
+  ttl: 0, // 0ms
 })
 
 axiosInstance.interceptors.response.use(

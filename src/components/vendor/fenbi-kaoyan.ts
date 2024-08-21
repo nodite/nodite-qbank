@@ -13,11 +13,11 @@ import {FetchOptions} from '../../types/common.js'
 import {Sheet} from '../../types/sheet.js'
 import axios from '../../utils/axios.js'
 import {emitter} from '../../utils/event.js'
-import {PUBLIC_KEY, encrypt} from '../../utils/fenbi.js'
+import fenbi from '../../utils/fenbi.js'
 import {CACHE_KEY_ORIGIN_QUESTION_ITEM, CACHE_KEY_ORIGIN_QUESTION_PROCESSING} from '../cache-pattern.js'
 import {OutputClass} from '../output/common.js'
 import Markji from '../output/fenbi/markji.js'
-import File from '../output/file.js'
+import Skip from '../output/skip.js'
 import {HashKeyScope, Vendor, hashKeyBuilder} from './common.js'
 
 export default class FenbiKaoyan extends Vendor {
@@ -28,8 +28,8 @@ export default class FenbiKaoyan extends Vendor {
    */
   public get allowedOutputs(): Record<string, OutputClass> {
     return {
-      [File.META.key]: File,
       [Markji.META.key]: Markji,
+      [Skip.META.key]: Skip,
     }
   }
 
@@ -43,7 +43,7 @@ export default class FenbiKaoyan extends Vendor {
     const response = await axios.get('https://schoolapi.fenbi.com/kaoyan/api/kaoyan/selected_quiz_list', requestConfig)
 
     if (response.data.length === 0) {
-      throw new Error('请前往 <粉笔考研> App 加入题库')
+      throw new Error('请前往 <粉笔考研> App 加入题库: 练习 > 右上角+号')
     }
 
     return lodash.map(response.data, (bank: unknown) => ({
@@ -308,7 +308,7 @@ export default class FenbiKaoyan extends Vendor {
       'https://login.fenbi.com/api/users/loginV2',
       {
         app: 'web',
-        password: await encrypt(PUBLIC_KEY, password),
+        password: await fenbi.encrypt(fenbi.PUBLIC_KEY, password),
         persistent: 1,
         phone: this.getUsername(),
       },

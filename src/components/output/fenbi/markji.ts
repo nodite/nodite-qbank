@@ -4,16 +4,14 @@ import lodash from 'lodash'
 import sleep from 'sleep-promise'
 import * as streamifier from 'streamifier'
 
-import {Bank} from '../../../types/bank.js'
-import {Category} from '../../../types/category.js'
 import {AssertString, ConvertOptions, UploadOptions} from '../../../types/common.js'
-import {MarkjiSheet} from '../../../types/sheet.js'
 import axios from '../../../utils/axios.js'
 import {emitter} from '../../../utils/event.js'
 import html from '../../../utils/html.js'
 import {find, throwError} from '../../../utils/index.js'
+import markjiUtil from '../../../utils/markji.js'
 import parser from '../../../utils/parser.js'
-import {CACHE_KEY_ORIGIN_QUESTION_ITEM, CACHE_KEY_QUESTION_ITEM, HashKeyScope} from '../../cache-pattern.js'
+import {CACHE_KEY_ORIGIN_QUESTION_ITEM, CACHE_KEY_QUESTION_ITEM} from '../../cache-pattern.js'
 import {Vendor} from '../../vendor/common.js'
 import VendorManager from '../../vendor/index.js'
 import {Output, Params} from '../common.js'
@@ -88,7 +86,7 @@ export default class Markji extends Output {
         // 5. TrueOrFlase, 判断题
         case 5: {
           if (!lodash.some(_originQuestion.accessories, {type: 101})) {
-            _originQuestion.accessories.push({options: [{text: '正确'}, {text: '错误'}], type: 101})
+            _originQuestion.accessories.push({options: ['正确', '错误'], type: 101})
           }
 
           output = await this._processChoice(_originQuestion)
@@ -135,83 +133,14 @@ export default class Markji extends Output {
   }
 
   /**
-   * Markji Info.
-   * | -------------- | --------------- | --------------- |
-   * | Markji Folders | markji.bank     | params.vendor   |
-   * | Markji Decks   | markji.category | params.bank     |
-   * | Markji Chapters| markji.sheet    | params.category |
-   */
-  protected async getMarkjiInfo(params: Params): Promise<{chapter: MarkjiSheet; deck: Category; folder: Bank}> {
-    const vendorMeta = (params.vendor.constructor as typeof Vendor).META
-    const markji = new (VendorManager.getClass('markji'))(this.getOutputUsername())
-    const requestConfig = await markji.login()
-
-    // markji folders.
-    await markji.invalidate(HashKeyScope.BANKS)
-    const folders = await markji.banks()
-    let folder = find<Bank>(folders, vendorMeta.name)
-
-    if (!folder) {
-      await axios.post(
-        'https://www.markji.com/api/v1/decks/folders',
-        {name: vendorMeta.name, order: folders.length},
-        requestConfig,
-      )
-
-      await sleep(500)
-      await markji.invalidate(HashKeyScope.BANKS)
-      folder = find<Bank>(await markji.banks(), vendorMeta.name) as Bank
-    }
-
-    // markji decks.
-    await markji.invalidate(HashKeyScope.CATEGORIES, folder)
-    const decks = await markji.categories(folder)
-    let deck = find<Category>(decks, params.bank.name)
-
-    if (!deck) {
-      await axios.post(
-        'https://www.markji.com/api/v1/decks',
-        {folder_id: folder.id, is_private: false, name: params.bank.name},
-        requestConfig,
-      )
-
-      await sleep(500)
-      await markji.invalidate(HashKeyScope.CATEGORIES, folder)
-      deck = find<Category>(await markji.categories(folder), params.bank.name) as Category
-    }
-
-    // markji chapters.
-    await markji.invalidate(HashKeyScope.SHEETS, folder, deck)
-    const chapters = (await markji.sheets(folder, deck)) as MarkjiSheet[]
-    let chapter = find<MarkjiSheet>(chapters, params.category.name)
-
-    if (!chapter) {
-      await axios.post(
-        `https://www.markji.com/api/v1/decks/${deck.id}/chapters`,
-        {name: params.category.name, order: chapters.length},
-        requestConfig,
-      )
-
-      await sleep(500)
-      await markji.invalidate(HashKeyScope.SHEETS, folder, deck)
-      chapter = find<MarkjiSheet>(
-        (await markji.sheets(folder, deck)) as MarkjiSheet[],
-        params.category.name,
-      ) as MarkjiSheet
-    }
-
-    return {chapter, deck, folder}
-  }
-
-  /**
    * Upload.
    */
   public async upload(params: Params, options?: UploadOptions): Promise<void> {
-    const markji = new (VendorManager.getClass('markji'))(this.getOutputUsername())
+    const markjiVendor = new (VendorManager.getClass('markji'))(this.getOutputUsername())
 
-    const requestConfig = await markji.login()
+    const requestConfig = await markjiVendor.login()
     const cacheClient = this.getCacheClient()
-    const markjiInfo = await this.getMarkjiInfo(params)
+    const markjiInfo = await markjiUtil.getInfo(params, this.getOutputUsername())
 
     // cache key
     const cacheKeyParams = {
@@ -261,17 +190,21 @@ export default class Markji extends Output {
 
       const cardId = markjiInfo.chapter.cardIds[_questionIdx]
 
-      await (cardId
-        ? axios.post(
-            `https://www.markji.com/api/v1/decks/${markjiInfo.deck.id}/cards/${cardId}`,
-            {card: {content: `Q${_questionIdx + 1}.\n${_question.text}`, grammar_version: 3}, order: _questionIdx},
-            requestConfig,
-          )
-        : axios.post(
-            `https://www.markji.com/api/v1/decks/${markjiInfo.deck.id}/chapters/${markjiInfo.chapter.id}/cards`,
-            {card: {content: `Q${_questionIdx + 1}.\n${_question.text}`, grammar_version: 3}, order: _questionIdx},
-            requestConfig,
-          ))
+      try {
+        await (cardId
+          ? axios.post(
+              `https://www.markji.com/api/v1/decks/${markjiInfo.deck.id}/cards/${cardId}`,
+              {card: {content: `Q${_questionIdx + 1}.\n${_question.text}`, grammar_version: 3}, order: _questionIdx},
+              requestConfig,
+            )
+          : axios.post(
+              `https://www.markji.com/api/v1/decks/${markjiInfo.deck.id}/chapters/${markjiInfo.chapter.id}/cards`,
+              {card: {content: `Q${_questionIdx + 1}.\n${_question.text}`, grammar_version: 3}, order: _questionIdx},
+              requestConfig,
+            ))
+      } catch (error) {
+        throwError('Upload failed.', {error, question: _question})
+      }
 
       // emit.
       emitter.emit('output.upload.count', _questionIdx + 1)
@@ -301,10 +234,9 @@ export default class Markji extends Output {
     // ===========================
     // blanks.
     if (question.correctAnswer.type === 202) {
-      const _blanks = question.correctAnswer.blanks[0].split('/')
       for (const [index, assertKey] of Object.keys(_meta.content.asserts).entries()) {
         if (!assertKey.includes('input#')) continue
-        _meta.content.asserts[assertKey] = `[F#${index + 1}#${_blanks[index]}]`
+        _meta.content.asserts[assertKey] = `[F#${index + 1}#${question.correctAnswer.blanks[index]}]`
         _meta.content.text = _meta.content.text.replaceAll(assertKey, _meta.content.asserts[assertKey])
       }
     }
@@ -396,6 +328,11 @@ export default class Markji extends Output {
     // ===========================
     // _options.
     for (const accessory of question.accessories) {
+      // 选项过长，转换为富文本选项
+      if (accessory.type === 101 && accessory.options.join('').length > 800) {
+        accessory.type = 102
+      }
+
       switch (accessory.type) {
         // 101: 选项
         case 101: {
@@ -515,7 +452,7 @@ export default class Markji extends Output {
     if (!lodash.isEmpty(_meta.optionsTrans)) {
       _points.push(
         `[P#L#[T#B#选项翻译]]`,
-        ...lodash.map(_meta.optionsTrans, (value, key) => `${key.trim()}: ${value.trim()}`),
+        ...lodash.map(_meta.optionsTrans, (value, key) => `${(key || '').trim()}: ${(value || '').trim()}`),
       )
     }
 
@@ -572,9 +509,8 @@ export default class Markji extends Output {
     // ===========================
     // _translation.
     const translation = find<any>(question.solution.solutionAccessories, 'reference')
-    if (!translation) throwError('Unsupported solution accessory.', question)
 
-    _meta.translation = await html.toText(translation.content)
+    _meta.translation = translation ? await html.toText(translation.content) : await html.toText('暂无')
 
     if (_meta.translation.text.length > 800 || find(Object.values(_meta.translation.asserts), 'data:')) {
       _meta.translation = await html.toImage(translation.content)

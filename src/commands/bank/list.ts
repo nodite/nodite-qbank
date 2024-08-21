@@ -17,7 +17,7 @@ List banks (./src/commands/course/list.ts)
   ]
 
   static flags = {
-    invalidate: Flags.boolean({char: 'i', default: false, description: '清除缓存'}),
+    clean: Flags.boolean({char: 'r', default: false, description: '清除缓存'}),
   }
 
   async run(): Promise<void> {
@@ -29,7 +29,7 @@ List banks (./src/commands/course/list.ts)
     const vendor = new (VendorManager.getClass(flags.vendor))(flags.username)
 
     // Invalidate cache.
-    if (flags.invalidate) await vendor.invalidate(HashKeyScope.BANKS)
+    if (flags.clean) await vendor.invalidate(HashKeyScope.BANKS)
 
     // banks.
     const banks = await vendor.banks()

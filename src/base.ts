@@ -60,7 +60,7 @@ export default abstract class BaseCommand extends Command {
     const vendor = new (VendorManager.getClass(flags.vendor))(flags.username)
 
     const banks = await vendor.banks()
-    const _banks = findAll(banks, flags.bank) || banks
+    const _banks = findAll(banks, flags.bank as string) || banks
 
     if (_banks.length === 1 && flags.bank) return
 
@@ -88,7 +88,7 @@ export default abstract class BaseCommand extends Command {
 
     const categories = await vendor.categories(bank)
 
-    const _categories = findAll(categories, flags.category, {excludeKey: ['children']}) || categories
+    const _categories = findAll(categories, flags.category as string, {excludeKey: ['children']}) || categories
 
     if (_categories.length === 1 && flags.category) return
 
@@ -114,7 +114,7 @@ export default abstract class BaseCommand extends Command {
 
     const outputs = OutputManager.getMetas(Object.values(vendor.allowedOutputs))
 
-    const _outputs = findAll(outputs, flags.output) || outputs
+    const _outputs = findAll(outputs, flags.output as string) || outputs
 
     const questions = []
 
@@ -155,7 +155,7 @@ export default abstract class BaseCommand extends Command {
 
     const sheets = await vendor.sheets(bank, category)
 
-    const _sheets = findAll(sheets, flags.sheet) || sheets
+    const _sheets = findAll(sheets, flags.sheet as string) || sheets
 
     if (_sheets.length === 1 && flags.sheet) return
 

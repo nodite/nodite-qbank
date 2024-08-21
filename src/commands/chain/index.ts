@@ -6,6 +6,7 @@ import VendorManager from '../../components/vendor/index.js'
 import {Bank} from '../../types/bank.js'
 import {Category} from '../../types/category.js'
 import {Sheet} from '../../types/sheet.js'
+import {findAll} from '../../utils/index.js'
 
 export default class Index extends BaseCommand {
   static args = {}
@@ -19,8 +20,10 @@ Chain to qbank (./src/commands/chain/index.ts)
   ]
 
   static flags = {
-    invalidate: Flags.string({
-      char: 'i',
+    banks: Flags.string({char: 'b', default: '', description: '题库'}),
+    categories: Flags.string({char: 'c', default: '', description: '分类'}),
+    clean: Flags.string({
+      char: 'r',
       default: [],
       description: '清除缓存/重新转换',
       multiple: true,
@@ -28,6 +31,7 @@ Chain to qbank (./src/commands/chain/index.ts)
     }),
     output: Flags.string({char: 'o', default: '', description: '接收方'}),
     outputUsername: Flags.string({default: '', description: '接收方用户名'}),
+    sheets: Flags.string({char: 's', default: '', description: '试卷'}),
   }
 
   async run(): Promise<void> {
@@ -41,17 +45,23 @@ Chain to qbank (./src/commands/chain/index.ts)
     // banks.
     await this._runBankCommand(flags)
 
-    for (const bank of await vendor.banks()) {
+    const _banks = findAll(await vendor.banks(), flags.banks.split(','), {fuzzy: true})
+
+    for (const bank of _banks) {
       this.log('\n---')
 
       this.log(`\n题库: ${bank.name}`)
       await this._runCategoryCommand(flags, bank)
 
-      for (const category of await vendor.categories(bank)) {
+      const _categories = findAll(await vendor.categories(bank), flags.categories.split(','), {fuzzy: true})
+
+      for (const category of _categories) {
         this.log(`\n分类: ${category.name}`)
         await this._runSheetCommand(flags, bank, category)
 
-        for (const sheet of await vendor.sheets(bank, category)) {
+        const _sheets = findAll(await vendor.sheets(bank, category), flags.sheets.split(','), {fuzzy: true})
+
+        for (const sheet of _sheets) {
           this.log(`\n试卷: ${sheet.name}`)
           await this._runQuestionCommand(flags, bank, category, sheet)
 
@@ -66,7 +76,7 @@ Chain to qbank (./src/commands/chain/index.ts)
     this.log('(bank:list)')
     await this.config.runCommand(
       'bank:list',
-      lodash.filter(['-v', flags.vendor, '-u', flags.username, flags.invalidate.includes('bank.list') ? '-i' : '']),
+      lodash.filter(['-v', flags.vendor, '-u', flags.username, flags.clean.includes('bank.list') ? '-r' : '']),
     )
   }
 
@@ -81,7 +91,7 @@ Chain to qbank (./src/commands/chain/index.ts)
         flags.username,
         '-b',
         bank.name,
-        flags.invalidate.includes('category.list') ? '-i' : '',
+        flags.clean.includes('category.list') ? '-r' : '',
       ]),
     )
   }
@@ -105,7 +115,7 @@ Chain to qbank (./src/commands/chain/index.ts)
         flags.output,
         '--outputUsername',
         flags.outputUsername,
-        flags.invalidate.includes('output.convert') ? '-r' : '',
+        flags.clean.includes('output.convert') ? '-r' : '',
       ]),
     )
 
@@ -127,7 +137,7 @@ Chain to qbank (./src/commands/chain/index.ts)
         flags.output,
         '--outputUsername',
         flags.outputUsername,
-        flags.invalidate.includes('output.upload') ? '-r' : '',
+        flags.clean.includes('output.upload') ? '-r' : '',
       ]),
     )
   }
@@ -147,7 +157,7 @@ Chain to qbank (./src/commands/chain/index.ts)
         category.name,
         '-s',
         sheet.name,
-        flags.invalidate.includes('question.fetch') ? '-r' : '',
+        flags.clean.includes('question.fetch') ? '-r' : '',
       ]),
     )
   }
@@ -165,7 +175,7 @@ Chain to qbank (./src/commands/chain/index.ts)
         bank.name,
         '-c',
         category.name,
-        flags.invalidate.includes('sheet.list') ? '-i' : '',
+        flags.clean.includes('sheet.list') ? '-r' : '',
       ]),
     )
   }
