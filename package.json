@@ -64,7 +64,7 @@
     "@types/tmp": "^0",
     "@types/user-agents": "^1",
     "@typescript-eslint/eslint-plugin": "^8",
-    "@typescript-eslint/parser": "^6",
+    "@typescript-eslint/parser": "^8",
     "@typescript-eslint/typescript-estree": "^8",
     "chai": "^4",
     "eslint": "^8",
