@@ -121,7 +121,7 @@ export default class WantikuZikao extends Vendor {
     )
 
     if (options?.refetch) {
-      await cacheClient.del(questionItemCacheKey + ':*')
+      await cacheClient.delHash(questionItemCacheKey + ':*')
       questionIds.length = 0
     }
 

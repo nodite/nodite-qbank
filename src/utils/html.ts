@@ -1,30 +1,26 @@
 import fs from 'fs-extra'
 import {convert} from 'html-to-text'
 import md5 from 'md5'
-import * as puppeteer from 'puppeteer'
 
 import {AssertString, ImageOptions} from '../types/common.js'
 import parser from './parser.js'
+import playwright from './playwright.js'
 
 const toImage = async (html: string, options?: ImageOptions): Promise<AssertString> => {
-  const browser = await puppeteer.launch()
-  const page = await browser.newPage()
+  const page = await playwright.page('html', 'about:blank')
 
-  await page.setViewport({height: 1, width: options?.width || 940})
-  await page.setContent(html.replaceAll(' ', ' <wbr>'), {waitUntil: 'networkidle0'})
+  await page.setViewportSize({height: 1, width: options?.width || 940})
+  await page.setContent(html.replaceAll(' ', ' <wbr>'), {waitUntil: 'networkidle'})
 
   const $ele = await page.$('html')
   const box = await $ele?.boundingBox()
 
   const base64 = await page.screenshot({
     clip: {height: (box?.height || 0) + 5, width: box?.width || 0, x: 0, y: 0},
-    encoding: 'base64',
     type: 'jpeg',
   })
 
-  fs.writeFileSync('tmp/image.jpeg', Buffer.from(base64, 'base64'))
-
-  await browser.close()
+  fs.writeFileSync('tmp/image.jpeg', base64)
 
   const hash = md5(html).slice(0, 8)
 

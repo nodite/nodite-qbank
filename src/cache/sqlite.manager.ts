@@ -1,4 +1,6 @@
 import {sqliteStore} from '@resolid/cache-manager-sqlite'
+import {useAdapter} from '@type-cacheable/cache-manager-adapter'
+import typeCacheableManager, {CacheManagerOptions as TypeCacheManagerOptions} from '@type-cacheable/core'
 import * as cacheManager from 'cache-manager'
 import {join} from 'node:path'
 
@@ -10,5 +12,13 @@ const store = sqliteStore({
 
 const cache = cacheManager.createCache(store)
 
-export default cache
-export {cache, store}
+// Set cacheable manager options
+typeCacheableManager.default.setOptions(<TypeCacheManagerOptions>{
+  debug: true,
+  excludeContext: false,
+  ttlSeconds: 0,
+})
+
+typeCacheableManager.default.setClient(useAdapter(cache))
+
+export default {cache, store}

@@ -11,11 +11,11 @@ import {Sheet} from '../../types/sheet.js'
 import {emitter} from '../../utils/event.js'
 import {CACHE_KEY_ORIGIN_QUESTION_ITEM} from '../cache-pattern.js'
 import {OutputClass} from '../output/common.js'
-import Markji from '../output/file/markji.js'
+import Markji from '../output/json/markji.js'
 import {Vendor} from './common.js'
 
-export default class File extends Vendor {
-  public static META = {key: 'file', name: 'File'}
+export default class JsonFile extends Vendor {
+  public static META = {key: 'json-file', name: 'JSON 文件'}
 
   public get allowedOutputs(): Record<string, OutputClass> {
     return {
@@ -50,7 +50,7 @@ export default class File extends Vendor {
   }
 
   /**
-   * Fetch questions.
+   * Questions.
    */
   public async fetchQuestions(
     bank: Bank,
@@ -76,7 +76,7 @@ export default class File extends Vendor {
     )
 
     if (options?.refetch) {
-      await cacheClient.del(originQuestionItemCacheKey + ':*')
+      await cacheClient.delHash(originQuestionItemCacheKey + ':*')
       questionIds.length = 0
     }
 

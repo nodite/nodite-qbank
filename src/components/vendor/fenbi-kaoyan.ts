@@ -107,7 +107,7 @@ export default class FenbiKaoyan extends Vendor {
       vendorKey: (this.constructor as typeof Vendor).META.key,
     }
 
-    const questionItemCacheKey = lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)(cacheKeyParams)
+    const originQuestionItemCacheKey = lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)(cacheKeyParams)
 
     const exerciseProcessingCacheKey = lodash.template(CACHE_KEY_ORIGIN_QUESTION_PROCESSING)({
       ...cacheKeyParams,
@@ -121,27 +121,27 @@ export default class FenbiKaoyan extends Vendor {
     )
 
     const questionIds = lodash.map(
-      await cacheClient.keys(questionItemCacheKey + ':*'),
+      await cacheClient.keys(originQuestionItemCacheKey + ':*'),
       (key) => key.split(':').pop() as string,
     )
 
     // sheet.
-    if (sheet.id !== '0') {
-      const exerciseResponse = await axios.post(
-        `https://schoolapi.fenbi.com/kaoyan/api/${bankPrefix}/exercises`,
-        {sheetId: sheet.id, type: 151},
-        lodash.merge({}, requestConfig, {headers: {'Content-Type': 'application/x-www-form-urlencoded'}}),
-      )
+    // if (sheet.id !== '0') {
+    //   const exerciseResponse = await axios.post(
+    //     `https://schoolapi.fenbi.com/kaoyan/api/${bankPrefix}/exercises`,
+    //     {sheetId: sheet.id, type: 151},
+    //     lodash.merge({}, requestConfig, {headers: {'Content-Type': 'application/x-www-form-urlencoded'}}),
+    //   )
 
-      const exerciseId = lodash.get(exerciseResponse.data, 'id', 0)
+    //   const exerciseId = lodash.get(exerciseResponse.data, 'id', 0)
 
-      await cacheClient.set(
-        exerciseProcessingCacheKey + ':' + exerciseId,
-        lodash.get(exerciseResponse.data, 'sheet.questionIds', []),
-      )
+    //   await cacheClient.set(
+    //     exerciseProcessingCacheKey + ':' + exerciseId,
+    //     lodash.get(exerciseResponse.data, 'sheet.questionIds', []),
+    //   )
 
-      exerciseIds.push(exerciseId)
-    }
+    //   exerciseIds.push(exerciseId)
+    // }
 
     // refetch.
     if (options?.refetch) {
@@ -205,7 +205,7 @@ export default class FenbiKaoyan extends Vendor {
         _question.solution = lodash.find(_solutions, {id: _question.id})
         _question.materials = lodash.map(_question.materialIndexes || [], (materialIndex) => _materials[materialIndex])
 
-        await cacheClient.set(questionItemCacheKey + ':' + _question.id, _question)
+        await cacheClient.set(originQuestionItemCacheKey + ':' + _question.id, _question)
 
         // answer.
         if (!String(_exerciseId).startsWith('_')) {

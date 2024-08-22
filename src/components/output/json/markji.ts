@@ -119,7 +119,7 @@ export default class Markji extends Output {
       bankId: params.bank.id,
       categoryId: params.category.id,
       outputKey: (this.constructor as typeof Output).META.key,
-      sheetId: params.sheet.id,
+      sheetId: '*', // all sheets.
       vendorKey: (params.vendor.constructor as typeof Vendor).META.key,
     }
 

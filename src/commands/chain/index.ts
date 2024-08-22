@@ -50,22 +50,22 @@ Chain to qbank (./src/commands/chain/index.ts)
     for (const bank of _banks) {
       this.log('\n---')
 
-      this.log(`\n题库: ${bank.name}`)
+      // cateogries.
       await this._runCategoryCommand(flags, bank)
 
       const _categories = findAll(await vendor.categories(bank), flags.categories.split(','), {fuzzy: true})
 
       for (const category of _categories) {
-        this.log(`\n分类: ${category.name}`)
+        // sheets.
         await this._runSheetCommand(flags, bank, category)
 
         const _sheets = findAll(await vendor.sheets(bank, category), flags.sheets.split(','), {fuzzy: true})
 
         for (const sheet of _sheets) {
-          this.log(`\n试卷: ${sheet.name}`)
+          // questions.
           await this._runQuestionCommand(flags, bank, category, sheet)
 
-          this.log(`\n接收方: ${flags.output}`)
+          // output.
           await this._runOutputCommand(flags, bank, category, sheet)
         }
       }

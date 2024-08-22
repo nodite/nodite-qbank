@@ -1,4 +1,5 @@
 import {Command, Flags} from '@oclif/core'
+import colors from 'ansi-colors'
 import inquirer from 'inquirer'
 import lodash from 'lodash'
 
@@ -60,9 +61,12 @@ export default abstract class BaseCommand extends Command {
     const vendor = new (VendorManager.getClass(flags.vendor))(flags.username)
 
     const banks = await vendor.banks()
-    const _banks = findAll(banks, flags.bank as string) || banks
+    const _banks = findAll(banks, flags.bank as string, {fuzzy: true}) || banks
 
-    if (_banks.length === 1 && flags.bank) return
+    if (_banks.length === 1 && flags.bank) {
+      console.log(`${colors.green('✔')} ${colors.bold('题库')}: ${colors.cyan(_banks[0].name)}`)
+      return
+    }
 
     const answers = await inquirer.prompt([
       {
@@ -88,9 +92,13 @@ export default abstract class BaseCommand extends Command {
 
     const categories = await vendor.categories(bank)
 
-    const _categories = findAll(categories, flags.category as string, {excludeKey: ['children']}) || categories
+    const _categories =
+      findAll(categories, flags.category as string, {excludeKey: ['children'], fuzzy: true}) || categories
 
-    if (_categories.length === 1 && flags.category) return
+    if (_categories.length === 1 && flags.category) {
+      console.log(`${colors.green('✔')} ${colors.bold('分类')}: ${colors.cyan(_categories[0].name)}`)
+      return
+    }
 
     const answers = await inquirer.prompt([
       {
@@ -114,31 +122,37 @@ export default abstract class BaseCommand extends Command {
 
     const outputs = OutputManager.getMetas(Object.values(vendor.allowedOutputs))
 
-    const _outputs = findAll(outputs, flags.output as string) || outputs
+    const _outputs = findAll(outputs, flags.output as string, {fuzzy: true}) || outputs
 
-    const questions = []
-
+    // output
     if (_outputs.length !== 1 || !flags.output) {
-      questions.push({
-        choices: lodash.map(_outputs, (output) => ({name: output.name, value: output.key})),
-        message: '接收方:',
-        name: 'output',
-        type: 'list',
-      })
+      const answers = await inquirer.prompt([
+        {
+          choices: lodash.map(_outputs, (output) => ({name: output.name, value: output.key})),
+          message: '接收方:',
+          name: 'output',
+          type: 'list',
+        },
+      ] as never)
+
+      Object.assign(flags, answers)
+    } else {
+      console.log(`${colors.green('✔')} ${colors.bold('接收方')}: ${colors.cyan(_outputs[0].name)}`)
     }
 
-    if (!flags.outputUsername) {
-      questions.push({
-        default: flags.username,
-        message: '接收方用户名:',
-        name: 'outputUsername',
-        type: 'input',
-      })
+    // output username
+    if (!flags.outputUsername && flags.output) {
+      const answers = await inquirer.prompt([
+        {
+          default: flags.username,
+          message: '接收方用户名:',
+          name: 'outputUsername',
+          type: 'input',
+        },
+      ] as never)
+
+      Object.assign(flags, answers)
     }
-
-    const answers = await inquirer.prompt(questions as never)
-
-    Object.assign(flags, answers)
   }
 
   /**
@@ -155,9 +169,12 @@ export default abstract class BaseCommand extends Command {
 
     const sheets = await vendor.sheets(bank, category)
 
-    const _sheets = findAll(sheets, flags.sheet as string) || sheets
+    const _sheets = findAll(sheets, flags.sheet as string, {fuzzy: true}) || sheets
 
-    if (_sheets.length === 1 && flags.sheet) return
+    if (_sheets.length === 1 && flags.sheet) {
+      console.log(`${colors.green('✔')} ${colors.bold('试卷')}: ${colors.cyan(_sheets[0].name)}`)
+      return
+    }
 
     const answers = await inquirer.prompt([
       {
