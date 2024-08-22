@@ -1,7 +1,7 @@
+import {useAdapter} from '@type-cacheable/cache-manager-adapter'
 import cacheableManager, {CacheManagerOptions} from '@type-cacheable/core'
 
-import {useAdapter} from './sqlite/sqlite.adapter.js'
-import {cache} from './sqlite/sqlite.manager.js'
+import {cache} from './sqlite.manager.js'
 
 cacheableManager.default.setOptions(<CacheManagerOptions>{
   debug: true,
