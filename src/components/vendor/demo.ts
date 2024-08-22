@@ -31,8 +31,8 @@ export default class Demo extends Vendor {
     throw new Error('Method not implemented.')
   }
 
-  public async fetchSheet(_bank: Bank, _category: Category, _options?: FetchOptions): Promise<Sheet[]> {
-    throw new Error('Method not implemented.')
+  public async fetchSheet(_bank: Bank, category: Category, _options?: FetchOptions): Promise<Sheet[]> {
+    return [{count: category.count, id: '0', name: '默认'}]
   }
 
   @Cacheable({

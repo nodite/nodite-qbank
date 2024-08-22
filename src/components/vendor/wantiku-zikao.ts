@@ -95,6 +95,9 @@ export default class WantikuZikao extends Vendor {
     }))
   }
 
+  /**
+   * Fetch Questions.
+   */
   public async fetchQuestions(bank: Bank, category: Category, sheet: Sheet, options?: FetchOptions): Promise<void> {
     // prepare.
     const cacheClient = this.getCacheClient()
@@ -172,9 +175,7 @@ export default class WantikuZikao extends Vendor {
     }
 
     emitter.emit('questions.fetch.count', questionIds.length)
-
     await sleep(1000)
-
     emitter.closeListener('questions.fetch.count')
   }
 

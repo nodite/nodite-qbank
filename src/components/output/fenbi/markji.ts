@@ -1,11 +1,7 @@
-import {dataUriToBuffer} from 'data-uri-to-buffer'
-import FormData from 'form-data'
 import lodash from 'lodash'
 import sleep from 'sleep-promise'
-import * as streamifier from 'streamifier'
 
 import {AssertString, ConvertOptions, UploadOptions} from '../../../types/common.js'
-import axios from '../../../utils/axios.js'
 import {emitter} from '../../../utils/event.js'
 import html from '../../../utils/html.js'
 import {find, throwError} from '../../../utils/index.js'
@@ -119,16 +115,12 @@ export default class Markji extends Output {
 
       // ===========================
       await cacheClient.set(questionItemCheckKey + ':' + _questionId, output)
-
       if (!questionIds.includes(_questionId)) questionIds.push(_questionId)
-
       await sleep(1000)
     }
 
     emitter.emit('output.convert.count', questionIds.length)
-
     await sleep(1000)
-
     emitter.closeListener('output.convert.count')
   }
 
@@ -138,9 +130,9 @@ export default class Markji extends Output {
   public async upload(params: Params, options?: UploadOptions): Promise<void> {
     const markjiVendor = new (VendorManager.getClass('markji'))(this.getOutputUsername())
 
-    const requestConfig = await markjiVendor.login()
     const cacheClient = this.getCacheClient()
     const markjiInfo = await markjiUtil.getInfo(params, this.getOutputUsername())
+    markjiInfo.requestConfig = await markjiVendor.login()
 
     // cache key
     const cacheKeyParams = {
@@ -168,43 +160,7 @@ export default class Markji extends Output {
 
       const _question: AssertString = await cacheClient.get(questionItemCheckKey + ':' + _questionId)
 
-      for (const [key, value] of Object.entries(_question.asserts)) {
-        if (!value.startsWith('data:')) continue
-
-        const parsed = dataUriToBuffer(value)
-        const filename = key + '.' + parsed.type.split('/')[1]
-
-        const form = new FormData()
-
-        form.append('file', streamifier.createReadStream(Buffer.from(parsed.buffer)), {
-          contentType: parsed.type,
-          filename,
-        })
-
-        const response = await axios.post('https://www.markji.com/api/v1/files', form, requestConfig)
-
-        _question.asserts[key] = `[Pic#ID/${response.data.data.file.id}#]`
-
-        _question.text = _question.text.replaceAll(key, _question.asserts[key])
-      }
-
-      const cardId = markjiInfo.chapter.cardIds[_questionIdx]
-
-      try {
-        await (cardId
-          ? axios.post(
-              `https://www.markji.com/api/v1/decks/${markjiInfo.deck.id}/cards/${cardId}`,
-              {card: {content: `Q${_questionIdx + 1}.\n${_question.text}`, grammar_version: 3}, order: _questionIdx},
-              requestConfig,
-            )
-          : axios.post(
-              `https://www.markji.com/api/v1/decks/${markjiInfo.deck.id}/chapters/${markjiInfo.chapter.id}/cards`,
-              {card: {content: `Q${_questionIdx + 1}.\n${_question.text}`, grammar_version: 3}, order: _questionIdx},
-              requestConfig,
-            ))
-      } catch (error) {
-        throwError('Upload failed.', {error, question: _question})
-      }
+      await markjiUtil.upload(markjiInfo, _questionIdx, _question)
 
       // emit.
       emitter.emit('output.upload.count', _questionIdx + 1)
@@ -319,11 +275,7 @@ export default class Markji extends Output {
       _meta.content.text = _meta.content.text.replaceAll(/<p>(\d+)<\/p>/g, '第 $1 题')
     }
 
-    _meta.content = await html.toText(_meta.content.text)
-
-    if (_meta.content.text.length > 800 || find(Object.values(_meta.content.asserts), 'data:')) {
-      _meta.content = await html.toImage(`${htmlStyle}\n${question.content}`)
-    }
+    _meta.content = await markjiUtil.parseHtml(_meta.content.text, htmlStyle)
 
     // ===========================
     // _options.
@@ -431,11 +383,7 @@ export default class Markji extends Output {
 
     // ===========================
     // _explain.
-    _meta.explain = await html.toText(question.solution.solution)
-
-    if (_meta.explain.text.length > 800 || find(Object.values(_meta.explain.asserts), 'data:')) {
-      _meta.explain = await html.toImage(`${htmlStyle}\n${question.solution.solution}`)
-    }
+    _meta.explain = await markjiUtil.parseHtml(question.solution.solution)
 
     // ===========================
     // points.
@@ -500,29 +448,17 @@ export default class Markji extends Output {
 
     // ===========================
     // _content.
-    _meta.content = await html.toText(question.content)
-
-    if (_meta.content.text.length > 800 || find(Object.values(_meta.content.asserts), 'data:')) {
-      _meta.content = await html.toImage(question.content)
-    }
+    _meta.content = await markjiUtil.parseHtml(question.content || '')
 
     // ===========================
     // _translation.
     const translation = find<any>(question.solution.solutionAccessories, 'reference')
 
-    _meta.translation = translation ? await html.toText(translation.content) : await html.toText('暂无')
-
-    if (_meta.translation.text.length > 800 || find(Object.values(_meta.translation.asserts), 'data:')) {
-      _meta.translation = await html.toImage(translation.content)
-    }
+    _meta.translation = await markjiUtil.parseHtml(translation?.content || '')
 
     // ===========================
     // _explain.
-    _meta.explain = await parser.html(question.solution.solution)
-
-    if (_meta.explain.text.length > 800 || find(Object.values(_meta.explain.asserts), 'data:')) {
-      _meta.explain = await html.toImage(question.solution.solution)
-    }
+    _meta.explain = await markjiUtil.parseHtml(question.solution.solution)
 
     // ===========================
     // points.

@@ -1,14 +1,27 @@
 import {CacheRequestConfig} from 'axios-cache-interceptor'
+import {dataUriToBuffer} from 'data-uri-to-buffer'
+import FormData from 'form-data'
+import lodash from 'lodash'
 import sleep from 'sleep-promise'
+import * as streamifier from 'streamifier'
 
 import {Params} from '../components/output/common.js'
 import {HashKeyScope, Vendor} from '../components/vendor/common.js'
 import VendorManager from '../components/vendor/index.js'
 import {Bank} from '../types/bank.js'
 import {Category} from '../types/category.js'
+import {AssertString} from '../types/common.js'
 import {MarkjiSheet} from '../types/sheet.js'
 import axios from './axios.js'
-import {find} from './index.js'
+import html from './html.js'
+import {find, throwError} from './index.js'
+
+type MarkjiInfo = {
+  chapter: MarkjiSheet
+  deck: Category
+  folder: Bank
+  requestConfig?: CacheRequestConfig
+}
 
 const ensureContact = async (vendor: Vendor, folder: Bank, deck: Category, requestConfig: CacheRequestConfig) => {
   const chapters = (await vendor.sheets(folder, deck)) as MarkjiSheet[]
@@ -47,10 +60,7 @@ const ensureContact = async (vendor: Vendor, folder: Bank, deck: Category, reque
  * | Markji Decks   | markji.category | params.bank     |
  * | Markji Chapters| markji.sheet    | params.category |
  */
-const getInfo = async (
-  params: Params,
-  username: string,
-): Promise<{chapter: MarkjiSheet; deck: Category; folder: Bank}> => {
+const getInfo = async (params: Params, username: string): Promise<MarkjiInfo> => {
   const vendorMeta = (params.vendor.constructor as typeof Vendor).META
   const markji = new (VendorManager.getClass('markji'))(username)
   const requestConfig = await markji.login()
@@ -115,4 +125,62 @@ const getInfo = async (
   return {chapter, deck, folder}
 }
 
-export default {ensureContact, getInfo}
+/**
+ * Parse HTML.
+ */
+const parseHtml = async (text: string, style: string = ''): Promise<AssertString> => {
+  let content = await html.toText(text)
+
+  if (content.text.length > 800 || find(Object.values(content.asserts), 'data:')) {
+    content = await html.toImage(`${style}\n${text}`)
+  }
+
+  return content
+}
+
+/**
+ * Upload.
+ */
+const upload = async (info: MarkjiInfo, index: number, question: AssertString): Promise<void> => {
+  if (lodash.isEmpty(question)) return
+
+  for (const [key, value] of Object.entries(question.asserts)) {
+    if (!value.startsWith('data:')) continue
+
+    const parsed = dataUriToBuffer(value)
+    const filename = key + '.' + parsed.type.split('/')[1]
+
+    const form = new FormData()
+
+    form.append('file', streamifier.createReadStream(Buffer.from(parsed.buffer)), {
+      contentType: parsed.type,
+      filename,
+    })
+
+    const response = await axios.post('https://www.markji.com/api/v1/files', form, info.requestConfig)
+
+    question.asserts[key] = `[Pic#ID/${response.data.data.file.id}#]`
+
+    question.text = question.text.replaceAll(key, question.asserts[key])
+  }
+
+  const cardId = info.chapter.cardIds[index]
+
+  try {
+    await (cardId
+      ? axios.post(
+          `https://www.markji.com/api/v1/decks/${info.deck.id}/cards/${cardId}`,
+          {card: {content: `Q${index + 1}.\n${question.text}`, grammar_version: 3}, order: index},
+          info.requestConfig,
+        )
+      : axios.post(
+          `https://www.markji.com/api/v1/decks/${info.deck.id}/chapters/${info.chapter.id}/cards`,
+          {card: {content: `Q${index + 1}.\n${question.text}`, grammar_version: 3}, order: index},
+          info.requestConfig,
+        ))
+  } catch (error) {
+    throwError('Upload failed.', {error, question})
+  }
+}
+
+export default {ensureContact, getInfo, parseHtml, upload}
