@@ -205,12 +205,14 @@ export default class BiguoReal extends Vendor {
       ).flat()
 
       for (const _question of questions) {
-        if (questionIds.includes(_question.id)) continue
+        const _questionId = String(_question.id)
+
+        if (questionIds.includes(_questionId)) continue
 
         _question.questionAsk = await biguo.showQuestionAsk(biguo.PUBLIC_KEY, _question.questionAsk)
 
-        await cacheClient.set(originQuestionItemCacheKey + ':' + _question.id, _question)
-        if (!questionIds.includes(_question.id)) questionIds.push(_question.id)
+        await cacheClient.set(originQuestionItemCacheKey + ':' + _questionId, _question)
+        if (!questionIds.includes(_questionId)) questionIds.push(_questionId)
         emitter.emit('questions.fetch.count', questionIds.length)
 
         // delay.
