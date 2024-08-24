@@ -62,3 +62,18 @@ export function throwError(message: string, data: unknown): never {
   fs.writeJsonSync('tmp/error.json', {data, message}, {spaces: 2})
   throw new Error(message)
 }
+
+export function reverseTemplate(template: string, result: string): Record<string, any> {
+  const templateParts = template.split(':')
+  const resultParts = result.split(':')
+
+  const obj = {} as Record<string, any>
+
+  for (const [index, part] of templateParts.entries()) {
+    const match = /{{(.*?)}}/.exec(part)
+    if (!match) continue
+    obj[match[1].trim()] = resultParts[index] || null
+  }
+
+  return obj
+}

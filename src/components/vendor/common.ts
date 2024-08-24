@@ -11,6 +11,11 @@ import {CACHE_KEY_ORIGIN_QUESTION_ITEM, CACHE_KEY_PREFIX, HashKeyScope} from '..
 import {Component} from '../common.js'
 import {OutputClass} from '../output/common.js'
 
+type Options = {
+  fromCache?: true
+  includeTtl?: true
+}
+
 /**
  * Hash key builder
  * @param scope
@@ -40,20 +45,21 @@ abstract class Vendor extends Component {
   /**
    * Banks.
    */
-  public async banks(fromCache?: true): Promise<Bank[]> {
-    return fromCache ? this._banks() : this.fetchBanks()
+  public async banks(options?: Options): Promise<Bank[]> {
+    return options?.fromCache ? this._banks() : this.fetchBanks()
   }
 
   /**
    * Categories.
    */
-  public async categories(bank: Bank, fromCache?: true): Promise<Category[]> {
-    const categories = await (fromCache ? this._categories(bank) : this.fetchCategories(bank))
+  public async categories(bank: Bank, options?: Options): Promise<Category[]> {
+    const categories = await (options?.fromCache ? this._categories(bank) : this.fetchCategories(bank))
 
     for (const category of categories) {
       const cacheKeyParams = {
         bankId: bank.id,
         categoryId: category.id,
+        questionId: '*',
         sheetId: '*',
         vendorKey: (this.constructor as typeof Vendor).META.key,
       }
@@ -113,8 +119,10 @@ abstract class Vendor extends Component {
   /**
    * Sheets.
    */
-  public async sheets(bank: Bank, category: Category, fromCache?: true): Promise<Sheet[]> {
-    return fromCache ? this._sheets(bank, category) : this.fetchSheet(bank, category)
+  public async sheets(bank: Bank, category: Category, options?: Options): Promise<Sheet[]> {
+    const sheets = await (options?.fromCache ? this._sheets(bank, category) : this.fetchSheet(bank, category))
+    if (options?.includeTtl) sheets.unshift({count: lodash.sumBy(sheets, 'count'), id: '*', name: '全部'})
+    return sheets
   }
 
   /**

@@ -17,4 +17,5 @@ export type ImageOptions = {
 
 export type UploadOptions = {
   reupload?: boolean
+  totalEmit?: (total: number) => void
 }

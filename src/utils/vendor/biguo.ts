@@ -1,4 +1,4 @@
-import playwright from './playwright.js'
+import playwright from '../playwright.js'
 
 const PUBLIC_KEY = 'UQJMbB8Q+g/unV4rox2dMIfnJQPG0tAGrycas1npQAPhX4xCXg6ThXTYyv7FpTDuwunSFtRGRr+Qn2qqIg+AGA=='
 

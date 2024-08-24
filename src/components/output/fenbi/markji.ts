@@ -4,9 +4,9 @@ import sleep from 'sleep-promise'
 import {AssertString, ConvertOptions, UploadOptions} from '../../../types/common.js'
 import {emitter} from '../../../utils/event.js'
 import html from '../../../utils/html.js'
-import {find, throwError} from '../../../utils/index.js'
-import markjiUtil from '../../../utils/markji.js'
+import {find, reverseTemplate, throwError} from '../../../utils/index.js'
 import parser from '../../../utils/parser.js'
+import markji from '../../../utils/vendor/markji.js'
 import {CACHE_KEY_ORIGIN_QUESTION_ITEM, CACHE_KEY_QUESTION_ITEM} from '../../cache-pattern.js'
 import {Vendor} from '../../vendor/common.js'
 import VendorManager from '../../vendor/index.js'
@@ -32,36 +32,48 @@ export default class Markji extends Output {
     }
 
     // check origin questions.
-    const originQuestionItemKey = lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)(cacheKeyParams)
-
-    const originQuestionIds = lodash.map(
-      await cacheClient.keys(originQuestionItemKey + ':*'),
-      (key) => key.split(':').pop() as string,
+    const allQuestionParams = lodash.map(
+      await cacheClient.keys(lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)({...cacheKeyParams, questionId: '*'})),
+      (key) => reverseTemplate(CACHE_KEY_ORIGIN_QUESTION_ITEM, key),
     )
 
     // check questions.
-    const questionItemCheckKey = lodash.template(CACHE_KEY_QUESTION_ITEM)(cacheKeyParams)
-
     if (options?.reconvert) {
-      await cacheClient.delHash(questionItemCheckKey + ':*')
+      await cacheClient.delHash(lodash.template(CACHE_KEY_QUESTION_ITEM)({...cacheKeyParams, questionId: '*'}))
     }
 
-    const questionIds = lodash.map(
-      await cacheClient.keys(questionItemCheckKey + ':*'),
-      (key) => key.split(':').pop() as string,
+    const doneQuestionParams = lodash.map(
+      await cacheClient.keys(lodash.template(CACHE_KEY_QUESTION_ITEM)({...cacheKeyParams, questionId: '*'})),
+      (key) => reverseTemplate(CACHE_KEY_QUESTION_ITEM, key),
     )
 
-    const diffQuestionIds = lodash.difference(originQuestionIds, questionIds).sort((a, b) => Number(a) - Number(b))
+    const undoQuestionParams = lodash
+      .differenceWith(
+        allQuestionParams,
+        doneQuestionParams,
+        (a, b) =>
+          a.bankId === b.bankId &&
+          a.categoryId === b.categoryId &&
+          a.sheetId === b.sheetId &&
+          a.questionId === b.questionId,
+      )
+      .sort((a, b) => Number(a.questionId) - Number(b.questionId))
 
     // convert.
-    emitter.emit('output.convert.count', questionIds.length)
+    emitter.emit('output.convert.count', doneQuestionParams.length)
 
-    for (const _questionId of diffQuestionIds) {
+    for (const _questionParam of undoQuestionParams) {
       // emit.
-      emitter.emit('output.convert.count', questionIds.length)
+      emitter.emit('output.convert.count', doneQuestionParams.length)
 
-      const _originQuestion = await cacheClient.get(originQuestionItemKey + ':' + _questionId)
+      // _questionParam.
+      _questionParam.outputKey = (this.constructor as typeof Output).META.key
+
+      // _originQuestion.
+      const _originQuestion = await cacheClient.get(lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)(_questionParam))
+
       const _questionType = _originQuestion.type
+
       let output = {} as AssertString
 
       // ===========================
@@ -114,60 +126,70 @@ export default class Markji extends Output {
       }
 
       // ===========================
-      await cacheClient.set(questionItemCheckKey + ':' + _questionId, output)
-      if (!questionIds.includes(_questionId)) questionIds.push(_questionId)
+      await cacheClient.set(lodash.template(CACHE_KEY_QUESTION_ITEM)(_questionParam), output)
+
+      doneQuestionParams.push(_questionParam)
+
       await sleep(1000)
     }
 
-    emitter.emit('output.convert.count', questionIds.length)
+    emitter.emit('output.convert.count', doneQuestionParams.length)
+
     await sleep(1000)
+
     emitter.closeListener('output.convert.count')
   }
 
   /**
    * Upload.
    */
-  public async upload(params: Params, options?: UploadOptions): Promise<void> {
-    const markjiVendor = new (VendorManager.getClass('markji'))(this.getOutputUsername())
+  public async upload(params: Params, options?: UploadOptions | undefined): Promise<void> {
+    if (params.sheet.id !== '*') throw new Error('不支持分 sheet 上传，请选择"全部"')
 
+    // prepare.
+    const markjiVendor = new (VendorManager.getClass('markji'))(this.getOutputUsername())
     const cacheClient = this.getCacheClient()
-    const markjiInfo = await markjiUtil.getInfo(params, this.getOutputUsername())
+
+    const markjiInfo = await markji.getInfo(params, this.getOutputUsername())
     markjiInfo.requestConfig = await markjiVendor.login()
 
-    // cache key
-    const cacheKeyParams = {
-      bankId: params.bank.id,
-      categoryId: params.category.id,
-      outputKey: (this.constructor as typeof Output).META.key,
-      sheetId: '*', // all sheets.
-      vendorKey: (params.vendor.constructor as typeof Vendor).META.key,
-    }
-
     // check questions.
-    const questionItemCheckKey = lodash.template(CACHE_KEY_QUESTION_ITEM)(cacheKeyParams)
-    const questionIds = lodash
-      .map(await cacheClient.keys(questionItemCheckKey + ':*'), (key) => key.split(':').pop() as string)
-      // asc.
-      .sort((a, b) => Number(a) - Number(b))
+    const allQuestionKeys = lodash
+      .chain(
+        await cacheClient.keys(
+          lodash.template(CACHE_KEY_QUESTION_ITEM)({
+            bankId: params.bank.id,
+            categoryId: params.category.id,
+            outputKey: (this.constructor as typeof Output).META.key,
+            questionId: '*',
+            sheetId: params.sheet.id,
+            vendorKey: (params.vendor.constructor as typeof Vendor).META.key,
+          }),
+        ),
+      )
+      .sort((a, b) => Number(a) - Number(b)) // asc.
+      .value()
 
-    const questionUploadedCount = options?.reupload ? 0 : markjiInfo.chapter.count || 0
+    const doneQuestionCount = options?.reupload ? 0 : markjiInfo.chapter.count || 0
 
     // upload.
-    emitter.emit('output.upload.count', questionUploadedCount || 0)
+    if (options?.totalEmit) options.totalEmit(allQuestionKeys.length)
 
-    for (const [_questionIdx, _questionId] of questionIds.entries()) {
-      if (_questionIdx < Number(questionUploadedCount)) continue
+    emitter.emit('output.upload.count', doneQuestionCount || 0)
 
-      const _question: AssertString = await cacheClient.get(questionItemCheckKey + ':' + _questionId)
+    for (const [_questionIdx, _questionKey] of allQuestionKeys.entries()) {
+      if (_questionIdx < Number(doneQuestionCount)) continue
 
-      await markjiUtil.upload(markjiInfo, _questionIdx, _question)
+      const _question: AssertString = await cacheClient.get(_questionKey)
+
+      await markji.upload(markjiInfo, _questionIdx, _question)
 
       // emit.
       emitter.emit('output.upload.count', _questionIdx + 1)
       await sleep(500)
     }
 
-    emitter.emit('output.upload.count', questionIds.length)
+    emitter.emit('output.upload.count', allQuestionKeys.length)
 
     await sleep(500)
 
@@ -185,7 +207,7 @@ export default class Markji extends Output {
 
     // ===========================
     // _content.
-    _meta.content = await parser.html(question.content)
+    _meta.content = await markji.parseHtml(question.content)
 
     // ===========================
     // blanks.
@@ -203,7 +225,7 @@ export default class Markji extends Output {
 
     // ===========================
     // explain.
-    _meta.explain = await parser.html(question.solution.solution)
+    _meta.explain = await markji.parseHtml(question.solution.solution)
 
     // ===========================
     // points.
@@ -217,8 +239,9 @@ export default class Markji extends Output {
       _points.push(`[P#L#[T#B#解析]]`, _meta.explain.text.trim())
     }
 
-    // output.
-    const output = await html.toText(
+    // ===========================
+    // _output.
+    const _output = await html.toText(
       lodash
         .filter([`${_meta.content.text.trim()}`, `---`, ..._points])
         .join('\n')
@@ -226,9 +249,9 @@ export default class Markji extends Output {
         .replaceAll('\n', '<br>'),
     )
 
-    output.asserts = lodash.merge({}, _meta.content.asserts, _meta.explain.asserts)
+    _output.asserts = lodash.merge({}, _meta.content.asserts, _meta.explain.asserts)
 
-    return output
+    return _output
   }
 
   /**
@@ -275,7 +298,7 @@ export default class Markji extends Output {
       _meta.content.text = _meta.content.text.replaceAll(/<p>(\d+)<\/p>/g, '第 $1 题')
     }
 
-    _meta.content = await markjiUtil.parseHtml(_meta.content.text, htmlStyle)
+    _meta.content = await markji.parseHtml(_meta.content.text, htmlStyle)
 
     // ===========================
     // _options.
@@ -383,14 +406,14 @@ export default class Markji extends Output {
 
     // ===========================
     // _explain.
-    _meta.explain = await markjiUtil.parseHtml(question.solution.solution)
+    _meta.explain = await markji.parseHtml(question.solution.solution)
 
     // ===========================
     // points.
     const _points = []
 
     if (question.solution.source) {
-      _points.push(`[P#L#[T#B#来源]]`, question.solution.source.trim())
+      _points.push('[P#L#[T#B#来源]]', question.solution.source.trim())
     }
 
     if (_meta.contentTrans.text) {
@@ -399,18 +422,18 @@ export default class Markji extends Output {
 
     if (!lodash.isEmpty(_meta.optionsTrans)) {
       _points.push(
-        `[P#L#[T#B#选项翻译]]`,
+        '[P#L#[T#B#选项翻译]]',
         ...lodash.map(_meta.optionsTrans, (value, key) => `${(key || '').trim()}: ${(value || '').trim()}`),
       )
     }
 
     if (_meta.explain.text) {
-      _points.push(`[P#L#[T#B#解析]]`, _meta.explain.text.trim())
+      _points.push('[P#L#[T#B#解析]]', _meta.explain.text.trim())
     }
 
     // ===========================
-    // output.
-    const output = await html.toText(
+    // _output.
+    const _output = await html.toText(
       lodash
         .filter([
           ...lodash.map(_meta.materials, 'text'),
@@ -424,7 +447,7 @@ export default class Markji extends Output {
         .replaceAll('\n', '<br>'),
     )
 
-    output.asserts = lodash.merge(
+    _output.asserts = lodash.merge(
       {},
       ...lodash.map(_meta.materials, 'asserts'),
       _meta.content.asserts,
@@ -433,7 +456,7 @@ export default class Markji extends Output {
       ...lodash.map(_meta.answers, 'asserts'),
     )
 
-    return output
+    return _output
   }
 
   /**
@@ -448,17 +471,17 @@ export default class Markji extends Output {
 
     // ===========================
     // _content.
-    _meta.content = await markjiUtil.parseHtml(question.content || '')
+    _meta.content = await markji.parseHtml(question.content || '')
 
     // ===========================
     // _translation.
     const translation = find<any>(question.solution.solutionAccessories, 'reference')
 
-    _meta.translation = await markjiUtil.parseHtml(translation?.content || '')
+    _meta.translation = await markji.parseHtml(translation?.content || '')
 
     // ===========================
     // _explain.
-    _meta.explain = await markjiUtil.parseHtml(question.solution.solution)
+    _meta.explain = await markji.parseHtml(question.solution.solution)
 
     // ===========================
     // points.
@@ -472,8 +495,8 @@ export default class Markji extends Output {
       _points.push(`[P#L#[T#B#解析]]`, _meta.explain.text.trim())
     }
 
-    // output.
-    const output = await html.toText(
+    // _output.
+    const _output = await html.toText(
       lodash
         .filter([_meta.content.text.trim(), '---', _meta.translation.text, '---', ..._points])
         .join('\n')
@@ -481,8 +504,8 @@ export default class Markji extends Output {
         .replaceAll('\n', '<br>'),
     )
 
-    output.asserts = lodash.merge({}, _meta.content.asserts, _meta.translation.asserts, _meta.explain.asserts)
+    _output.asserts = lodash.merge({}, _meta.content.asserts, _meta.translation.asserts, _meta.explain.asserts)
 
-    return output
+    return _output
   }
 }

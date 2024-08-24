@@ -6,7 +6,7 @@ import VendorManager from '../../components/vendor/index.js'
 import {Bank} from '../../types/bank.js'
 import {Category} from '../../types/category.js'
 import {Sheet} from '../../types/sheet.js'
-import {findAll} from '../../utils/index.js'
+import {find, findAll} from '../../utils/index.js'
 
 export default class Index extends BaseCommand {
   static args = {}
@@ -42,46 +42,58 @@ Chain to qbank (./src/commands/chain/index.ts)
     // vendor.
     const vendor = new (VendorManager.getClass(flags.vendor))(flags.username)
 
-    // banks.
-    await this._runBankCommand(flags)
+    // bank list.
+    await this._runBankList(flags)
 
     const _banks = findAll(await vendor.banks(), flags.banks.split(','), {fuzzy: true})
 
     for (const bank of _banks) {
       this.log('\n---')
 
-      // cateogries.
-      await this._runCategoryCommand(flags, bank)
+      // cateogry list.
+      await this._runCategoryList(flags, bank)
 
       const _categories = findAll(await vendor.categories(bank), flags.categories.split(','), {fuzzy: true})
 
       for (const category of _categories) {
-        // sheets.
-        await this._runSheetCommand(flags, bank, category)
+        // sheet list.
+        await this._runSheetList(flags, bank, category)
 
-        const _sheets = findAll(await vendor.sheets(bank, category), flags.sheets.split(','), {fuzzy: true})
+        const _sheets = flags.sheets.includes('*')
+          ? await vendor.sheets(bank, category)
+          : findAll(await vendor.sheets(bank, category), flags.sheets.split(','), {fuzzy: true})
 
         for (const sheet of _sheets) {
-          // questions.
-          await this._runQuestionCommand(flags, bank, category, sheet)
+          // question fetch.
+          await this._runQuestionFetch(flags, bank, category, sheet)
 
-          // output.
-          await this._runOutputCommand(flags, bank, category, sheet)
+          // output for each sheet.
+          if (!flags.sheets.includes('*')) {
+            await this._runOutputConvert(flags, bank, category, sheet)
+            await this._runOutputUpload(flags, bank, category, sheet)
+          }
+        }
+
+        // output for "*".
+        if (flags.sheets.includes('*')) {
+          const _sheet = find(await vendor.sheets(bank, category, {includeTtl: true}), '*', {fuzzy: true})
+          await this._runOutputConvert(flags, bank, category, _sheet as Sheet)
+          await this._runOutputUpload(flags, bank, category, _sheet as Sheet)
         }
       }
     }
   }
 
-  protected async _runBankCommand(flags: any): Promise<void> {
-    this.log('(bank:list)')
+  protected async _runBankList(flags: any): Promise<void> {
+    this.log('\n(bank:list)')
     await this.config.runCommand(
       'bank:list',
       lodash.filter(['-v', flags.vendor, '-u', flags.username, flags.clean.includes('bank.list') ? '-r' : '']),
     )
   }
 
-  protected async _runCategoryCommand(flags: any, bank: Bank): Promise<void> {
-    this.log('(category:list)')
+  protected async _runCategoryList(flags: any, bank: Bank): Promise<void> {
+    this.log('\n(category:list)')
     await this.config.runCommand(
       'category:list',
       lodash.filter([
@@ -96,8 +108,8 @@ Chain to qbank (./src/commands/chain/index.ts)
     )
   }
 
-  protected async _runOutputCommand(flags: any, bank: Bank, category: Category, sheet: Sheet): Promise<void> {
-    this.log('(output:convert)')
+  protected async _runOutputConvert(flags: any, bank: Bank, category: Category, sheet: Sheet): Promise<void> {
+    this.log('\n(output:convert)')
     await this.config.runCommand(
       'output:convert',
       lodash.filter([
@@ -118,8 +130,10 @@ Chain to qbank (./src/commands/chain/index.ts)
         flags.clean.includes('output.convert') ? '-r' : '',
       ]),
     )
+  }
 
-    this.log('(output:upload)')
+  protected async _runOutputUpload(flags: any, bank: Bank, category: Category, sheet: Sheet): Promise<void> {
+    this.log('\n(output:upload)')
     await this.config.runCommand(
       'output:upload',
       lodash.filter([
@@ -142,8 +156,8 @@ Chain to qbank (./src/commands/chain/index.ts)
     )
   }
 
-  protected async _runQuestionCommand(flags: any, bank: Bank, category: Category, sheet: Sheet): Promise<void> {
-    this.log('(question:fetch)')
+  protected async _runQuestionFetch(flags: any, bank: Bank, category: Category, sheet: Sheet): Promise<void> {
+    this.log('\n(question:fetch)')
     await this.config.runCommand(
       'question:fetch',
       lodash.filter([
@@ -162,8 +176,8 @@ Chain to qbank (./src/commands/chain/index.ts)
     )
   }
 
-  protected async _runSheetCommand(flags: any, bank: Bank, category: Category): Promise<void> {
-    this.log('(sheet:list)')
+  protected async _runSheetList(flags: any, bank: Bank, category: Category): Promise<void> {
+    this.log('\n(sheet:list)')
     await this.config.runCommand(
       'sheet:list',
       lodash.filter([

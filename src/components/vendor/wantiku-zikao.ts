@@ -158,10 +158,12 @@ export default class WantikuZikao extends Vendor {
 
       // cache.
       for (const [, _question] of _questions.entries()) {
-        await cacheClient.set(questionItemCacheKey + ':' + _question.RealQuestionId, _question)
+        const _questionId = String(_question.RealQuestionId)
+
+        await cacheClient.set(questionItemCacheKey + ':' + _questionId, _question)
 
         // update.
-        if (!questionIds.includes(String(_question.RealQuestionId))) questionIds.push(String(_question.RealQuestionId))
+        if (!questionIds.includes(String(_questionId))) questionIds.push(String(_questionId))
         emitter.emit('questions.fetch.count', questionIds.length)
 
         // delay.

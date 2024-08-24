@@ -44,8 +44,9 @@ Fetch questions (./src/commands/question/fetch.ts)
     const category = find<Category>(categories, flags.category, {excludeKey: ['children']}) as Category
 
     // sheet.
-    const sheets = await vendor.sheets(bank, category)
+    const sheets = await vendor.sheets(bank, category, {includeTtl: true})
     const sheet = find<Sheet>(sheets, flags.sheet) as Sheet
+    if (sheet.id === '*') this.error('Not support all sheets')
 
     // questions.
     vendor.fetchQuestions(bank, category, sheet, {refetch: flags.refetch})

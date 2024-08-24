@@ -1,4 +1,3 @@
-// import md5 from 'md5'
 import md5 from 'md5'
 import {parse} from 'node-html-parser'
 
@@ -56,6 +55,29 @@ const input = async (text: string): Promise<AssertString> => {
   return assertString
 }
 
+const underline = async (text: string): Promise<AssertString> => {
+  const assertString = {asserts: {}} as AssertString
+
+  let idx = 0
+
+  for (const _underline of text.matchAll(/_{2,}/g)) {
+    const hash = md5(JSON.stringify({index: idx, text, type: 'input'})).slice(0, 8)
+
+    const size = _underline[0].length
+
+    assertString.asserts[`[input#${hash}]`] =
+      `[${'_'.repeat(Number(size) / 2)}${idx + 1}${'_'.repeat(Number(size) / 2)}]`
+
+    text = text.replace(_underline[0], `[input#${hash}]`)
+
+    idx++
+  }
+
+  assertString.text = text
+
+  return assertString
+}
+
 const html = async (text: string): Promise<AssertString> => {
   const parsed = {asserts: {}, text} as AssertString
 
@@ -69,7 +91,12 @@ const html = async (text: string): Promise<AssertString> => {
   parsed.text = inputs.text
   parsed.asserts = {...parsed.asserts, ...inputs.asserts}
 
+  // underline
+  const underlines = await underline(parsed.text)
+  parsed.text = underlines.text
+  parsed.asserts = {...parsed.asserts, ...underlines.asserts}
+
   return parsed
 }
 
-export default {html, image, input}
+export default {html, image, input, underline}

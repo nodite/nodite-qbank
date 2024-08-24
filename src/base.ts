@@ -61,9 +61,13 @@ export default abstract class BaseCommand extends Command {
     const vendor = new (VendorManager.getClass(flags.vendor))(flags.username)
 
     const banks = await vendor.banks()
-    const _banks = findAll(banks, flags.bank as string, {fuzzy: true}) || banks
 
-    if (_banks.length === 1 && flags.bank) {
+    const _banks = findAll(banks, flags.bank as string, {fuzzy: true})
+
+    if (lodash.isEmpty(_banks)) _banks.push(...banks)
+
+    if (_banks.length === 1) {
+      flags.bank = _banks[0].name as any
       console.log(`${colors.green('✔')} ${colors.bold('题库')}: ${colors.cyan(_banks[0].name)}`)
       return
     }
@@ -92,10 +96,12 @@ export default abstract class BaseCommand extends Command {
 
     const categories = await vendor.categories(bank)
 
-    const _categories =
-      findAll(categories, flags.category as string, {excludeKey: ['children'], fuzzy: true}) || categories
+    const _categories = findAll(categories, flags.category as string, {excludeKey: ['children'], fuzzy: true})
 
-    if (_categories.length === 1 && flags.category) {
+    if (lodash.isEmpty(_categories)) _categories.push(...categories)
+
+    if (_categories.length === 1) {
+      flags.category = _categories[0].name as any
       console.log(`${colors.green('✔')} ${colors.bold('分类')}: ${colors.cyan(_categories[0].name)}`)
       return
     }
@@ -122,10 +128,17 @@ export default abstract class BaseCommand extends Command {
 
     const outputs = OutputManager.getMetas(Object.values(vendor.allowedOutputs))
 
-    const _outputs = findAll(outputs, flags.output as string, {fuzzy: true}) || outputs
+    const _outputs = findAll(outputs, flags.output as string, {fuzzy: true})
+
+    if (lodash.isEmpty(_outputs)) _outputs.push(...outputs)
 
     // output
-    if (_outputs.length !== 1 || !flags.output) {
+    if (_outputs.length === 1) {
+      flags.output = _outputs[0].key as any
+      console.log(`${colors.green('✔')} ${colors.bold('接收方')}: ${colors.cyan(_outputs[0].name)}`)
+    }
+    // multiple outputs.
+    else {
       const answers = await inquirer.prompt([
         {
           choices: lodash.map(_outputs, (output) => ({name: output.name, value: output.key})),
@@ -136,8 +149,6 @@ export default abstract class BaseCommand extends Command {
       ] as never)
 
       Object.assign(flags, answers)
-    } else {
-      console.log(`${colors.green('✔')} ${colors.bold('接收方')}: ${colors.cyan(_outputs[0].name)}`)
     }
 
     // output username
@@ -167,11 +178,14 @@ export default abstract class BaseCommand extends Command {
 
     const category = find<Category>(await vendor.categories(bank), flags.category) as Category
 
-    const sheets = await vendor.sheets(bank, category)
+    const sheets = await vendor.sheets(bank, category, {includeTtl: true})
 
-    const _sheets = findAll(sheets, flags.sheet as string, {fuzzy: true}) || sheets
+    const _sheets = findAll(sheets, flags.sheet as string, {fuzzy: true})
 
-    if (_sheets.length === 1 && flags.sheet) {
+    if (lodash.isEmpty(_sheets)) _sheets.push(...sheets)
+
+    if (_sheets.length === 1) {
+      flags.sheet = _sheets[0].name as any
       console.log(`${colors.green('✔')} ${colors.bold('试卷')}: ${colors.cyan(_sheets[0].name)}`)
       return
     }

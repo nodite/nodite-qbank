@@ -8,11 +8,11 @@ import {Category} from '../../types/category.js'
 import {FetchOptions} from '../../types/common.js'
 import {Sheet} from '../../types/sheet.js'
 import axios from '../../utils/axios.js'
-import biguo from '../../utils/biguo.js'
 import {emitter} from '../../utils/event.js'
+import biguo from '../../utils/vendor/biguo.js'
 import {CACHE_KEY_ORIGIN_QUESTION_ITEM} from '../cache-pattern.js'
+import Markji from '../output/biguo/markji.js'
 import {OutputClass} from '../output/common.js'
-import Skip from '../output/skip.js'
 import {HashKeyScope, Vendor, hashKeyBuilder} from './common.js'
 
 export default class BiguoReal extends Vendor {
@@ -20,7 +20,7 @@ export default class BiguoReal extends Vendor {
 
   public get allowedOutputs(): Record<string, OutputClass> {
     return {
-      [Skip.META.key]: Skip,
+      [Markji.META.key]: Markji,
     }
   }
 
@@ -153,22 +153,19 @@ export default class BiguoReal extends Vendor {
       vendorKey: (this.constructor as typeof Vendor).META.key,
     }
 
-    const originQuestionItemCacheKey = lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)(cacheKeyParams)
-
-    const questionIds = lodash.map(
-      await cacheClient.keys(originQuestionItemCacheKey + ':*'),
-      (key) => key.split(':').pop() as string,
+    const questionKeys = await cacheClient.keys(
+      lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)({...cacheKeyParams, questionId: '*'}),
     )
 
     // refetch.
     if (options?.refetch) {
-      await cacheClient.delHash(originQuestionItemCacheKey + ':*')
-      questionIds.length = 0
+      await cacheClient.delHash(lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)({...cacheKeyParams, questionId: '*'}))
+      questionKeys.length = 0
     }
 
-    emitter.emit('questions.fetch.count', questionIds.length)
+    emitter.emit('questions.fetch.count', questionKeys.length)
 
-    if (questionIds.length < sheet.count) {
+    if (questionKeys.length < sheet.count) {
       const questionBankResponse = await axios.get(
         'https://www.biguotk.com/api/v5/exams/getQuestionBank',
         lodash.merge({}, requestConfig, {
@@ -199,27 +196,38 @@ export default class BiguoReal extends Vendor {
         await Promise.all(
           lodash.map(fileUrls, async (fileUrl) => {
             const resp = await axios.get(`https://cdn.biguotk.com/${fileUrl}`)
-            return resp.data.topics
+            return resp.data.topics || []
           }),
         )
       ).flat()
 
       for (const _question of questions) {
-        if (questionIds.includes(_question.id)) continue
+        const _questionId = String(_question.id)
+
+        const _questionCacheKey = lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)({
+          ...cacheKeyParams,
+          questionId: _questionId,
+        })
+
+        if (questionKeys.includes(_questionCacheKey)) continue
 
         _question.questionAsk = await biguo.showQuestionAsk(biguo.PUBLIC_KEY, _question.questionAsk)
 
-        await cacheClient.set(originQuestionItemCacheKey + ':' + _question.id, _question)
-        if (!questionIds.includes(_question.id)) questionIds.push(_question.id)
-        emitter.emit('questions.fetch.count', questionIds.length)
+        await cacheClient.set(_questionCacheKey, _question)
+
+        questionKeys.push(_questionCacheKey)
+
+        emitter.emit('questions.fetch.count', questionKeys.length)
 
         // delay.
         await sleep(100)
       }
     }
 
-    emitter.emit('questions.fetch.count', questionIds.length)
+    emitter.emit('questions.fetch.count', questionKeys.length)
+
     await sleep(1000)
+
     emitter.closeListener('questions.fetch.count')
   }
 

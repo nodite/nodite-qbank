@@ -1,6 +1,7 @@
 import lodash from 'lodash'
 import md5 from 'md5'
 import * as playwright from 'playwright'
+import UserAgent from 'user-agents'
 
 import memory from '../cache/memory.manager.js'
 
@@ -13,7 +14,7 @@ const browser = async (create: boolean = true) => {
   let _browser = await memory.cache.get<playwright.Browser>(cacheKey)
 
   if ((!_browser || !_browser.isConnected()) && create) {
-    _browser = await playwright.webkit.launch()
+    _browser = await playwright.webkit.launch({headless: true})
     await memory.cache.set(cacheKey, _browser)
   }
 
@@ -29,8 +30,15 @@ const context = async (name: string) => {
   let _context = await memory.cache.get<playwright.BrowserContext>(cacheKey)
 
   if (!_context) {
+    const userAgent = new UserAgent({
+      deviceCategory: 'mobile',
+      platform: 'iPhone',
+    }).toString()
+
     const _browser = (await browser()) as playwright.Browser
-    _context = await _browser.newContext()
+
+    _context = await _browser.newContext({userAgent})
+
     await memory.cache.set(cacheKey, _context)
   }
 

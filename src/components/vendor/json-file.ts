@@ -88,13 +88,15 @@ export default class JsonFile extends Vendor {
     emitter.emit('questions.fetch.count', questionIds.length)
 
     for (const _question of questions) {
-      if (questionIds.includes(_question.id)) continue
+      const _questionId = String(_question.id)
 
-      _question.answer = lodash.find(answers, {id: _question.id})?.content
-      _question.explain = lodash.find(explains, {id: _question.id})?.content
+      if (questionIds.includes(_questionId)) continue
 
-      await cacheClient.set(originQuestionItemCacheKey + ':' + _question.id, _question)
-      if (!questionIds.includes(_question.id)) questionIds.push(_question.id)
+      _question.answer = lodash.find(answers, (answer) => String(answer.id) === _questionId)?.content
+      _question.explain = lodash.find(explains, (explain) => String(explain.id) === _questionId)?.content
+
+      await cacheClient.set(originQuestionItemCacheKey + ':' + _questionId, _question)
+      if (!questionIds.includes(_questionId)) questionIds.push(_questionId)
       emitter.emit('questions.fetch.count', questionIds.length)
     }
 

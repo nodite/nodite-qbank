@@ -15,17 +15,19 @@ const toImage = async (html: string, options?: ImageOptions): Promise<AssertStri
   const $ele = await page.$('html')
   const box = await $ele?.boundingBox()
 
-  const base64 = await page.screenshot({
-    clip: {height: (box?.height || 0) + 5, width: box?.width || 0, x: 0, y: 0},
+  await page.setViewportSize({height: box?.height || 1, width: options?.width || 940})
+
+  const base64Buffer = await page.screenshot({
+    fullPage: true,
     type: 'jpeg',
   })
 
-  fs.writeFileSync('tmp/image.jpeg', base64)
+  fs.writeFileSync('tmp/image.jpeg', base64Buffer, {encoding: 'base64'})
 
   const hash = md5(html).slice(0, 8)
 
   return {
-    asserts: {[`[html#${hash}]`]: `data:image/jpeg;base64,${base64}`},
+    asserts: {[`[html#${hash}]`]: `data:image/jpeg;base64,${base64Buffer.toString('base64')}`},
     text: `[html#${hash}]`,
   }
 }

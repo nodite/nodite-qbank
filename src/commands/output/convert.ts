@@ -49,7 +49,7 @@ Convert questions (./src/commands/output/convert.ts)
     const category = find<Category>(categories, flags.category, {excludeKey: ['children']}) as Category
 
     // sheet.
-    const sheets = await vendor.sheets(bank, category)
+    const sheets = await vendor.sheets(bank, category, {includeTtl: true})
     const sheet = find<Sheet>(sheets, flags.sheet) as Sheet
 
     // convert.

@@ -5,16 +5,16 @@ import lodash from 'lodash'
 import sleep from 'sleep-promise'
 import * as streamifier from 'streamifier'
 
-import {Params} from '../components/output/common.js'
-import {HashKeyScope, Vendor} from '../components/vendor/common.js'
-import VendorManager from '../components/vendor/index.js'
-import {Bank} from '../types/bank.js'
-import {Category} from '../types/category.js'
-import {AssertString} from '../types/common.js'
-import {MarkjiSheet} from '../types/sheet.js'
-import axios from './axios.js'
-import html from './html.js'
-import {find, throwError} from './index.js'
+import {Params} from '../../components/output/common.js'
+import {HashKeyScope, Vendor} from '../../components/vendor/common.js'
+import VendorManager from '../../components/vendor/index.js'
+import {Bank} from '../../types/bank.js'
+import {Category} from '../../types/category.js'
+import {AssertString} from '../../types/common.js'
+import {MarkjiSheet} from '../../types/sheet.js'
+import axios from '../axios.js'
+import html from '../html.js'
+import {find, throwError} from '../index.js'
 
 type MarkjiInfo = {
   chapter: MarkjiSheet
@@ -170,12 +170,12 @@ const upload = async (info: MarkjiInfo, index: number, question: AssertString): 
     await (cardId
       ? axios.post(
           `https://www.markji.com/api/v1/decks/${info.deck.id}/cards/${cardId}`,
-          {card: {content: `Q${index + 1}.\n${question.text}`, grammar_version: 3}, order: index},
+          {card: {content: question.text, grammar_version: 3}, order: index},
           info.requestConfig,
         )
       : axios.post(
           `https://www.markji.com/api/v1/decks/${info.deck.id}/chapters/${info.chapter.id}/cards`,
-          {card: {content: `Q${index + 1}.\n${question.text}`, grammar_version: 3}, order: index},
+          {card: {content: question.text, grammar_version: 3}, order: index},
           info.requestConfig,
         ))
   } catch (error) {

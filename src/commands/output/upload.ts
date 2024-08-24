@@ -49,16 +49,16 @@ Upload questions (./src/commands/output/upload.ts)
     const category = find<Category>(categories, flags.category, {excludeKey: ['children']}) as Category
 
     // sheet.
-    const sheets = await vendor.sheets(bank, category)
+    const sheets = await vendor.sheets(bank, category, {includeTtl: true})
     const sheet = find<Sheet>(sheets, flags.sheet) as Sheet
-
-    // upload.
-    output.upload({bank, category, sheet, vendor}, {reupload: flags.reupload})
 
     // processing.
     const bar = new SingleBar({}, Presets.rect)
 
     bar.start(sheet.count || 1, 0)
+
+    // upload.
+    output.upload({bank, category, sheet, vendor}, {reupload: flags.reupload})
 
     for await (const data of emitter.listener('output.upload.count')) {
       bar.update(data as number)
