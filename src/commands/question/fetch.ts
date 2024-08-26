@@ -23,7 +23,6 @@ Fetch questions (./src/commands/question/fetch.ts)
   static flags = {
     bank: Flags.string({char: 'b', default: '', description: '题库ID/名称/Key'}),
     category: Flags.string({char: 'c', default: '', description: '分类ID/名称'}),
-    refetch: Flags.boolean({char: 'r', default: false, description: '重新抓取'}),
     sheet: Flags.string({char: 's', default: '', description: '试卷ID/名称'}),
   }
 
@@ -44,22 +43,48 @@ Fetch questions (./src/commands/question/fetch.ts)
     const category = find<Category>(categories, flags.category, {excludeKey: ['children']}) as Category
 
     // sheet.
-    const sheets = await vendor.sheets(bank, category, {includeTtl: true})
+    const sheets = await vendor.sheets(bank, category)
     const sheet = find<Sheet>(sheets, flags.sheet) as Sheet
-    if (sheet.id === '*') this.error('Not support all sheets')
 
-    // questions.
-    vendor.fetchQuestions(bank, category, sheet, {refetch: flags.refetch})
+    if (sheet.id !== '*') {
+      // questions.
+      vendor.fetchQuestions(bank, category, sheet, {refetch: flags.clean})
 
-    // processing.
-    const bar = new SingleBar({}, Presets.rect)
+      // processing.
+      const bar = new SingleBar({}, Presets.rect)
 
-    bar.start(sheet.count || 1, 0)
+      bar.start(sheet.count || 1, 0)
 
-    for await (const data of emitter.listener('questions.fetch.count')) {
-      bar.update(data as number)
+      for await (const data of emitter.listener('questions.fetch.count')) {
+        bar.update(data as number)
+      }
+
+      bar.stop()
+
+      return
     }
 
-    bar.stop()
+    for (const _sheet of await vendor.sheets(bank, category, {excludeTtl: true})) {
+      this.log('\n---\n')
+
+      const _argv = [
+        '--vendor',
+        flags.vendor,
+        '--username',
+        flags.username,
+        '--bank',
+        bank.name,
+        '--category',
+        category.name,
+        '--sheet',
+        _sheet.name,
+      ]
+
+      if (flags.clean) {
+        _argv.push('--clean')
+      }
+
+      await this.config.runCommand('question:fetch', _argv)
+    }
   }
 }

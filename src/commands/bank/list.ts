@@ -1,4 +1,3 @@
-import {Flags} from '@oclif/core'
 import ttyTable from 'tty-table'
 
 import BaseCommand from '../../base.js'
@@ -16,9 +15,7 @@ List banks (./src/commands/course/list.ts)
 `,
   ]
 
-  static flags = {
-    clean: Flags.boolean({char: 'r', default: false, description: '清除缓存'}),
-  }
+  static flags = {}
 
   async run(): Promise<void> {
     const {flags} = await this.parse(List)

@@ -23,7 +23,6 @@ List categories (./src/commands/category/list.ts)
 
   static flags = {
     bank: Flags.string({char: 'b', default: '', description: '题库ID/名称/Key'}),
-    clean: Flags.boolean({char: 'r', default: false, description: '清除缓存'}),
     rich: Flags.boolean({default: false, description: '详细信息'}),
   }
 
@@ -39,20 +38,41 @@ List categories (./src/commands/category/list.ts)
     const banks = await vendor.banks()
     const bank = find<Bank>(banks, flags.bank) as Bank
 
-    // categories.
-    if (flags.clean) await vendor.invalidate(HashKeyScope.CATEGORIES, bank)
+    // no '*' bank.
+    if (bank.id !== '*') {
+      // categories.
+      if (flags.clean) await vendor.invalidate(HashKeyScope.CATEGORIES, bank)
 
-    const categories = await vendor.categories(bank)
+      const categories = await vendor.categories(bank)
 
-    const _convert = (cts: Category[]): unknown => {
-      return lodash
-        .chain(cts)
-        .keyBy((ct) => `${ct.name} (${ct.id}, ${ct.count})`)
-        .mapValues((ct) => (ct.children.length === 0 || !flags.rich ? '' : _convert(ct.children)))
-        .value()
+      const _convert = (cts: Category[]): unknown => {
+        return lodash
+          .chain(cts)
+          .keyBy((ct) => `${ct.name} (${ct.id}, ${ct.count})`)
+          .mapValues((ct) => (ct.children.length === 0 || !flags.rich ? '' : _convert(ct.children)))
+          .value()
+      }
+
+      this.log('\n' + treeify(_convert(categories), {separator: ''}))
+
+      return
     }
 
-    this.log('')
-    this.log(treeify(_convert(categories), {separator: ''}))
+    // '*' bank.
+    for (const _bank of await vendor.banks({excludeTtl: true})) {
+      this.log('\n---\n')
+
+      const _argv = ['-v', flags.vendor, '-u', flags.username, '-b', _bank.name]
+
+      if (flags.clean) {
+        _argv.push('-r')
+      }
+
+      if (flags.rich) {
+        _argv.push('--rich')
+      }
+
+      await this.config.runCommand('category:list', _argv)
+    }
   }
 }

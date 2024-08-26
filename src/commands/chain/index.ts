@@ -1,12 +1,13 @@
 import {Flags} from '@oclif/core'
 import lodash from 'lodash'
+import sleep from 'sleep-promise'
 
 import BaseCommand from '../../base.js'
 import VendorManager from '../../components/vendor/index.js'
 import {Bank} from '../../types/bank.js'
 import {Category} from '../../types/category.js'
 import {Sheet} from '../../types/sheet.js'
-import {find, findAll} from '../../utils/index.js'
+import {findAll} from '../../utils/index.js'
 
 export default class Index extends BaseCommand {
   static args = {}
@@ -20,18 +21,19 @@ Chain to qbank (./src/commands/chain/index.ts)
   ]
 
   static flags = {
-    banks: Flags.string({char: 'b', default: '', description: '题库'}),
-    categories: Flags.string({char: 'c', default: '', description: '分类'}),
+    bank_list: Flags.string({default: ['*'], delimiter: ',', description: '题库', multiple: true}),
+    category_list: Flags.string({default: ['*'], delimiter: ',', description: '分类', multiple: true}),
     clean: Flags.string({
-      char: 'r',
       default: [],
+      delimiter: ',',
       description: '清除缓存/重新转换',
       multiple: true,
-      options: ['bank.list', 'category.list', 'sheet.list', 'question.fetch', 'output.convert', 'output.upload'],
+      options: ['*', 'bank.list', 'category.list', 'sheet.list', 'question.fetch', 'output.convert', 'output.upload'],
     }),
-    output: Flags.string({char: 'o', default: '', description: '接收方'}),
-    outputUsername: Flags.string({default: '', description: '接收方用户名'}),
-    sheets: Flags.string({char: 's', default: '', description: '试卷'}),
+    delay: Flags.integer({default: 0, description: '延迟(ms)'}),
+    output: Flags.string({default: '', description: '接收方'}),
+    output_username: Flags.string({default: '', description: '接收方用户名'}),
+    sheet_list: Flags.string({default: ['*'], delimiter: ',', description: '试卷', multiple: true}),
   }
 
   async run(): Promise<void> {
@@ -45,40 +47,36 @@ Chain to qbank (./src/commands/chain/index.ts)
     // bank list.
     await this._runBankList(flags)
 
-    const _banks = findAll(await vendor.banks(), flags.banks.split(','), {fuzzy: true})
+    const _banks = findAll(await vendor.banks(), flags.bank_list, {fuzzy: true})
+    const _wildBank = lodash.find(_banks, {id: '*'})
+    const _todoBanks = _wildBank ? await vendor.banks({excludeTtl: true}) : _banks
 
-    for (const bank of _banks) {
-      this.log('\n---')
-
+    for (const _bank of _todoBanks) {
       // cateogry list.
-      await this._runCategoryList(flags, bank)
+      await this._runCategoryList(flags, _bank)
 
-      const _categories = findAll(await vendor.categories(bank), flags.categories.split(','), {fuzzy: true})
+      const _categories = findAll(await vendor.categories(_bank), flags.category_list, {fuzzy: true})
+      const _wildCategory = lodash.find(_categories, {id: '*'})
+      const _todoCategories = _wildCategory ? await vendor.categories(_bank, {excludeTtl: true}) : _categories
 
-      for (const category of _categories) {
+      for (const _category of _todoCategories) {
         // sheet list.
-        await this._runSheetList(flags, bank, category)
+        await this._runSheetList(flags, _bank, _category)
 
-        const _sheets = flags.sheets.includes('*')
-          ? await vendor.sheets(bank, category)
-          : findAll(await vendor.sheets(bank, category), flags.sheets.split(','), {fuzzy: true})
+        const _sheets = findAll(await vendor.sheets(_bank, _category), flags.sheet_list, {fuzzy: true})
+        const _wildSheet = lodash.find(_sheets, {id: '*'})
+        const _todoSheets = _wildSheet ? [_wildSheet] : _sheets
 
-        for (const sheet of _sheets) {
+        for (const _sheet of _todoSheets) {
           // question fetch.
-          await this._runQuestionFetch(flags, bank, category, sheet)
+          await this._runQuestionFetch(flags, _bank, _category, _sheet)
 
           // output for each sheet.
-          if (!flags.sheets.includes('*')) {
-            await this._runOutputConvert(flags, bank, category, sheet)
-            await this._runOutputUpload(flags, bank, category, sheet)
-          }
-        }
+          await this._runOutputConvert(flags, _bank, _category, _sheet)
+          await this._runOutputUpload(flags, _bank, _category, _sheet)
 
-        // output for "*".
-        if (flags.sheets.includes('*')) {
-          const _sheet = find(await vendor.sheets(bank, category, {includeTtl: true}), '*', {fuzzy: true})
-          await this._runOutputConvert(flags, bank, category, _sheet as Sheet)
-          await this._runOutputUpload(flags, bank, category, _sheet as Sheet)
+          // delay.
+          await sleep(flags.delay)
         }
       }
     }
@@ -86,111 +84,123 @@ Chain to qbank (./src/commands/chain/index.ts)
 
   protected async _runBankList(flags: any): Promise<void> {
     this.log('\n(bank:list)')
-    await this.config.runCommand(
-      'bank:list',
-      lodash.filter(['-v', flags.vendor, '-u', flags.username, flags.clean.includes('bank.list') ? '-r' : '']),
-    )
+
+    const _argv = ['--vendor', flags.vendor, '--username', flags.username]
+
+    if (lodash.intersection(flags.clean, ['bank.list', '*']).length > 0) {
+      _argv.push('--clean')
+    }
+
+    await this.config.runCommand('bank:list', _argv)
   }
 
   protected async _runCategoryList(flags: any, bank: Bank): Promise<void> {
     this.log('\n(category:list)')
-    await this.config.runCommand(
-      'category:list',
-      lodash.filter([
-        '-v',
-        flags.vendor,
-        '-u',
-        flags.username,
-        '-b',
-        bank.name,
-        flags.clean.includes('category.list') ? '-r' : '',
-      ]),
-    )
+
+    const _argv = ['--vendor', flags.vendor, '--username', flags.username, '--bank', bank.name]
+
+    if (lodash.intersection(flags.clean, ['category.list', '*']).length > 0) {
+      _argv.push('--clean')
+    }
+
+    await this.config.runCommand('category:list', _argv)
   }
 
   protected async _runOutputConvert(flags: any, bank: Bank, category: Category, sheet: Sheet): Promise<void> {
     this.log('\n(output:convert)')
-    await this.config.runCommand(
-      'output:convert',
-      lodash.filter([
-        '-v',
-        flags.vendor,
-        '-u',
-        flags.username,
-        '-b',
-        bank.name,
-        '-c',
-        category.name,
-        '-s',
-        sheet.name,
-        '-o',
-        flags.output,
-        '--outputUsername',
-        flags.outputUsername,
-        flags.clean.includes('output.convert') ? '-r' : '',
-      ]),
-    )
+
+    const _argv = [
+      '--vendor',
+      flags.vendor,
+      '--username',
+      flags.username,
+      '--bank',
+      bank.name,
+      '--category',
+      category.name,
+      '--sheet',
+      sheet.name,
+      '--output',
+      flags.output,
+      '--output_username',
+      flags.output_username,
+    ]
+
+    if (lodash.intersection(flags.clean, ['output.convert', '*']).length > 0) {
+      _argv.push('--clean')
+    }
+
+    await this.config.runCommand('output:convert', _argv)
   }
 
   protected async _runOutputUpload(flags: any, bank: Bank, category: Category, sheet: Sheet): Promise<void> {
     this.log('\n(output:upload)')
-    await this.config.runCommand(
-      'output:upload',
-      lodash.filter([
-        '-v',
-        flags.vendor,
-        '-u',
-        flags.username,
-        '-b',
-        bank.name,
-        '-c',
-        category.name,
-        '-s',
-        sheet.name,
-        '-o',
-        flags.output,
-        '--outputUsername',
-        flags.outputUsername,
-        flags.clean.includes('output.upload') ? '-r' : '',
-      ]),
-    )
+
+    const _argv = [
+      '--vendor',
+      flags.vendor,
+      '--username',
+      flags.username,
+      '--bank',
+      bank.name,
+      '--category',
+      category.name,
+      '--sheet',
+      sheet.name,
+      '--output',
+      flags.output,
+      '--output_username',
+      flags.output_username,
+    ]
+
+    if (lodash.intersection(flags.clean, ['output.upload', '*']).length > 0) {
+      _argv.push('--clean')
+    }
+
+    await this.config.runCommand('output:upload', _argv)
   }
 
   protected async _runQuestionFetch(flags: any, bank: Bank, category: Category, sheet: Sheet): Promise<void> {
     this.log('\n(question:fetch)')
-    await this.config.runCommand(
-      'question:fetch',
-      lodash.filter([
-        '-v',
-        flags.vendor,
-        '-u',
-        flags.username,
-        '-b',
-        bank.name,
-        '-c',
-        category.name,
-        '-s',
-        sheet.name,
-        flags.clean.includes('question.fetch') ? '-r' : '',
-      ]),
-    )
+
+    const _argv = [
+      '--vendor',
+      flags.vendor,
+      '--username',
+      flags.username,
+      '--bank',
+      bank.name,
+      '--category',
+      category.name,
+      '--sheet',
+      sheet.name,
+    ]
+
+    if (lodash.intersection(flags.clean, ['question.fetch', '*']).length > 0) {
+      _argv.push('--clean')
+    }
+
+    await this.config.runCommand('question:fetch', _argv)
   }
 
   protected async _runSheetList(flags: any, bank: Bank, category: Category): Promise<void> {
     this.log('\n(sheet:list)')
-    await this.config.runCommand(
-      'sheet:list',
-      lodash.filter([
-        '-v',
-        flags.vendor,
-        '-u',
-        flags.username,
-        '-b',
-        bank.name,
-        '-c',
-        category.name,
-        flags.clean.includes('sheet.list') ? '-r' : '',
-      ]),
-    )
+
+    const _argv = [
+      '--vendor',
+      flags.vendor,
+      '--username',
+      flags.username,
+      '--bank',
+      bank.name,
+      '--category',
+      category.name,
+    ]
+
+    if (lodash.intersection(flags.clean, ['sheet.list', '*']).length > 0) {
+      _argv.push('--clean')
+    }
+
+    await this.config.runCommand('sheet:list', _argv)
   }
 }

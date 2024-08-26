@@ -18,6 +18,7 @@ const toImage = async (html: string, options?: ImageOptions): Promise<AssertStri
   await page.setViewportSize({height: box?.height || 1, width: options?.width || 940})
 
   const base64Buffer = await page.screenshot({
+    clip: box || {height: 1, width: options?.width || 940, x: 0, y: 0},
     fullPage: true,
     type: 'jpeg',
   })
@@ -33,7 +34,7 @@ const toImage = async (html: string, options?: ImageOptions): Promise<AssertStri
 }
 
 const toText = async (html: string): Promise<AssertString> => {
-  const text = await parser.html(
+  const text = await parser.toAssets(
     convert(html, {
       selectors: [{format: 'skip', selector: 'img'}],
       wordwrap: false,

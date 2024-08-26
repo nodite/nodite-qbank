@@ -12,8 +12,8 @@ import {Component} from '../common.js'
 import {OutputClass} from '../output/common.js'
 
 type Options = {
+  excludeTtl?: true
   fromCache?: true
-  includeTtl?: true
 }
 
 /**
@@ -46,7 +46,11 @@ abstract class Vendor extends Component {
    * Banks.
    */
   public async banks(options?: Options): Promise<Bank[]> {
-    return options?.fromCache ? this._banks() : this.fetchBanks()
+    const banks = await (options?.fromCache ? this._banks() : this.fetchBanks())
+
+    if (!options?.excludeTtl) banks.unshift({id: '*', key: '*', name: '全部'})
+
+    return banks
   }
 
   /**
@@ -69,6 +73,10 @@ abstract class Vendor extends Component {
       const originQuestionCount = (await this.getCacheClient().keys(originQuestionItemCacheKey + ':*')).length
 
       category.fetch = originQuestionCount >= category.count
+    }
+
+    if (!options?.excludeTtl) {
+      categories.unshift({children: [], count: lodash.sumBy(categories, 'count'), id: '*', name: '全部'})
     }
 
     return categories
@@ -121,7 +129,9 @@ abstract class Vendor extends Component {
    */
   public async sheets(bank: Bank, category: Category, options?: Options): Promise<Sheet[]> {
     const sheets = await (options?.fromCache ? this._sheets(bank, category) : this.fetchSheet(bank, category))
-    if (options?.includeTtl) sheets.unshift({count: lodash.sumBy(sheets, 'count'), id: '*', name: '全部'})
+
+    if (!options?.excludeTtl) sheets.unshift({count: lodash.sumBy(sheets, 'count'), id: '*', name: '全部'})
+
     return sheets
   }
 

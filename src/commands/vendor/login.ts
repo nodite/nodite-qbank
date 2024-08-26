@@ -15,7 +15,6 @@ Login to vendor (./src/commands/vendor/login.ts)
   ]
 
   static flags = {
-    clean: Flags.boolean({char: 'r', default: false, description: '清除缓存'}),
     password: Flags.string({char: 'p', default: '', description: '密码'}),
   }
 

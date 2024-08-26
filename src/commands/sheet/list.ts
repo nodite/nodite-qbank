@@ -22,7 +22,6 @@ List sheets (./src/commands/sheet/list.ts)
   static flags = {
     bank: Flags.string({char: 'b', default: '', description: '题库ID/名称/Key'}),
     category: Flags.string({char: 'c', default: '', description: '分类ID/名称/Key'}),
-    clean: Flags.boolean({char: 'r', default: false, description: '清除缓存'}),
   }
 
   async run(): Promise<void> {
@@ -41,21 +40,46 @@ List sheets (./src/commands/sheet/list.ts)
     const categories = await vendor.categories(bank)
     const category = find<Category>(categories, flags.category) as Category
 
-    // Invalidate cache.
-    if (flags.clean) await vendor.invalidate(HashKeyScope.SHEETS, bank, category)
+    // no '*'
+    if (category.id !== '*') {
+      // Invalidate cache.
+      if (flags.clean) await vendor.invalidate(HashKeyScope.SHEETS, bank, category)
 
-    // sheets.
-    const sheets = await vendor.sheets(bank, category)
+      // sheets.
+      const sheets = await vendor.sheets(bank, category)
 
-    this.log(
-      ttyTable(
-        [
-          {align: 'left', value: 'id'},
-          {align: 'left', value: 'name'},
-          {align: 'left', value: 'count'},
-        ],
-        sheets.map((sheet) => [sheet.id, sheet.name, sheet.count]),
-      ).render(),
-    )
+      this.log(
+        ttyTable(
+          [
+            {align: 'left', value: 'id'},
+            {align: 'left', value: 'name'},
+            {align: 'left', value: 'count'},
+          ],
+          sheets.map((sheet) => [sheet.id, sheet.name, sheet.count]),
+        ).render(),
+      )
+
+      return
+    }
+
+    // '*'
+    for (const _category of await vendor.categories(bank, {excludeTtl: true})) {
+      this.log('\n---\n')
+
+      const _argv = [
+        '--vendor',
+        flags.vendor,
+        '--username',
+        flags.username,
+        '--bank',
+        bank.name,
+        '--category',
+        _category.name,
+      ]
+
+      if (flags.clean) _argv.push('--clean')
+
+      await this.config.runCommand('sheet:list', _argv)
+    }
   }
 }

@@ -14,7 +14,7 @@ const browser = async (create: boolean = true) => {
   let _browser = await memory.cache.get<playwright.Browser>(cacheKey)
 
   if ((!_browser || !_browser.isConnected()) && create) {
-    _browser = await playwright.webkit.launch({headless: true})
+    _browser = await playwright.chromium.launch({headless: true})
     await memory.cache.set(cacheKey, _browser)
   }
 

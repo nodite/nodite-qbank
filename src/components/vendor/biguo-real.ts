@@ -212,6 +212,7 @@ export default class BiguoReal extends Vendor {
         if (questionKeys.includes(_questionCacheKey)) continue
 
         _question.questionAsk = await biguo.showQuestionAsk(biguo.PUBLIC_KEY, _question.questionAsk)
+        _question.sheet = sheet
 
         await cacheClient.set(_questionCacheKey, _question)
 

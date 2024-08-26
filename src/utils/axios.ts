@@ -1,5 +1,6 @@
 import Axios from 'axios'
 import {buildMemoryStorage, setupCache} from 'axios-cache-interceptor'
+import lodash from 'lodash'
 
 const axiosInstance = setupCache(Axios, {
   interpretHeader: false,
@@ -9,6 +10,11 @@ const axiosInstance = setupCache(Axios, {
 
 axiosInstance.interceptors.response.use(
   (response) => {
+    // biguo.
+    if (lodash.has(response, 'data.result_code') && response.data.result_code !== 1) {
+      return Promise.reject(response.data)
+    }
+
     return response
   },
   (error) => {

@@ -11,6 +11,7 @@ import {find, findAll} from './utils/index.js'
 
 export default abstract class BaseCommand extends Command {
   static baseFlags = {
+    clean: Flags.boolean({char: 'r', default: false, description: '清除缓存'}),
     username: Flags.string({char: 'u', default: '', description: '用户名/邮箱/手机号'}),
     vendor: Flags.string({char: 'v', default: '', description: '题库供应商'}),
   }
@@ -40,24 +41,30 @@ export default abstract class BaseCommand extends Command {
     }
 
     // bank
-    await this._ensureBank<T>(flags)
+    if (lodash.has(flags, 'bank')) {
+      await this._ensureBank(flags)
+    }
 
     // category
-    await this._ensureCategory<T>(flags)
+    if (lodash.has(flags, 'category')) {
+      await this._ensureCategory(flags)
+    }
 
     // sheet
-    await this._ensureSheet<T>(flags)
+    if (lodash.has(flags, 'sheet')) {
+      await this._ensureSheet(flags)
+    }
 
     // output
-    await this._ensureOutput<T>(flags)
+    if (lodash.has(flags, 'output')) {
+      await this._ensureOutput(flags)
+    }
   }
 
   /**
    * Ensure bank.
    */
-  protected async _ensureBank<T extends {[name: string]: any}>(flags: T): Promise<void> {
-    if (!lodash.has(flags, 'bank')) return
-
+  protected async _ensureBank(flags: any): Promise<void> {
     const vendor = new (VendorManager.getClass(flags.vendor))(flags.username)
 
     const banks = await vendor.banks()
@@ -87,12 +94,15 @@ export default abstract class BaseCommand extends Command {
   /**
    * Ensure category.
    */
-  protected async _ensureCategory<T extends {[name: string]: any}>(flags: T): Promise<void> {
-    if (!lodash.has(flags, 'category') || !flags.bank) return
-
+  protected async _ensureCategory(flags: any): Promise<void> {
     const vendor = new (VendorManager.getClass(flags.vendor))(flags.username)
 
     const bank = find<Bank>(await vendor.banks(), flags.bank) as Bank
+
+    if (bank.id === '*') {
+      console.log(`${colors.yellow('⚠')} ${colors.bold('分类')}: ${colors.yellow('题库为 "*" 时无法选择')}`)
+      throw new Error()
+    }
 
     const categories = await vendor.categories(bank)
 
@@ -121,9 +131,7 @@ export default abstract class BaseCommand extends Command {
   /**
    * Ensure output.
    */
-  protected async _ensureOutput<T extends {[name: string]: any}>(flags: T): Promise<void> {
-    if (!lodash.has(flags, 'output')) return
-
+  protected async _ensureOutput(flags: any): Promise<void> {
     const vendor = new (VendorManager.getClass(flags.vendor))(flags.username)
 
     const outputs = OutputManager.getMetas(Object.values(vendor.allowedOutputs))
@@ -152,12 +160,12 @@ export default abstract class BaseCommand extends Command {
     }
 
     // output username
-    if (!flags.outputUsername && flags.output) {
+    if (!flags.output_username && flags.output) {
       const answers = await inquirer.prompt([
         {
           default: flags.username,
           message: '接收方用户名:',
-          name: 'outputUsername',
+          name: 'output_username',
           type: 'input',
         },
       ] as never)
@@ -169,16 +177,19 @@ export default abstract class BaseCommand extends Command {
   /**
    * Ensure sheet.
    */
-  protected async _ensureSheet<T extends {[name: string]: any}>(flags: T): Promise<void> {
-    if (!lodash.has(flags, 'sheet') || !flags.category) return
-
+  protected async _ensureSheet(flags: any): Promise<void> {
     const vendor = new (VendorManager.getClass(flags.vendor))(flags.username)
 
     const bank = find<Bank>(await vendor.banks(), flags.bank) as Bank
 
     const category = find<Category>(await vendor.categories(bank), flags.category) as Category
 
-    const sheets = await vendor.sheets(bank, category, {includeTtl: true})
+    if (category.id === '*') {
+      console.log(`${colors.yellow('⚠')} ${colors.bold('试卷')}: ${colors.yellow('分类为 "*" 时无法选择')}`)
+      throw new Error()
+    }
+
+    const sheets = await vendor.sheets(bank, category)
 
     const _sheets = findAll(sheets, flags.sheet as string, {fuzzy: true})
 

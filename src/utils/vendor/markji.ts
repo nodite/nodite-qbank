@@ -145,21 +145,21 @@ const upload = async (info: MarkjiInfo, index: number, question: AssertString): 
   if (lodash.isEmpty(question)) return
 
   for (const [key, value] of Object.entries(question.asserts)) {
-    if (!value.startsWith('data:')) continue
+    if (value.startsWith('data:')) {
+      const parsed = dataUriToBuffer(value)
+      const filename = key + '.' + parsed.type.split('/')[1]
 
-    const parsed = dataUriToBuffer(value)
-    const filename = key + '.' + parsed.type.split('/')[1]
+      const form = new FormData()
 
-    const form = new FormData()
+      form.append('file', streamifier.createReadStream(Buffer.from(parsed.buffer)), {
+        contentType: parsed.type,
+        filename,
+      })
 
-    form.append('file', streamifier.createReadStream(Buffer.from(parsed.buffer)), {
-      contentType: parsed.type,
-      filename,
-    })
+      const response = await axios.post('https://www.markji.com/api/v1/files', form, info.requestConfig)
 
-    const response = await axios.post('https://www.markji.com/api/v1/files', form, info.requestConfig)
-
-    question.asserts[key] = `[Pic#ID/${response.data.data.file.id}#]`
+      question.asserts[key] = `[Pic#ID/${response.data.data.file.id}#]`
+    }
 
     question.text = question.text.replaceAll(key, question.asserts[key])
   }
