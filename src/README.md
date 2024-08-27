@@ -7,4 +7,3 @@ Question - 题目
 TODO:
 - wantiku-zikao output
 - json-file vendor
-- 心理咨询原理与技术(课程代码 07049).json 补全

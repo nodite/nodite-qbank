@@ -24,6 +24,7 @@ Chain to qbank (./src/commands/chain/index.ts)
     bank_list: Flags.string({default: ['*'], delimiter: ',', description: '题库', multiple: true}),
     category_list: Flags.string({default: ['*'], delimiter: ',', description: '分类', multiple: true}),
     clean: Flags.string({
+      char: 'r',
       default: [],
       delimiter: ',',
       description: '清除缓存/重新转换',
@@ -83,7 +84,7 @@ Chain to qbank (./src/commands/chain/index.ts)
   }
 
   protected async _runBankList(flags: any): Promise<void> {
-    this.log('\n---\n')
+    this.log('\n---')
 
     const _argv = ['--vendor', flags.vendor, '--username', flags.username]
 
@@ -96,6 +97,8 @@ Chain to qbank (./src/commands/chain/index.ts)
   }
 
   protected async _runCategoryList(flags: any, bank: Bank): Promise<void> {
+    this.log('\n---')
+
     const _argv = ['--vendor', flags.vendor, '--username', flags.username, '--bank', bank.name]
 
     if (lodash.intersection(flags.clean, ['category.list', '*']).length > 0) {
@@ -107,7 +110,7 @@ Chain to qbank (./src/commands/chain/index.ts)
   }
 
   protected async _runOutputConvert(flags: any, bank: Bank, category: Category, sheet: Sheet): Promise<void> {
-    this.log('\n---\n')
+    this.log('\n---')
 
     const _argv = [
       '--vendor',
@@ -135,7 +138,7 @@ Chain to qbank (./src/commands/chain/index.ts)
   }
 
   protected async _runOutputUpload(flags: any, bank: Bank, category: Category, sheet: Sheet): Promise<void> {
-    this.log('\n---\n')
+    this.log('\n---')
 
     const _argv = [
       '--vendor',
@@ -163,7 +166,7 @@ Chain to qbank (./src/commands/chain/index.ts)
   }
 
   protected async _runQuestionFetch(flags: any, bank: Bank, category: Category, sheet: Sheet): Promise<void> {
-    this.log('\n---\n')
+    this.log('\n---')
 
     const _argv = [
       '--vendor',
@@ -187,7 +190,7 @@ Chain to qbank (./src/commands/chain/index.ts)
   }
 
   protected async _runSheetList(flags: any, bank: Bank, category: Category): Promise<void> {
-    this.log('\n---\n')
+    this.log('\n---')
 
     const _argv = [
       '--vendor',

@@ -62,10 +62,10 @@ List categories (./src/commands/category/list.ts)
     for (const _bank of await vendor.banks({excludeTtl: true})) {
       this.log('\n---\n')
 
-      const _argv = ['-v', flags.vendor, '-u', flags.username, '-b', _bank.name]
+      const _argv = ['--vendor', flags.vendor, '--username', flags.username, '--bank', _bank.name]
 
       if (flags.clean) {
-        _argv.push('-r')
+        _argv.push('--clean')
       }
 
       if (flags.rich) {

@@ -93,6 +93,7 @@ Convert questions (./src/commands/output/convert.ts)
         _argv.push('--clean')
       }
 
+      this.log('*(output:convert)')
       await this.config.runCommand('output:convert', _argv)
     }
   }

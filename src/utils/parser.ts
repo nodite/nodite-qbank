@@ -45,8 +45,8 @@ const input = async (text: string): Promise<AssertString> => {
     const placeholder = input.getAttribute('placeholder')
 
     assertString.asserts[`[input#${hash}]`] = placeholder
-      ? `[${placeholder}]`
-      : '[' + '_'.repeat(repeat) + (idx + 1) + '_'.repeat(repeat) + ']'
+      ? ` [${placeholder}] `
+      : ' [' + '_'.repeat(repeat) + (idx + 1) + '_'.repeat(repeat) + '] '
 
     input.replaceWith(`[input#${hash}]`)
   }
@@ -64,9 +64,9 @@ const underline = async (text: string): Promise<AssertString> => {
   for (const _underline of text.matchAll(/_{2,}/g)) {
     const hash = md5(JSON.stringify({index: idx, text, type: 'input'})).slice(0, 8)
 
-    const repeat = lodash.ceil(_underline[0].length) || 1
+    const repeat = lodash.ceil(_underline[0].length / 2) || 1
 
-    assertString.asserts[`[input#${hash}]`] = '[' + '_'.repeat(repeat) + (idx + 1) + '_'.repeat(repeat) + ']'
+    assertString.asserts[`[input#${hash}]`] = ' [' + '_'.repeat(repeat) + (idx + 1) + '_'.repeat(repeat) + '] '
 
     text = text.replace(_underline[0], `[input#${hash}]`)
 
@@ -92,7 +92,7 @@ const quotes = async (text: string): Promise<AssertString> => {
       const repeat = lodash.ceil(_quote[2].length / 2) || 1
 
       assertString.asserts[`[input#${hash}]`] =
-        _quote[1] + '_'.repeat(repeat) + (idx + 1) + '_'.repeat(repeat) + _quote[3]
+        ' ' + _quote[1] + '_'.repeat(repeat) + (idx + 1) + '_'.repeat(repeat) + _quote[3] + ' '
 
       text = text.replace(_quote[0], `[input#${hash}]`)
 

@@ -6,11 +6,15 @@ import {AssertString, ImageOptions} from '../types/common.js'
 import parser from './parser.js'
 import playwright from './playwright.js'
 
+const _htmlPreprocess = (html: string): string => {
+  return html.replaceAll(' ', ' <wbr>').replaceAll('\n', '<br>')
+}
+
 const toImage = async (html: string, options?: ImageOptions): Promise<AssertString> => {
   const page = await playwright.page('html', 'about:blank')
 
   await page.setViewportSize({height: 1, width: options?.width || 940})
-  await page.setContent(html.replaceAll(' ', ' <wbr>'), {waitUntil: 'networkidle'})
+  await page.setContent(_htmlPreprocess(html), {waitUntil: 'networkidle'})
 
   const $ele = await page.$('html')
   const box = await $ele?.boundingBox()
@@ -35,7 +39,7 @@ const toImage = async (html: string, options?: ImageOptions): Promise<AssertStri
 
 const toText = async (html: string): Promise<AssertString> => {
   const text = await parser.toAssets(
-    convert(html, {
+    convert(_htmlPreprocess(html), {
       selectors: [{format: 'skip', selector: 'img'}],
       wordwrap: false,
     }),

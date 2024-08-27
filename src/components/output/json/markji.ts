@@ -213,7 +213,7 @@ export default class Markji extends Output {
     const output = await html.toText(
       lodash
         .filter([
-          `${question.type}\n`,
+          `[${question.type}]\n`,
           `${_meta.content.text.trim()}\n`,
           `[Choice#${_meta.optionsAttr}#\n${lodash.map(_meta.options, 'text').join('\n').trim()}\n]\n`,
           '---\n',
@@ -259,7 +259,7 @@ export default class Markji extends Output {
     const output = await html.toText(
       lodash
         .filter([
-          `${question.type}\n`,
+          `[${question.type}]\n`,
           `${_meta.content.text.trim()}`,
           '---',
           _meta.translation.text.trim(),
