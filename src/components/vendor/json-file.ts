@@ -68,16 +68,14 @@ export default class JsonFile extends Vendor {
       vendorKey: (this.constructor as typeof Vendor).META.key,
     }
 
-    const originQuestionItemCacheKey = lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)(cacheKeyParams)
-
-    const questionIds = lodash.map(
-      await cacheClient.keys(originQuestionItemCacheKey + ':*'),
-      (key) => key.split(':').pop() as string,
+    const originQuestionKeys = await cacheClient.keys(
+      lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)({...cacheKeyParams, questionId: '*'}),
     )
 
+    // refetch.
     if (options?.refetch) {
-      await cacheClient.delHash(originQuestionItemCacheKey + ':*')
-      questionIds.length = 0
+      await cacheClient.delHash(lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)({...cacheKeyParams, questionId: '*'}))
+      originQuestionKeys.length = 0
     }
 
     const data = await this._getData(bank)
@@ -85,22 +83,27 @@ export default class JsonFile extends Vendor {
     const answers = lodash.filter(data.answers, {category: category.id})
     const explains = lodash.filter(data.explains, {category: category.id})
 
-    emitter.emit('questions.fetch.count', questionIds.length)
+    emitter.emit('questions.fetch.count', originQuestionKeys.length)
 
     for (const _question of questions) {
       const _questionId = String(_question.id)
 
-      if (questionIds.includes(_questionId)) continue
+      const _questionCacheKey = lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)({
+        ...cacheKeyParams,
+        questionId: _questionId,
+      })
+
+      if (originQuestionKeys.includes(_questionCacheKey)) continue
 
       _question.answer = lodash.find(answers, (answer) => String(answer.id) === _questionId)?.content
       _question.explain = lodash.find(explains, (explain) => String(explain.id) === _questionId)?.content
 
-      await cacheClient.set(originQuestionItemCacheKey + ':' + _questionId, _question)
-      if (!questionIds.includes(_questionId)) questionIds.push(_questionId)
-      emitter.emit('questions.fetch.count', questionIds.length)
+      await cacheClient.set(_questionCacheKey, _question)
+      originQuestionKeys.push(_questionCacheKey)
+      emitter.emit('questions.fetch.count', originQuestionKeys.length)
     }
 
-    emitter.emit('questions.fetch.count', questionIds.length)
+    emitter.emit('questions.fetch.count', originQuestionKeys.length)
     await sleep(1000)
     emitter.closeListener('questions.fetch.count')
   }

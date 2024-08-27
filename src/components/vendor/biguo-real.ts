@@ -153,19 +153,19 @@ export default class BiguoReal extends Vendor {
       vendorKey: (this.constructor as typeof Vendor).META.key,
     }
 
-    const questionKeys = await cacheClient.keys(
+    const originQuestionKeys = await cacheClient.keys(
       lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)({...cacheKeyParams, questionId: '*'}),
     )
 
     // refetch.
     if (options?.refetch) {
       await cacheClient.delHash(lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)({...cacheKeyParams, questionId: '*'}))
-      questionKeys.length = 0
+      originQuestionKeys.length = 0
     }
 
-    emitter.emit('questions.fetch.count', questionKeys.length)
+    emitter.emit('questions.fetch.count', originQuestionKeys.length)
 
-    if (questionKeys.length < sheet.count) {
+    if (originQuestionKeys.length < sheet.count) {
       const questionBankResponse = await axios.get(
         'https://www.biguotk.com/api/v5/exams/getQuestionBank',
         lodash.merge({}, requestConfig, {
@@ -209,23 +209,23 @@ export default class BiguoReal extends Vendor {
           questionId: _questionId,
         })
 
-        if (questionKeys.includes(_questionCacheKey)) continue
+        if (originQuestionKeys.includes(_questionCacheKey)) continue
 
         _question.questionAsk = await biguo.showQuestionAsk(biguo.PUBLIC_KEY, _question.questionAsk)
         _question.sheet = sheet
 
         await cacheClient.set(_questionCacheKey, _question)
 
-        questionKeys.push(_questionCacheKey)
+        originQuestionKeys.push(_questionCacheKey)
 
-        emitter.emit('questions.fetch.count', questionKeys.length)
+        emitter.emit('questions.fetch.count', originQuestionKeys.length)
 
         // delay.
         await sleep(100)
       }
     }
 
-    emitter.emit('questions.fetch.count', questionKeys.length)
+    emitter.emit('questions.fetch.count', originQuestionKeys.length)
 
     await sleep(1000)
 

@@ -24,6 +24,7 @@ Chain to qbank (./src/commands/chain/index.ts)
     bank_list: Flags.string({default: ['*'], delimiter: ',', description: '题库', multiple: true}),
     category_list: Flags.string({default: ['*'], delimiter: ',', description: '分类', multiple: true}),
     clean: Flags.string({
+      char: 'r',
       default: [],
       delimiter: ',',
       description: '清除缓存/重新转换',
