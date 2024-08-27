@@ -84,6 +84,7 @@ Fetch questions (./src/commands/question/fetch.ts)
         _argv.push('--clean')
       }
 
+      this.log('*(question:fetch)')
       await this.config.runCommand('question:fetch', _argv)
     }
   }

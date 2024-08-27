@@ -79,6 +79,7 @@ List sheets (./src/commands/sheet/list.ts)
 
       if (flags.clean) _argv.push('--clean')
 
+      this.log('*(sheet:list)')
       await this.config.runCommand('sheet:list', _argv)
     }
   }

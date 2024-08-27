@@ -83,7 +83,7 @@ Chain to qbank (./src/commands/chain/index.ts)
   }
 
   protected async _runBankList(flags: any): Promise<void> {
-    this.log('\n(bank:list)')
+    this.log('\n---\n')
 
     const _argv = ['--vendor', flags.vendor, '--username', flags.username]
 
@@ -91,23 +91,23 @@ Chain to qbank (./src/commands/chain/index.ts)
       _argv.push('--clean')
     }
 
+    this.log('\n(bank:list)')
     await this.config.runCommand('bank:list', _argv)
   }
 
   protected async _runCategoryList(flags: any, bank: Bank): Promise<void> {
-    this.log('\n(category:list)')
-
     const _argv = ['--vendor', flags.vendor, '--username', flags.username, '--bank', bank.name]
 
     if (lodash.intersection(flags.clean, ['category.list', '*']).length > 0) {
       _argv.push('--clean')
     }
 
+    this.log('\n(category:list)')
     await this.config.runCommand('category:list', _argv)
   }
 
   protected async _runOutputConvert(flags: any, bank: Bank, category: Category, sheet: Sheet): Promise<void> {
-    this.log('\n(output:convert)')
+    this.log('\n---\n')
 
     const _argv = [
       '--vendor',
@@ -130,11 +130,12 @@ Chain to qbank (./src/commands/chain/index.ts)
       _argv.push('--clean')
     }
 
+    this.log('\n(output:convert)')
     await this.config.runCommand('output:convert', _argv)
   }
 
   protected async _runOutputUpload(flags: any, bank: Bank, category: Category, sheet: Sheet): Promise<void> {
-    this.log('\n(output:upload)')
+    this.log('\n---\n')
 
     const _argv = [
       '--vendor',
@@ -157,11 +158,12 @@ Chain to qbank (./src/commands/chain/index.ts)
       _argv.push('--clean')
     }
 
+    this.log('\n(output:upload)')
     await this.config.runCommand('output:upload', _argv)
   }
 
   protected async _runQuestionFetch(flags: any, bank: Bank, category: Category, sheet: Sheet): Promise<void> {
-    this.log('\n(question:fetch)')
+    this.log('\n---\n')
 
     const _argv = [
       '--vendor',
@@ -180,11 +182,12 @@ Chain to qbank (./src/commands/chain/index.ts)
       _argv.push('--clean')
     }
 
+    this.log('\n(question:fetch)')
     await this.config.runCommand('question:fetch', _argv)
   }
 
   protected async _runSheetList(flags: any, bank: Bank, category: Category): Promise<void> {
-    this.log('\n(sheet:list)')
+    this.log('\n---\n')
 
     const _argv = [
       '--vendor',
@@ -201,6 +204,7 @@ Chain to qbank (./src/commands/chain/index.ts)
       _argv.push('--clean')
     }
 
+    this.log('\n(sheet:list)')
     await this.config.runCommand('sheet:list', _argv)
   }
 }

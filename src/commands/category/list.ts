@@ -72,6 +72,7 @@ List categories (./src/commands/category/list.ts)
         _argv.push('--rich')
       }
 
+      this.log('*(category:list)')
       await this.config.runCommand('category:list', _argv)
     }
   }
