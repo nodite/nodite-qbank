@@ -16,82 +16,117 @@ A new CLI generated with oclif
 # Usage
 <!-- usage -->
 ```sh-session
-$ npm install -g mycli123
-$ mycli123 COMMAND
+$ npm install -g qbank
+$ qbank COMMAND
 running command...
-$ mycli123 (--version)
-mycli123/0.0.0 darwin-arm64 node-v20.12.2
-$ mycli123 --help [COMMAND]
+$ qbank (--version)
+qbank/0.0.0 darwin-arm64 node-v20.15.0
+$ qbank --help [COMMAND]
 USAGE
-  $ mycli123 COMMAND
+  $ qbank COMMAND
 ...
 ```
 <!-- usagestop -->
 # Commands
 <!-- commands -->
-* [`mycli123 hello PERSON`](#mycli123-hello-person)
-* [`mycli123 hello world`](#mycli123-hello-world)
-* [`mycli123 help [COMMAND]`](#mycli123-help-command)
-* [`mycli123 plugins`](#mycli123-plugins)
-* [`mycli123 plugins add PLUGIN`](#mycli123-plugins-add-plugin)
-* [`mycli123 plugins:inspect PLUGIN...`](#mycli123-pluginsinspect-plugin)
-* [`mycli123 plugins install PLUGIN`](#mycli123-plugins-install-plugin)
-* [`mycli123 plugins link PATH`](#mycli123-plugins-link-path)
-* [`mycli123 plugins remove [PLUGIN]`](#mycli123-plugins-remove-plugin)
-* [`mycli123 plugins reset`](#mycli123-plugins-reset)
-* [`mycli123 plugins uninstall [PLUGIN]`](#mycli123-plugins-uninstall-plugin)
-* [`mycli123 plugins unlink [PLUGIN]`](#mycli123-plugins-unlink-plugin)
-* [`mycli123 plugins update`](#mycli123-plugins-update)
+* [`qbank bank list`](#qbank-bank-list)
+* [`qbank category list`](#qbank-category-list)
+* [`qbank chain`](#qbank-chain)
+* [`qbank help [COMMAND]`](#qbank-help-command)
+* [`qbank output convert`](#qbank-output-convert)
+* [`qbank output upload`](#qbank-output-upload)
+* [`qbank question fetch`](#qbank-question-fetch)
+* [`qbank sheet list`](#qbank-sheet-list)
+* [`qbank vendor login`](#qbank-vendor-login)
 
-## `mycli123 hello PERSON`
+## `qbank bank list`
 
-Say hello
+List banks
 
 ```
 USAGE
-  $ mycli123 hello PERSON -f <value>
-
-ARGUMENTS
-  PERSON  Person to say hello to
+  $ qbank bank list [-r] [-u <value>] [-v <value>]
 
 FLAGS
-  -f, --from=<value>  (required) Who is saying hello
+  -r, --clean             清除缓存
+  -u, --username=<value>  用户名/邮箱/手机号
+  -v, --vendor=<value>    题库供应商
 
 DESCRIPTION
-  Say hello
+  List banks
 
 EXAMPLES
-  $ mycli123 hello friend --from oclif
-  hello friend from oclif! (./src/commands/hello/index.ts)
+  $ qbank bank list
+  List banks (./src/commands/course/list.ts)
 ```
 
-_See code: [src/commands/hello/index.ts](https://github.com/mdonnalley/mycli123/blob/v0.0.0/src/commands/hello/index.ts)_
+_See code: [src/commands/bank/list.ts](https://github.com/oscaner/qbank/blob/v0.0.0/src/commands/bank/list.ts)_
 
-## `mycli123 hello world`
+## `qbank category list`
 
-Say hello world
+List categories
 
 ```
 USAGE
-  $ mycli123 hello world
+  $ qbank category list [-r] [-u <value>] [-v <value>] [-b <value>] [--rich]
+
+FLAGS
+  -b, --bank=<value>      题库ID/名称/Key
+  -r, --clean             清除缓存
+  -u, --username=<value>  用户名/邮箱/手机号
+  -v, --vendor=<value>    题库供应商
+      --rich              详细信息
 
 DESCRIPTION
-  Say hello world
+  List categories
 
 EXAMPLES
-  $ mycli123 hello world
-  hello world! (./src/commands/hello/world.ts)
+  $ qbank category list
+  List categories (./src/commands/category/list.ts)
 ```
 
-_See code: [src/commands/hello/world.ts](https://github.com/mdonnalley/mycli123/blob/v0.0.0/src/commands/hello/world.ts)_
+_See code: [src/commands/category/list.ts](https://github.com/oscaner/qbank/blob/v0.0.0/src/commands/category/list.ts)_
 
-## `mycli123 help [COMMAND]`
+## `qbank chain`
 
-Display help for mycli123.
+Chain to qbank
 
 ```
 USAGE
-  $ mycli123 help [COMMAND...] [-n]
+  $ qbank chain [-r *|bank.list|category.list|sheet.list|question.fetch|output.convert|output.upload...]
+    [-u <value>] [-v <value>] [--bank_list <value>...] [--category_list <value>...] [--delay <value>] [--output <value>]
+    [--output_username <value>] [--sheet_list <value>...]
+
+FLAGS
+  -r, --clean=<option>...         [default: ] 清除缓存/重新转换
+                                  <options:
+                                  *|bank.list|category.list|sheet.list|question.fetch|output.convert|output.upload>
+  -u, --username=<value>          用户名/邮箱/手机号
+  -v, --vendor=<value>            题库供应商
+      --bank_list=<value>...      [default: *] 题库
+      --category_list=<value>...  [default: *] 分类
+      --delay=<value>             延迟(ms)
+      --output=<value>            接收方
+      --output_username=<value>   接收方用户名
+      --sheet_list=<value>...     [default: *] 试卷
+
+DESCRIPTION
+  Chain to qbank
+
+EXAMPLES
+  $ qbank chain
+  Chain to qbank (./src/commands/chain/index.ts)
+```
+
+_See code: [src/commands/chain/index.ts](https://github.com/oscaner/qbank/blob/v0.0.0/src/commands/chain/index.ts)_
+
+## `qbank help [COMMAND]`
+
+Display help for qbank.
+
+```
+USAGE
+  $ qbank help [COMMAND...] [-n]
 
 ARGUMENTS
   COMMAND...  Command to show help for.
@@ -100,297 +135,141 @@ FLAGS
   -n, --nested-commands  Include all nested commands in the output.
 
 DESCRIPTION
-  Display help for mycli123.
+  Display help for qbank.
 ```
 
-_See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v6.0.21/src/commands/help.ts)_
+_See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v6.2.10/src/commands/help.ts)_
 
-## `mycli123 plugins`
+## `qbank output convert`
 
-List installed plugins.
+Convert questions
 
 ```
 USAGE
-  $ mycli123 plugins [--json] [--core]
+  $ qbank output convert [-r] [-u <value>] [-v <value>] [-b <value>] [-c <value>] [-o <value>] [--output_username
+    <value>] [-s <value>]
 
 FLAGS
-  --core  Show core plugins.
-
-GLOBAL FLAGS
-  --json  Format output as json.
+  -b, --bank=<value>             题库ID/名称/Key
+  -c, --category=<value>         分类ID/名称
+  -o, --output=<value>           接收方
+  -r, --clean                    清除缓存
+  -s, --sheet=<value>            试卷ID/名称
+  -u, --username=<value>         用户名/邮箱/手机号
+  -v, --vendor=<value>           题库供应商
+      --output_username=<value>  接收方用户名
 
 DESCRIPTION
-  List installed plugins.
+  Convert questions
 
 EXAMPLES
-  $ mycli123 plugins
+  $ qbank output convert
+  Convert questions (./src/commands/output/convert.ts)
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.0.16/src/commands/plugins/index.ts)_
+_See code: [src/commands/output/convert.ts](https://github.com/oscaner/qbank/blob/v0.0.0/src/commands/output/convert.ts)_
 
-## `mycli123 plugins add PLUGIN`
+## `qbank output upload`
 
-Installs a plugin into mycli123.
+Upload questions
 
 ```
 USAGE
-  $ mycli123 plugins add PLUGIN... [--json] [-f] [-h] [-s | -v]
-
-ARGUMENTS
-  PLUGIN...  Plugin to install.
+  $ qbank output upload [-r] [-u <value>] [-v <value>] [-b <value>] [-c <value>] [-o <value>] [--output_username
+    <value>] [-s <value>]
 
 FLAGS
-  -f, --force    Force npm to fetch remote resources even if a local copy exists on disk.
-  -h, --help     Show CLI help.
-  -s, --silent   Silences npm output.
-  -v, --verbose  Show verbose npm output.
-
-GLOBAL FLAGS
-  --json  Format output as json.
+  -b, --bank=<value>             题库ID/名称/Key
+  -c, --category=<value>         分类ID/名称
+  -o, --output=<value>           接收方
+  -r, --clean                    清除缓存
+  -s, --sheet=<value>            试卷ID/名称
+  -u, --username=<value>         用户名/邮箱/手机号
+  -v, --vendor=<value>           题库供应商
+      --output_username=<value>  接收方用户名
 
 DESCRIPTION
-  Installs a plugin into mycli123.
-
-  Uses bundled npm executable to install plugins into /Users/mdonnalley/.local/share/mycli123
-
-  Installation of a user-installed plugin will override a core plugin.
-
-  Use the MYCLI123_NPM_LOG_LEVEL environment variable to set the npm loglevel.
-  Use the MYCLI123_NPM_REGISTRY environment variable to set the npm registry.
-
-ALIASES
-  $ mycli123 plugins add
+  Upload questions
 
 EXAMPLES
-  Install a plugin from npm registry.
-
-    $ mycli123 plugins add myplugin
-
-  Install a plugin from a github url.
-
-    $ mycli123 plugins add https://github.com/someuser/someplugin
-
-  Install a plugin from a github slug.
-
-    $ mycli123 plugins add someuser/someplugin
+  $ qbank output upload
+  Upload questions (./src/commands/output/upload.ts)
 ```
 
-## `mycli123 plugins:inspect PLUGIN...`
+_See code: [src/commands/output/upload.ts](https://github.com/oscaner/qbank/blob/v0.0.0/src/commands/output/upload.ts)_
 
-Displays installation properties of a plugin.
+## `qbank question fetch`
+
+Fetch questions
 
 ```
 USAGE
-  $ mycli123 plugins inspect PLUGIN...
-
-ARGUMENTS
-  PLUGIN...  [default: .] Plugin to inspect.
+  $ qbank question fetch [-r] [-u <value>] [-v <value>] [-b <value>] [-c <value>] [-s <value>]
 
 FLAGS
-  -h, --help     Show CLI help.
-  -v, --verbose
-
-GLOBAL FLAGS
-  --json  Format output as json.
+  -b, --bank=<value>      题库ID/名称/Key
+  -c, --category=<value>  分类ID/名称
+  -r, --clean             清除缓存
+  -s, --sheet=<value>     试卷ID/名称
+  -u, --username=<value>  用户名/邮箱/手机号
+  -v, --vendor=<value>    题库供应商
 
 DESCRIPTION
-  Displays installation properties of a plugin.
+  Fetch questions
 
 EXAMPLES
-  $ mycli123 plugins inspect myplugin
+  $ qbank question fetch
+  Fetch questions (./src/commands/question/fetch.ts)
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.0.16/src/commands/plugins/inspect.ts)_
+_See code: [src/commands/question/fetch.ts](https://github.com/oscaner/qbank/blob/v0.0.0/src/commands/question/fetch.ts)_
 
-## `mycli123 plugins install PLUGIN`
+## `qbank sheet list`
 
-Installs a plugin into mycli123.
+List sheets
 
 ```
 USAGE
-  $ mycli123 plugins install PLUGIN... [--json] [-f] [-h] [-s | -v]
-
-ARGUMENTS
-  PLUGIN...  Plugin to install.
+  $ qbank sheet list [-r] [-u <value>] [-v <value>] [-b <value>] [-c <value>]
 
 FLAGS
-  -f, --force    Force npm to fetch remote resources even if a local copy exists on disk.
-  -h, --help     Show CLI help.
-  -s, --silent   Silences npm output.
-  -v, --verbose  Show verbose npm output.
-
-GLOBAL FLAGS
-  --json  Format output as json.
+  -b, --bank=<value>      题库ID/名称/Key
+  -c, --category=<value>  分类ID/名称/Key
+  -r, --clean             清除缓存
+  -u, --username=<value>  用户名/邮箱/手机号
+  -v, --vendor=<value>    题库供应商
 
 DESCRIPTION
-  Installs a plugin into mycli123.
-
-  Uses bundled npm executable to install plugins into /Users/mdonnalley/.local/share/mycli123
-
-  Installation of a user-installed plugin will override a core plugin.
-
-  Use the MYCLI123_NPM_LOG_LEVEL environment variable to set the npm loglevel.
-  Use the MYCLI123_NPM_REGISTRY environment variable to set the npm registry.
-
-ALIASES
-  $ mycli123 plugins add
+  List sheets
 
 EXAMPLES
-  Install a plugin from npm registry.
-
-    $ mycli123 plugins install myplugin
-
-  Install a plugin from a github url.
-
-    $ mycli123 plugins install https://github.com/someuser/someplugin
-
-  Install a plugin from a github slug.
-
-    $ mycli123 plugins install someuser/someplugin
+  $ qbank sheet list
+  List sheets (./src/commands/sheet/list.ts)
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.0.16/src/commands/plugins/install.ts)_
+_See code: [src/commands/sheet/list.ts](https://github.com/oscaner/qbank/blob/v0.0.0/src/commands/sheet/list.ts)_
 
-## `mycli123 plugins link PATH`
+## `qbank vendor login`
 
-Links a plugin into the CLI for development.
+Login to vendor
 
 ```
 USAGE
-  $ mycli123 plugins link PATH [-h] [--install] [-v]
-
-ARGUMENTS
-  PATH  [default: .] path to plugin
+  $ qbank vendor login [-r] [-u <value>] [-v <value>] [-p <value>]
 
 FLAGS
-  -h, --help          Show CLI help.
-  -v, --verbose
-      --[no-]install  Install dependencies after linking the plugin.
+  -p, --password=<value>  密码
+  -r, --clean             清除缓存
+  -u, --username=<value>  用户名/邮箱/手机号
+  -v, --vendor=<value>    题库供应商
 
 DESCRIPTION
-  Links a plugin into the CLI for development.
-  Installation of a linked plugin will override a user-installed or core plugin.
-
-  e.g. If you have a user-installed or core plugin that has a 'hello' command, installing a linked plugin with a 'hello'
-  command will override the user-installed or core plugin implementation. This is useful for development work.
-
+  Login to vendor
 
 EXAMPLES
-  $ mycli123 plugins link myplugin
+  $ qbank vendor login
+  Login to vendor (./src/commands/vendor/login.ts)
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.0.16/src/commands/plugins/link.ts)_
-
-## `mycli123 plugins remove [PLUGIN]`
-
-Removes a plugin from the CLI.
-
-```
-USAGE
-  $ mycli123 plugins remove [PLUGIN...] [-h] [-v]
-
-ARGUMENTS
-  PLUGIN...  plugin to uninstall
-
-FLAGS
-  -h, --help     Show CLI help.
-  -v, --verbose
-
-DESCRIPTION
-  Removes a plugin from the CLI.
-
-ALIASES
-  $ mycli123 plugins unlink
-  $ mycli123 plugins remove
-
-EXAMPLES
-  $ mycli123 plugins remove myplugin
-```
-
-## `mycli123 plugins reset`
-
-Remove all user-installed and linked plugins.
-
-```
-USAGE
-  $ mycli123 plugins reset [--hard] [--reinstall]
-
-FLAGS
-  --hard       Delete node_modules and package manager related files in addition to uninstalling plugins.
-  --reinstall  Reinstall all plugins after uninstalling.
-```
-
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.0.16/src/commands/plugins/reset.ts)_
-
-## `mycli123 plugins uninstall [PLUGIN]`
-
-Removes a plugin from the CLI.
-
-```
-USAGE
-  $ mycli123 plugins uninstall [PLUGIN...] [-h] [-v]
-
-ARGUMENTS
-  PLUGIN...  plugin to uninstall
-
-FLAGS
-  -h, --help     Show CLI help.
-  -v, --verbose
-
-DESCRIPTION
-  Removes a plugin from the CLI.
-
-ALIASES
-  $ mycli123 plugins unlink
-  $ mycli123 plugins remove
-
-EXAMPLES
-  $ mycli123 plugins uninstall myplugin
-```
-
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.0.16/src/commands/plugins/uninstall.ts)_
-
-## `mycli123 plugins unlink [PLUGIN]`
-
-Removes a plugin from the CLI.
-
-```
-USAGE
-  $ mycli123 plugins unlink [PLUGIN...] [-h] [-v]
-
-ARGUMENTS
-  PLUGIN...  plugin to uninstall
-
-FLAGS
-  -h, --help     Show CLI help.
-  -v, --verbose
-
-DESCRIPTION
-  Removes a plugin from the CLI.
-
-ALIASES
-  $ mycli123 plugins unlink
-  $ mycli123 plugins remove
-
-EXAMPLES
-  $ mycli123 plugins unlink myplugin
-```
-
-## `mycli123 plugins update`
-
-Update installed plugins.
-
-```
-USAGE
-  $ mycli123 plugins update [-h] [-v]
-
-FLAGS
-  -h, --help     Show CLI help.
-  -v, --verbose
-
-DESCRIPTION
-  Update installed plugins.
-```
-
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.0.16/src/commands/plugins/update.ts)_
+_See code: [src/commands/vendor/login.ts](https://github.com/oscaner/qbank/blob/v0.0.0/src/commands/vendor/login.ts)_
 <!-- commandsstop -->

@@ -6,7 +6,7 @@
   "bin": {
     "qbank": "./bin/run.js"
   },
-  "bugs": "https://github.com/Oscaner/qbank/issues",
+  "bugs": "https://github.com/oscaner/qbank/issues",
   "dependencies": {
     "@lesjoursfr/html-to-image": "^1",
     "@oclif/core": "^4",
@@ -81,6 +81,9 @@
     "ts-node": "^10",
     "typescript": "<5.6.0"
   },
+  "overrides": {
+    "got": "^14"
+  },
   "engines": {
     "node": ">=18.0.0"
   },
@@ -89,7 +92,7 @@
     "/dist",
     "/oclif.manifest.json"
   ],
-  "homepage": "https://github.com/Oscaner Miao/https://github.com/Oscaner/qbank",
+  "homepage": "https://github.com/oscaner/qbank",
   "keywords": [
     "oclif"
   ],
@@ -109,8 +112,7 @@
       ]
     },
     "plugins": [
-      "@oclif/plugin-help",
-      "@oclif/plugin-plugins"
+      "@oclif/plugin-help"
     ],
     "topicSeparator": " ",
     "topics": {
@@ -119,7 +121,7 @@
       }
     }
   },
-  "repository": "Oscaner Miao/https://github.com/Oscaner/qbank",
+  "repository": "https://github.com/oscaner/qbank",
   "scripts": {
     "build": "shx rm -rf dist && tsc -b",
     "lint": "eslint . --ext .ts",
