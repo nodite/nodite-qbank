@@ -57,7 +57,7 @@ const page = async (name: string, url: string) => {
 
   if (!_page || _page.isClosed()) {
     _page = await _context.newPage()
-    await _page.goto(url)
+    await _page.goto(url, {waitUntil: 'networkidle'})
     await memory.cache.set(pageCacheKey, _page)
   }
 

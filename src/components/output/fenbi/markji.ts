@@ -1,7 +1,7 @@
 import lodash from 'lodash'
 import sleep from 'sleep-promise'
 
-import {AssertString, ConvertOptions, UploadOptions} from '../../../types/common.js'
+import {AssertString, ConvertOptions, Params, UploadOptions} from '../../../types/common.js'
 import {emitter} from '../../../utils/event.js'
 import html from '../../../utils/html.js'
 import {find, reverseTemplate, throwError} from '../../../utils/index.js'
@@ -10,7 +10,7 @@ import markji from '../../../utils/vendor/markji.js'
 import {CACHE_KEY_ORIGIN_QUESTION_ITEM, CACHE_KEY_QUESTION_ITEM} from '../../cache-pattern.js'
 import {Vendor} from '../../vendor/common.js'
 import VendorManager from '../../vendor/index.js'
-import {Output, Params} from '../common.js'
+import {Output} from '../common.js'
 
 export default class Markji extends Output {
   public static META = {key: 'markji', name: 'Markji'}
@@ -79,20 +79,30 @@ export default class Markji extends Output {
       // ===========================
       switch (_questionType) {
         // 1. SingleChoice, 单选题
-        // 2. MultipleChoice, 多选题
-        // 4. Cloze, 完型填空
-        // 6. ReadingComprehension5In7, 阅读理解7选5
-        case 1:
-        case 2:
-        case 4:
-        case 6: {
+        case 1: {
+          _originQuestion.typeName = '单选题'
           output = await this._processChoice(_originQuestion)
+          break
+        }
 
+        // 2. MultipleChoice, 多选题
+        case 2: {
+          _originQuestion.typeName = '多选题'
+          output = await this._processChoice(_originQuestion)
+          break
+        }
+
+        // 4. Cloze, 完型填空
+        case 4: {
+          _originQuestion.typeName = '完型填空'
+          output = await this._processChoice(_originQuestion)
           break
         }
 
         // 5. TrueOrFlase, 判断题
         case 5: {
+          _originQuestion.typeName = '判断题'
+
           if (!lodash.some(_originQuestion.accessories, {type: 101})) {
             _originQuestion.accessories.push({options: ['正确', '错误'], type: 101})
           }
@@ -102,21 +112,38 @@ export default class Markji extends Output {
           break
         }
 
+        // 6. ReadingComprehension5In7, 阅读理解7选5
+        case 6: {
+          _originQuestion.typeName = '阅读理解7选5'
+          output = await this._processChoice(_originQuestion)
+          break
+        }
+
         // 61. BlankFilling, 填空题
         case 61: {
+          _originQuestion.typeName = '填空题'
           output = await this._processBlankFilling(_originQuestion)
-
           break
         }
 
         // 101. 翻译
-        // 102. 大作文
-        // 103. 小作文
-        case 101:
-        case 102:
-        case 103: {
+        case 101: {
+          _originQuestion.typeName = '翻译'
           output = await this._processTranslate(_originQuestion)
+          break
+        }
 
+        // 102. 大作文
+        case 102: {
+          _originQuestion.typeName = '大作文'
+          output = await this._processTranslate(_originQuestion)
+          break
+        }
+
+        // 103. 小作文
+        case 103: {
+          _originQuestion.typeName = '小作文'
+          output = await this._processTranslate(_originQuestion)
           break
         }
 
@@ -144,56 +171,17 @@ export default class Markji extends Output {
    * Upload.
    */
   public async upload(params: Params, options?: UploadOptions | undefined): Promise<void> {
-    if (params.sheet.id !== '*') throw new Error('不支持分 sheet 上传，请选择"全部"')
-
-    // prepare.
-    const markjiVendor = new (VendorManager.getClass('markji'))(this.getOutputUsername())
-    const cacheClient = this.getCacheClient()
+    params.output = this
 
     const markjiInfo = await markji.getInfo(params, this.getOutputUsername())
-    markjiInfo.requestConfig = await markjiVendor.login()
+    markjiInfo.requestConfig = await new (VendorManager.getClass('markji'))(this.getOutputUsername()).login()
 
-    // check questions.
-    const allQuestionKeys = lodash
-      .chain(
-        await cacheClient.keys(
-          lodash.template(CACHE_KEY_QUESTION_ITEM)({
-            bankId: params.bank.id,
-            categoryId: params.category.id,
-            outputKey: (this.constructor as typeof Output).META.key,
-            questionId: '*',
-            sheetId: params.sheet.id,
-            vendorKey: (params.vendor.constructor as typeof Vendor).META.key,
-          }),
-        ),
-      )
-      .sort((a, b) => Number(a) - Number(b)) // asc.
-      .value()
-
-    const doneQuestionCount = options?.reupload ? 0 : markjiInfo.chapter.count || 0
-
-    // upload.
-    if (options?.totalEmit) options.totalEmit(allQuestionKeys.length)
-
-    emitter.emit('output.upload.count', doneQuestionCount || 0)
-
-    for (const [_questionIdx, _questionKey] of allQuestionKeys.entries()) {
-      if (_questionIdx < Number(doneQuestionCount)) continue
-
-      const _question: AssertString = await cacheClient.get(_questionKey)
-
-      await markji.upload(markjiInfo, _questionIdx, _question)
-
-      // emit.
-      emitter.emit('output.upload.count', _questionIdx + 1)
-      await sleep(500)
-    }
-
-    emitter.emit('output.upload.count', allQuestionKeys.length)
-
-    await sleep(500)
-
-    emitter.closeListener('output.upload.count')
+    await markji.bulkUpload({
+      cacheClient: this.getCacheClient(),
+      markjiInfo,
+      params,
+      uploadOptions: options,
+    })
   }
 
   /**
@@ -243,7 +231,7 @@ export default class Markji extends Output {
     // _output.
     const _output = await html.toText(
       lodash
-        .filter([`${_meta.content.text.trim()}`, `---`, ..._points])
+        .filter([`[${question.typeName}]`, _meta.content.text.trim(), `---`, ..._points])
         .join('\n')
         .trim()
         .replaceAll('\n', '<br>'),
@@ -436,6 +424,7 @@ export default class Markji extends Output {
     const _output = await html.toText(
       lodash
         .filter([
+          `[${question.typeName}]`,
           ...lodash.map(_meta.materials, 'text'),
           `${_meta.content.text.trim()}\n`,
           `[Choice#${_meta.optionsAttr}#\n${lodash.map(_meta.options, 'text').join('\n').trim()}\n]\n`,
@@ -498,7 +487,7 @@ export default class Markji extends Output {
     // _output.
     const _output = await html.toText(
       lodash
-        .filter([_meta.content.text.trim(), '---', _meta.translation.text, '---', ..._points])
+        .filter([`[${question.typeName}]`, _meta.content.text.trim(), '---', _meta.translation.text, '---', ..._points])
         .join('\n')
         .trim()
         .replaceAll('\n', '<br>'),

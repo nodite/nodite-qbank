@@ -1,5 +1,5 @@
-import {ConvertOptions, UploadOptions} from '../../types/common.js'
-import {Output, Params} from './common.js'
+import {ConvertOptions, Params, UploadOptions} from '../../types/common.js'
+import {Output} from './common.js'
 
 export default class File extends Output {
   public static META = {key: 'file', name: '文件'}

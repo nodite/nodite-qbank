@@ -58,9 +58,10 @@ export function findAll<T>(items: T[], substring: string | string[], options?: F
   })
 }
 
-export function throwError(message: string, data: unknown): never {
+export function throwError(message: string | unknown, data: unknown): never {
   fs.writeJsonSync('tmp/error.json', {data, message}, {spaces: 2})
-  throw new Error(message)
+  if (typeof message === 'string') throw new Error(message)
+  throw message
 }
 
 export function reverseTemplate(template: string, result: string): Record<string, any> {

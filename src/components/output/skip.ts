@@ -1,8 +1,8 @@
 import sleep from 'sleep-promise'
 
-import {ConvertOptions, UploadOptions} from '../../types/common.js'
+import {ConvertOptions, Params, UploadOptions} from '../../types/common.js'
 import {emitter} from '../../utils/event.js'
-import {Output, Params} from './common.js'
+import {Output} from './common.js'
 
 export default class Skip extends Output {
   public static META = {key: 'skip', name: '跳过'}

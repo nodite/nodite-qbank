@@ -1,9 +1,6 @@
 import cacheManager from '@type-cacheable/core'
 
-type ComponentMeta = {
-  key: string
-  name: string
-}
+import {ComponentMeta} from '../types/common.js'
 
 abstract class Component {
   public static META: ComponentMeta
@@ -21,4 +18,4 @@ abstract class Component {
   }
 }
 
-export {Component, ComponentMeta}
+export {Component}

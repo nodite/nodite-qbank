@@ -5,23 +5,19 @@ import lodash from 'lodash'
 import sleep from 'sleep-promise'
 import * as streamifier from 'streamifier'
 
-import {Params} from '../../components/output/common.js'
+import {CACHE_KEY_QUESTION_ITEM} from '../../components/cache-pattern.js'
+import {Output} from '../../components/output/common.js'
 import {HashKeyScope, Vendor} from '../../components/vendor/common.js'
 import VendorManager from '../../components/vendor/index.js'
 import {Bank} from '../../types/bank.js'
 import {Category} from '../../types/category.js'
-import {AssertString} from '../../types/common.js'
+import {AssertString, Params} from '../../types/common.js'
 import {MarkjiSheet} from '../../types/sheet.js'
+import {BulkUploadOptions, MarkjiInfo} from '../../types/vendor/markji.js'
 import axios from '../axios.js'
+import {emitter} from '../event.js'
 import html from '../html.js'
 import {find, throwError} from '../index.js'
-
-type MarkjiInfo = {
-  chapter: MarkjiSheet
-  deck: Category
-  folder: Bank
-  requestConfig?: CacheRequestConfig
-}
 
 const ensureContact = async (vendor: Vendor, folder: Bank, deck: Category, requestConfig: CacheRequestConfig) => {
   const chapters = (await vendor.sheets(folder, deck)) as MarkjiSheet[]
@@ -139,6 +135,75 @@ const parseHtml = async (text: string, style: string = ''): Promise<AssertString
 }
 
 /**
+ * Bulk Delete.
+ */
+const bulkDelete = async (info: MarkjiInfo, cardIds: string[]): Promise<void> => {
+  await Promise.all(
+    lodash.map(cardIds, async (cardId) => {
+      return axios.delete(
+        `https://www.markji.com/api/v1/decks/${info.deck.id}/chapters/${info.chapter.id}/cards/${cardId}`,
+        info.requestConfig,
+      )
+    }),
+  )
+}
+
+/**
+ * Bulk Upload.
+ */
+const bulkUpload = async (options: BulkUploadOptions): Promise<void> => {
+  // prepare.
+  const {cacheClient, markjiInfo, params, uploadOptions} = options
+
+  if (params.sheet.id !== '*') throw new Error('不支持分 sheet 上传，请选择"全部"')
+
+  // check questions.
+  const allQuestionKeys = lodash
+    .chain(
+      await cacheClient.keys(
+        lodash.template(CACHE_KEY_QUESTION_ITEM)({
+          bankId: params.bank.id,
+          categoryId: params.category.id,
+          outputKey: (params.output?.constructor as typeof Output).META.key,
+          questionId: '*',
+          sheetId: params.sheet.id,
+          vendorKey: (params.vendor.constructor as typeof Vendor).META.key,
+        }),
+      ),
+    )
+    .sort((a, b) => Number(a) - Number(b)) // asc.
+    .value()
+
+  const doneQuestionCount = uploadOptions?.reupload ? 0 : markjiInfo.chapter.count || 0
+
+  // delete
+  await bulkDelete(markjiInfo, markjiInfo.chapter.cardIds.slice(allQuestionKeys.length))
+
+  // upload.
+  if (uploadOptions?.totalEmit) uploadOptions?.totalEmit(allQuestionKeys.length)
+
+  emitter.emit('output.upload.count', doneQuestionCount || 0)
+
+  for (const [_questionIdx, _questionKey] of allQuestionKeys.entries()) {
+    if (_questionIdx < Number(doneQuestionCount)) continue
+
+    const _question: AssertString = await cacheClient.get(_questionKey)
+
+    await upload(markjiInfo, _questionIdx, _question)
+
+    // emit.
+    emitter.emit('output.upload.count', _questionIdx + 1)
+    await sleep(500)
+  }
+
+  emitter.emit('output.upload.count', allQuestionKeys.length)
+
+  await sleep(500)
+
+  emitter.closeListener('output.upload.count')
+}
+
+/**
  * Upload.
  */
 const upload = async (info: MarkjiInfo, index: number, question: AssertString): Promise<void> => {
@@ -183,4 +248,4 @@ const upload = async (info: MarkjiInfo, index: number, question: AssertString): 
   }
 }
 
-export default {ensureContact, getInfo, parseHtml, upload}
+export default {bulkDelete, bulkUpload, ensureContact, getInfo, parseHtml, upload}

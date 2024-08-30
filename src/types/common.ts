@@ -1,21 +1,42 @@
-export type AssertString = {
+import {Output} from '../components/output/common.js'
+import {Vendor} from '../components/vendor/common.js'
+import {Bank} from './bank.js'
+import {Category} from './category.js'
+import {Sheet} from './sheet.js'
+
+type AssertString = {
   asserts: Record<string, string>
   text: string
 }
 
-export type FetchOptions = {
+type FetchOptions = {
   refetch?: boolean
 }
 
-export type ConvertOptions = {
+type ConvertOptions = {
   reconvert?: boolean
 }
 
-export type ImageOptions = {
+type ImageOptions = {
   width?: number
 }
 
-export type UploadOptions = {
+type UploadOptions = {
   reupload?: boolean
   totalEmit?: (total: number) => void
 }
+
+type ComponentMeta = {
+  key: string
+  name: string
+}
+
+type Params = {
+  bank: Bank
+  category: Category
+  output?: Output
+  sheet: Sheet
+  vendor: Vendor
+}
+
+export {AssertString, ComponentMeta, ConvertOptions, FetchOptions, ImageOptions, Params, UploadOptions}

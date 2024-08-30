@@ -13,6 +13,7 @@ import {FetchOptions} from '../../types/common.js'
 import {Sheet} from '../../types/sheet.js'
 import axios from '../../utils/axios.js'
 import {emitter} from '../../utils/event.js'
+import {throwError} from '../../utils/index.js'
 import fenbi from '../../utils/vendor/fenbi.js'
 import {CACHE_KEY_ORIGIN_QUESTION_ITEM, CACHE_KEY_ORIGIN_QUESTION_PROCESSING} from '../cache-pattern.js'
 import {OutputClass} from '../output/common.js'
@@ -107,8 +108,6 @@ export default class FenbiKaoyan extends Vendor {
       vendorKey: (this.constructor as typeof Vendor).META.key,
     }
 
-    const originQuestionItemCacheKey = lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)(cacheKeyParams)
-
     const exerciseProcessingCacheKey = lodash.template(CACHE_KEY_ORIGIN_QUESTION_PROCESSING)({
       ...cacheKeyParams,
       processScope: 'exercise',
@@ -121,27 +120,9 @@ export default class FenbiKaoyan extends Vendor {
     )
 
     const questionIds = lodash.map(
-      await cacheClient.keys(originQuestionItemCacheKey + ':*'),
+      await cacheClient.keys(lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)({...cacheKeyParams, questionId: '*'})),
       (key) => key.split(':').pop() as string,
     )
-
-    // sheet.
-    // if (sheet.id !== '0') {
-    //   const exerciseResponse = await axios.post(
-    //     `https://schoolapi.fenbi.com/kaoyan/api/${bankPrefix}/exercises`,
-    //     {sheetId: sheet.id, type: 151},
-    //     lodash.merge({}, requestConfig, {headers: {'Content-Type': 'application/x-www-form-urlencoded'}}),
-    //   )
-
-    //   const exerciseId = lodash.get(exerciseResponse.data, 'id', 0)
-
-    //   await cacheClient.set(
-    //     exerciseProcessingCacheKey + ':' + exerciseId,
-    //     lodash.get(exerciseResponse.data, 'sheet.questionIds', []),
-    //   )
-
-    //   exerciseIds.push(exerciseId)
-    // }
 
     // refetch.
     if (options?.refetch) {
@@ -186,6 +167,11 @@ export default class FenbiKaoyan extends Vendor {
         await cacheClient.set(exerciseProcessingCacheKey + ':' + _exerciseId, _questionIds)
       }
 
+      // check.
+      if (lodash.isUndefined(_questionIds)) {
+        throwError('Fetch questions failed.', exerciseProcessingCacheKey + ':' + _exerciseId)
+      }
+
       // questions processing.
       const questionsResponse = await axios.get(
         `https://schoolapi.fenbi.com/kaoyan/api/${bankPrefix}/universal/questions`,
@@ -202,10 +188,15 @@ export default class FenbiKaoyan extends Vendor {
       const _solutions: Record<string, unknown>[] = solutionsResponse.data
 
       for (const [_questionIdx, _question] of _questions.entries()) {
-        _question.solution = lodash.find(_solutions, {id: _question.id})
+        const _questionId = String(_question.id)
+
+        _question.solution = lodash.find(_solutions, (solution) => String(solution.id) === _questionId)
         _question.materials = lodash.map(_question.materialIndexes || [], (materialIndex) => _materials[materialIndex])
 
-        await cacheClient.set(originQuestionItemCacheKey + ':' + _question.id, _question)
+        await cacheClient.set(
+          lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)({...cacheKeyParams, questionId: _questionId}),
+          _question,
+        )
 
         // answer.
         if (!String(_exerciseId).startsWith('_')) {
@@ -244,7 +235,7 @@ export default class FenbiKaoyan extends Vendor {
         }
 
         // update.
-        if (!questionIds.includes(String(_question.id))) questionIds.push(String(_question.id))
+        if (!questionIds.includes(_questionId)) questionIds.push(_questionId)
         emitter.emit('questions.fetch.count', questionIds.length)
 
         // delay.

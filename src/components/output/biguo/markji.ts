@@ -1,7 +1,7 @@
 import lodash from 'lodash'
 import sleep from 'sleep-promise'
 
-import {AssertString, ConvertOptions, UploadOptions} from '../../../types/common.js'
+import {AssertString, ConvertOptions, Params, UploadOptions} from '../../../types/common.js'
 import {emitter} from '../../../utils/event.js'
 import html from '../../../utils/html.js'
 import {reverseTemplate, throwError} from '../../../utils/index.js'
@@ -10,7 +10,7 @@ import markji from '../../../utils/vendor/markji.js'
 import {CACHE_KEY_ORIGIN_QUESTION_ITEM, CACHE_KEY_QUESTION_ITEM} from '../../cache-pattern.js'
 import {Vendor} from '../../vendor/common.js'
 import VendorManager from '../../vendor/index.js'
-import {Output, Params} from '../common.js'
+import {Output} from '../common.js'
 
 export default class Markji extends Output {
   public static META = {key: 'markji', name: 'Markji'}
@@ -90,6 +90,7 @@ export default class Markji extends Output {
 
         // 4. 问答题
         // 8. 名词解释
+        // 9. 单词练习
         // 10. 简答题
         // 12. 论述题
         // 13. 案例分析题
@@ -97,6 +98,7 @@ export default class Markji extends Output {
         // 22. 汉译英
         case 4:
         case 8:
+        case 9:
         case 10:
         case 12:
         case 13:
@@ -141,56 +143,17 @@ export default class Markji extends Output {
    * Upload.
    */
   public async upload(params: Params, options?: UploadOptions | undefined): Promise<void> {
-    if (params.sheet.id !== '*') throw new Error('不支持分 sheet 上传，请选择"全部"')
-
-    // prepare.
-    const markjiVendor = new (VendorManager.getClass('markji'))(this.getOutputUsername())
-    const cacheClient = this.getCacheClient()
+    params.output = this
 
     const markjiInfo = await markji.getInfo(params, this.getOutputUsername())
-    markjiInfo.requestConfig = await markjiVendor.login()
+    markjiInfo.requestConfig = await new (VendorManager.getClass('markji'))(this.getOutputUsername()).login()
 
-    // check questions.
-    const allQuestionKeys = lodash
-      .chain(
-        await cacheClient.keys(
-          lodash.template(CACHE_KEY_QUESTION_ITEM)({
-            bankId: params.bank.id,
-            categoryId: params.category.id,
-            outputKey: (this.constructor as typeof Output).META.key,
-            questionId: '*',
-            sheetId: params.sheet.id,
-            vendorKey: (params.vendor.constructor as typeof Vendor).META.key,
-          }),
-        ),
-      )
-      .sort((a, b) => Number(a) - Number(b)) // asc.
-      .value()
-
-    const doneQuestionCount = options?.reupload ? 0 : markjiInfo.chapter.count || 0
-
-    // upload.
-    if (options?.totalEmit) options.totalEmit(allQuestionKeys.length)
-
-    emitter.emit('output.upload.count', doneQuestionCount || 0)
-
-    for (const [_questionIdx, _questionKey] of allQuestionKeys.entries()) {
-      if (_questionIdx < Number(doneQuestionCount)) continue
-
-      const _question: AssertString = await cacheClient.get(_questionKey)
-
-      await markji.upload(markjiInfo, _questionIdx, _question)
-
-      // emit.
-      emitter.emit('output.upload.count', _questionIdx + 1)
-      await sleep(500)
-    }
-
-    emitter.emit('output.upload.count', allQuestionKeys.length)
-
-    await sleep(500)
-
-    emitter.closeListener('output.upload.count')
+    await markji.bulkUpload({
+      cacheClient: this.getCacheClient(),
+      markjiInfo,
+      params,
+      uploadOptions: options,
+    })
   }
 
   /**
