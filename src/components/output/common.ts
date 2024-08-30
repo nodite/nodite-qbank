@@ -1,16 +1,5 @@
-import {Bank} from '../../types/bank.js'
-import {Category} from '../../types/category.js'
 import {ConvertOptions, UploadOptions} from '../../types/common.js'
-import {Sheet} from '../../types/sheet.js'
-import {Component} from '../common.js'
-import {Vendor} from '../vendor/common.js'
-
-type Params = {
-  bank: Bank
-  category: Category
-  sheet: Sheet
-  vendor: Vendor
-}
+import {Component, Params} from '../common.js'
 
 abstract class Output extends Component {
   public getOutputUsername = (): string => this.outputUsername
@@ -29,4 +18,4 @@ abstract class Output extends Component {
 
 type OutputClass = new (vendorUsername: string, outputUsername: string) => Output
 
-export {Output, OutputClass, Params}
+export {Output, OutputClass}

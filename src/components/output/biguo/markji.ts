@@ -8,9 +8,10 @@ import {reverseTemplate, throwError} from '../../../utils/index.js'
 import parser from '../../../utils/parser.js'
 import markji from '../../../utils/vendor/markji.js'
 import {CACHE_KEY_ORIGIN_QUESTION_ITEM, CACHE_KEY_QUESTION_ITEM} from '../../cache-pattern.js'
+import {Params} from '../../common.js'
 import {Vendor} from '../../vendor/common.js'
 import VendorManager from '../../vendor/index.js'
-import {Output, Params} from '../common.js'
+import {Output} from '../common.js'
 
 export default class Markji extends Output {
   public static META = {key: 'markji', name: 'Markji'}
@@ -90,6 +91,7 @@ export default class Markji extends Output {
 
         // 4. 问答题
         // 8. 名词解释
+        // 9. 单词练习
         // 10. 简答题
         // 12. 论述题
         // 13. 案例分析题
@@ -97,6 +99,7 @@ export default class Markji extends Output {
         // 22. 汉译英
         case 4:
         case 8:
+        case 9:
         case 10:
         case 12:
         case 13:

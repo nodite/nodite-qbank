@@ -8,9 +8,10 @@ import {find, reverseTemplate, throwError} from '../../../utils/index.js'
 import parser from '../../../utils/parser.js'
 import markji from '../../../utils/vendor/markji.js'
 import {CACHE_KEY_ORIGIN_QUESTION_ITEM, CACHE_KEY_QUESTION_ITEM} from '../../cache-pattern.js'
+import {Params} from '../../common.js'
 import {Vendor} from '../../vendor/common.js'
 import VendorManager from '../../vendor/index.js'
-import {Output, Params} from '../common.js'
+import {Output} from '../common.js'
 
 export default class Markji extends Output {
   public static META = {key: 'markji', name: 'Markji'}

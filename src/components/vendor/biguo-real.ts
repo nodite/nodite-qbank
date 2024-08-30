@@ -11,6 +11,7 @@ import axios from '../../utils/axios.js'
 import {emitter} from '../../utils/event.js'
 import biguo from '../../utils/vendor/biguo.js'
 import {CACHE_KEY_ORIGIN_QUESTION_ITEM} from '../cache-pattern.js'
+import {Params} from '../common.js'
 import Markji from '../output/biguo/markji.js'
 import {OutputClass} from '../output/common.js'
 import {HashKeyScope, Vendor, hashKeyBuilder} from './common.js'
@@ -106,13 +107,11 @@ export default class BiguoReal extends Vendor {
     const categories = [] as Category[]
 
     for (const course of courses) {
-      const realResponse = await axios.get(
-        'https://www.biguotk.com/api/v4/exams/real_paper_list',
+      const homeResponse = await axios.get(
+        'https://www.biguotk.com/api/v4/study/home',
         lodash.merge({}, requestConfig, {
           params: {
             courses_id: course.courses_id,
-            limit: 100,
-            page: 1,
             professions_id: professionId,
             province_id: provinceId,
             school_id: schoolId,
@@ -122,8 +121,8 @@ export default class BiguoReal extends Vendor {
 
       categories.push({
         children: [],
-        count: lodash.sumBy(realResponse.data.data, 'total_nums'),
-        id: course.courses_id,
+        count: lodash.find(homeResponse.data.data.tikus, {type: this._biguoQuestionBankParam().mainType}).total || 0,
+        id: [course.courses_id, course.code].join('|'),
         name: `${course.name}(${course.code})`,
       })
     }
@@ -143,7 +142,6 @@ export default class BiguoReal extends Vendor {
     // prepare.
     const cacheClient = this.getCacheClient()
     const requestConfig = this.login()
-    const [provinceId, schoolId, professionId] = bank.id.split('|')
 
     // cache key.
     const cacheKeyParams = {
@@ -169,24 +167,7 @@ export default class BiguoReal extends Vendor {
       const questionBankResponse = await axios.get(
         'https://www.biguotk.com/api/v5/exams/getQuestionBank',
         lodash.merge({}, requestConfig, {
-          params: {
-            code: sheet.id,
-            mainType: 2,
-            professions_id: professionId,
-            province_id: provinceId,
-            // public_key:
-            //   'LS0tLS1CRUdJTiBSU0EgUFVCTElDIEtFWS0' +
-            //   'tLS0tCk1JR0pBb0dCQUxjNmR2MkFVaWRTR3' +
-            //   'NNTlFmS0VtSVpQZVRqeWRxdzJmZ2ErcGJXa' +
-            //   '3B3NGdrc09GR1gyWVRUOUQKOFp6K3FhWDJr' +
-            //   'eWFsYi9xU1FsN3VvMVBsZTd6UVBHbU01RXo' +
-            //   'yL2ErSU9TZVZYSTIxajBTZXV1SzJGZXpEcV' +
-            //   'NtTwpRdEQzTDNJUWFhSURmYUx6NTg3MFNVc' +
-            //   'CswRVBlZ2JkNTB3dEpqc2pnZzVZenU4WURP' +
-            //   'ZXg1QWdNQkFBRT0KLS0tLS1FTkQgUlNBIFB' +
-            //   'VQkxJQyBLRVktLS0tLQ==',
-            school_id: schoolId,
-          },
+          params: this._biguoQuestionBankParam({bank, category, sheet, vendor: this}),
         }),
       )
 
@@ -239,12 +220,13 @@ export default class BiguoReal extends Vendor {
   protected async fetchSheet(bank: Bank, category: Category): Promise<Sheet[]> {
     const requestConfig = this.login()
     const [provinceId, schoolId, professionId] = bank.id.split('|')
+    const [courseId] = category.id.split('|')
 
     const realResponse = await axios.get(
       'https://www.biguotk.com/api/v4/exams/real_paper_list',
       lodash.merge({}, requestConfig, {
         params: {
-          courses_id: category.id,
+          courses_id: courseId,
           limit: 100,
           page: 1,
           professions_id: professionId,
@@ -294,6 +276,32 @@ export default class BiguoReal extends Vendor {
         layer_id: 1,
         users_id: response.data.data.user_id,
       },
+    }
+  }
+
+  /**
+   * _biguoQuestionBankParam.
+   */
+  protected _biguoQuestionBankParam(params?: Params): Record<string, any> {
+    const [provinceId, schoolId, professionId] = params ? params.bank.id.split('|') : [undefined, undefined, undefined]
+
+    return {
+      code: params?.sheet?.id,
+      mainType: 2,
+      professions_id: professionId,
+      province_id: provinceId,
+      public_key:
+        'LS0tLS1CRUdJTiBSU0EgUFVCTElDIEtFWS0' +
+        'tLS0tCk1JR0pBb0dCQUxjNmR2MkFVaWRTR3' +
+        'NNTlFmS0VtSVpQZVRqeWRxdzJmZ2ErcGJXa' +
+        '3B3NGdrc09GR1gyWVRUOUQKOFp6K3FhWDJr' +
+        'eWFsYi9xU1FsN3VvMVBsZTd6UVBHbU01RXo' +
+        'yL2ErSU9TZVZYSTIxajBTZXV1SzJGZXpEcV' +
+        'NtTwpRdEQzTDNJUWFhSURmYUx6NTg3MFNVc' +
+        'CswRVBlZ2JkNTB3dEpqc2pnZzVZenU4WURP' +
+        'ZXg1QWdNQkFBRT0KLS0tLS1FTkQgUlNBIFB' +
+        'VQkxJQyBLRVktLS0tLQ==',
+      school_id: schoolId,
     }
   }
 }

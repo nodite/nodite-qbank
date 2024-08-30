@@ -1,8 +1,20 @@
 import cacheManager from '@type-cacheable/core'
 
+import {Bank} from '../types/bank.js'
+import {Category} from '../types/category.js'
+import {Sheet} from '../types/sheet.js'
+import {Vendor} from './vendor/common.js'
+
 type ComponentMeta = {
   key: string
   name: string
+}
+
+type Params = {
+  bank: Bank
+  category: Category
+  sheet: Sheet
+  vendor: Vendor
 }
 
 abstract class Component {
@@ -21,4 +33,4 @@ abstract class Component {
   }
 }
 
-export {Component, ComponentMeta}
+export {Component, ComponentMeta, Params}

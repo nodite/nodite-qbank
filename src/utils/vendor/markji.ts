@@ -5,7 +5,7 @@ import lodash from 'lodash'
 import sleep from 'sleep-promise'
 import * as streamifier from 'streamifier'
 
-import {Params} from '../../components/output/common.js'
+import {Params} from '../../components/common.js'
 import {HashKeyScope, Vendor} from '../../components/vendor/common.js'
 import VendorManager from '../../components/vendor/index.js'
 import {Bank} from '../../types/bank.js'
