@@ -18,7 +18,6 @@ import fenbi from '../../utils/vendor/fenbi.js'
 import {CACHE_KEY_ORIGIN_QUESTION_ITEM, CACHE_KEY_ORIGIN_QUESTION_PROCESSING} from '../cache-pattern.js'
 import {OutputClass} from '../output/common.js'
 import Markji from '../output/fenbi/markji.js'
-import Skip from '../output/skip.js'
 import {HashKeyScope, Vendor, hashKeyBuilder} from './common.js'
 
 export default class FenbiKaoyan extends Vendor {
@@ -30,7 +29,6 @@ export default class FenbiKaoyan extends Vendor {
   public get allowedOutputs(): Record<string, OutputClass> {
     return {
       [Markji.META.key]: Markji,
-      [Skip.META.key]: Skip,
     }
   }
 
@@ -41,7 +39,10 @@ export default class FenbiKaoyan extends Vendor {
   protected async fetchBanks(): Promise<Bank[]> {
     const requestConfig = await this.login()
 
-    const response = await axios.get('https://schoolapi.fenbi.com/kaoyan/api/kaoyan/selected_quiz_list', requestConfig)
+    const response = await axios.get(
+      'https://schoolapi.fenbi.com/kaoyan/iphone/kaoyan/selected_quiz_list',
+      requestConfig,
+    )
 
     if (response.data.length === 0) {
       throw new Error('请前往 <粉笔考研> App 加入题库: 练习 > 右上角+号')
@@ -77,7 +78,7 @@ export default class FenbiKaoyan extends Vendor {
     const requestConfig = await this.login()
 
     const response = await axios.get(
-      `https://schoolapi.fenbi.com/kaoyan/api/${bankPrefix}/categories`,
+      `https://schoolapi.fenbi.com/kaoyan/iphone/${bankPrefix}/categories`,
       lodash.merge({}, requestConfig, {params: {deep: true, level: 0}}),
     )
 
@@ -108,14 +109,16 @@ export default class FenbiKaoyan extends Vendor {
       vendorKey: (this.constructor as typeof Vendor).META.key,
     }
 
-    const exerciseProcessingCacheKey = lodash.template(CACHE_KEY_ORIGIN_QUESTION_PROCESSING)({
+    const exerciseCacheKeyParams = {
       ...cacheKeyParams,
       processScope: 'exercise',
-    })
+    }
 
     // check.
     const exerciseIds = lodash.map(
-      await cacheClient.keys(exerciseProcessingCacheKey + ':*'),
+      await cacheClient.keys(
+        lodash.template(CACHE_KEY_ORIGIN_QUESTION_PROCESSING)({...exerciseCacheKeyParams, processId: '*'}),
+      ),
       (key) => key.split(':').pop() as string,
     )
 
@@ -128,7 +131,10 @@ export default class FenbiKaoyan extends Vendor {
     if (options?.refetch) {
       for (const [_idx, _chunk] of chunk(questionIds, 100).entries()) {
         exerciseIds.push(`_${_idx}`)
-        await cacheClient.set(exerciseProcessingCacheKey + `:_${_idx}`, _chunk)
+        await cacheClient.set(
+          lodash.template(CACHE_KEY_ORIGIN_QUESTION_PROCESSING)({...exerciseCacheKeyParams, processId: `_${_idx}`}),
+          _chunk,
+        )
       }
 
       questionIds.length = 0
@@ -151,35 +157,43 @@ export default class FenbiKaoyan extends Vendor {
       // existing exercise.
       if (exerciseIds.length > 0) {
         _exerciseId = exerciseIds.shift()
-        _questionIds = await cacheClient.get(exerciseProcessingCacheKey + ':' + _exerciseId)
+        _questionIds = await cacheClient.get(
+          lodash.template(CACHE_KEY_ORIGIN_QUESTION_PROCESSING)({...exerciseCacheKeyParams, processId: _exerciseId}),
+        )
       }
       // new exercise.
       else {
         const exerciseResponse = await axios.post(
-          `https://schoolapi.fenbi.com/kaoyan/api/${bankPrefix}/exercises`,
-          {keypointId: category.id, limit: 100, type: 151},
+          `https://schoolapi.fenbi.com/kaoyan/iphone/${bankPrefix}/exercises`,
+          {keypointId: sheet.id, limit: 100, type: 151},
           lodash.merge({}, requestConfig, {headers: {'Content-Type': 'application/x-www-form-urlencoded'}}),
         )
 
         _exerciseId = lodash.get(exerciseResponse.data, 'id', 0)
         _questionIds = lodash.get(exerciseResponse.data, 'sheet.questionIds', [])
 
-        await cacheClient.set(exerciseProcessingCacheKey + ':' + _exerciseId, _questionIds)
+        await cacheClient.set(
+          lodash.template(CACHE_KEY_ORIGIN_QUESTION_PROCESSING)({...exerciseCacheKeyParams, processId: _exerciseId}),
+          _questionIds,
+        )
       }
 
       // check.
       if (lodash.isUndefined(_questionIds)) {
-        throwError('Fetch questions failed.', exerciseProcessingCacheKey + ':' + _exerciseId)
+        throwError(
+          'Fetch questions failed.',
+          lodash.template(CACHE_KEY_ORIGIN_QUESTION_PROCESSING)({...exerciseCacheKeyParams, processId: _exerciseId}),
+        )
       }
 
       // questions processing.
       const questionsResponse = await axios.get(
-        `https://schoolapi.fenbi.com/kaoyan/api/${bankPrefix}/universal/questions`,
+        `https://schoolapi.fenbi.com/kaoyan/iphone/${bankPrefix}/universal/questions`,
         lodash.merge({}, requestConfig, {params: {questionIds: _questionIds.join(',')}}),
       )
 
       const solutionsResponse = await axios.get(
-        `https://schoolapi.fenbi.com/kaoyan/api/${bankPrefix}/pure/solutions`,
+        `https://schoolapi.fenbi.com/kaoyan/iphone/${bankPrefix}/pure/solutions`,
         lodash.merge({}, requestConfig, {params: {ids: _questionIds.join(',')}}),
       )
 
@@ -188,6 +202,11 @@ export default class FenbiKaoyan extends Vendor {
       const _solutions: Record<string, unknown>[] = solutionsResponse.data
 
       for (const [_questionIdx, _question] of _questions.entries()) {
+        // TODO: 2053 选词填空
+        if (_question.type === 2053) {
+          continue
+        }
+
         const _questionId = String(_question.id)
 
         _question.solution = lodash.find(_solutions, (solution) => String(solution.id) === _questionId)
@@ -220,7 +239,7 @@ export default class FenbiKaoyan extends Vendor {
           }
 
           await axios.post(
-            `https://schoolapi.fenbi.com/kaoyan/api/${bankPrefix}/async/exercises/${_exerciseId}/incr`,
+            `https://schoolapi.fenbi.com/kaoyan/iphone/${bankPrefix}/async/exercises/${_exerciseId}/incr`,
             [
               {
                 answer: correctAnswer,
@@ -245,13 +264,15 @@ export default class FenbiKaoyan extends Vendor {
       // submit exercise.
       if (!String(_exerciseId).startsWith('_')) {
         await axios.post(
-          `https://schoolapi.fenbi.com/kaoyan/api/${bankPrefix}/async/exercises/${_exerciseId}/submit`,
+          `https://schoolapi.fenbi.com/kaoyan/iphone/${bankPrefix}/async/exercises/${_exerciseId}/submit`,
           {status: 1},
           lodash.merge({}, requestConfig, {headers: {'Content-Type': 'application/x-www-form-urlencoded'}}),
         )
       }
 
-      await cacheClient.del(exerciseProcessingCacheKey + ':' + _exerciseId)
+      await cacheClient.del(
+        lodash.template(CACHE_KEY_ORIGIN_QUESTION_PROCESSING)({...exerciseCacheKeyParams, processId: _exerciseId}),
+      )
 
       // repeat fetch.
       _times = questionIds.length === _prevCount ? _times + 1 : 0
@@ -271,7 +292,13 @@ export default class FenbiKaoyan extends Vendor {
    */
   @Cacheable({cacheKey: (args) => `${args[0].id}:${args[1].id}`, hashKey: hashKeyBuilder(HashKeyScope.SHEETS)})
   protected async fetchSheet(bank: Bank, category: Category): Promise<Sheet[]> {
-    return [{count: category.count, id: '0', name: '默认'}]
+    return lodash.isEmpty(category.children)
+      ? [{count: category.count, id: '0', name: '默认'}]
+      : lodash.map(category.children, (child) => ({
+          count: child.count,
+          id: child.id,
+          name: child.name,
+        }))
   }
 
   /**
@@ -296,7 +323,7 @@ export default class FenbiKaoyan extends Vendor {
     }
 
     const response = await axios.post(
-      'https://login.fenbi.com/api/users/loginV2',
+      'https://login.fenbi.com/iphone/users/loginV2',
       {
         app: 'web',
         password: await fenbi.encrypt(fenbi.PUBLIC_KEY, password),

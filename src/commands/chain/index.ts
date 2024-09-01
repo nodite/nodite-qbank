@@ -66,7 +66,7 @@ Chain to qbank (./src/commands/chain/index.ts)
 
         const _sheets = findAll(await vendor.sheets(_bank, _category), flags.sheet_list, {fuzzy: true})
         const _wildSheet = lodash.find(_sheets, {id: '*'})
-        const _todoSheets = _wildSheet ? [_wildSheet] : _sheets
+        const _todoSheets = _wildSheet ? await vendor.sheets(_bank, _category, {excludeTtl: true}) : _sheets
 
         for (const _sheet of _todoSheets) {
           // question fetch.

@@ -99,20 +99,21 @@ const getInfo = async (params: Params, username: string): Promise<MarkjiInfo> =>
 
   // markji chapters.
   await markji.invalidate(HashKeyScope.SHEETS, folder, deck)
+  const chapterName = params.sheet.id === '0' ? params.category.name : `${params.category.name} / ${params.sheet.name}`
   let chapters = (await markji.sheets(folder, deck)) as MarkjiSheet[]
-  let chapter = find<MarkjiSheet>(chapters, params.category.name)
+  let chapter = find<MarkjiSheet>(chapters, chapterName)
 
   if (!chapter) {
     await axios.post(
       `https://www.markji.com/api/v1/decks/${deck.id}/chapters`,
-      {name: params.category.name, order: chapters.length},
+      {name: chapterName, order: chapters.length},
       requestConfig,
     )
 
     await sleep(500)
     await markji.invalidate(HashKeyScope.SHEETS, folder, deck)
     chapters = (await markji.sheets(folder, deck)) as MarkjiSheet[]
-    chapter = find<MarkjiSheet>(chapters, params.category.name) as MarkjiSheet
+    chapter = find<MarkjiSheet>(chapters, chapterName) as MarkjiSheet
   }
 
   // default card.
@@ -154,8 +155,6 @@ const bulkDelete = async (info: MarkjiInfo, cardIds: string[]): Promise<void> =>
 const bulkUpload = async (options: BulkUploadOptions): Promise<void> => {
   // prepare.
   const {cacheClient, markjiInfo, params, uploadOptions} = options
-
-  if (params.sheet.id !== '*') throw new Error('不支持分 sheet 上传，请选择"全部"')
 
   // check questions.
   const allQuestionKeys = lodash

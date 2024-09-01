@@ -21,6 +21,7 @@ export default class Markji extends Output {
   public async convert(params: Params, options?: ConvertOptions): Promise<void> {
     // prepare.
     const cacheClient = this.getCacheClient()
+    params.output = this
 
     // cache key.
     const cacheKeyParams = {
@@ -81,21 +82,21 @@ export default class Markji extends Output {
         // 1. SingleChoice, 单选题
         case 1: {
           _originQuestion.typeName = '单选题'
-          output = await this._processChoice(_originQuestion)
+          output = await this._processChoice(_originQuestion, params)
           break
         }
 
         // 2. MultipleChoice, 多选题
         case 2: {
           _originQuestion.typeName = '多选题'
-          output = await this._processChoice(_originQuestion)
+          output = await this._processChoice(_originQuestion, params)
           break
         }
 
         // 4. Cloze, 完型填空
         case 4: {
           _originQuestion.typeName = '完型填空'
-          output = await this._processChoice(_originQuestion)
+          output = await this._processChoice(_originQuestion, params)
           break
         }
 
@@ -107,7 +108,7 @@ export default class Markji extends Output {
             _originQuestion.accessories.push({options: ['正确', '错误'], type: 101})
           }
 
-          output = await this._processChoice(_originQuestion)
+          output = await this._processChoice(_originQuestion, params)
 
           break
         }
@@ -115,35 +116,35 @@ export default class Markji extends Output {
         // 6. ReadingComprehension5In7, 阅读理解7选5
         case 6: {
           _originQuestion.typeName = '阅读理解7选5'
-          output = await this._processChoice(_originQuestion)
+          output = await this._processChoice(_originQuestion, params)
           break
         }
 
         // 61. BlankFilling, 填空题
         case 61: {
           _originQuestion.typeName = '填空题'
-          output = await this._processBlankFilling(_originQuestion)
+          output = await this._processBlankFilling(_originQuestion, params)
           break
         }
 
         // 101. 翻译
         case 101: {
           _originQuestion.typeName = '翻译'
-          output = await this._processTranslate(_originQuestion)
+          output = await this._processTranslate(_originQuestion, params)
           break
         }
 
         // 102. 大作文
         case 102: {
           _originQuestion.typeName = '大作文'
-          output = await this._processTranslate(_originQuestion)
+          output = await this._processTranslate(_originQuestion, params)
           break
         }
 
         // 103. 小作文
         case 103: {
           _originQuestion.typeName = '小作文'
-          output = await this._processTranslate(_originQuestion)
+          output = await this._processTranslate(_originQuestion, params)
           break
         }
 
@@ -187,7 +188,7 @@ export default class Markji extends Output {
   /**
    * _processBlankFilling
    */
-  protected async _processBlankFilling(question: any): Promise<AssertString> {
+  protected async _processBlankFilling(question: any, params: Params): Promise<AssertString> {
     const _meta = {
       content: {} as AssertString,
       explain: {} as AssertString,
@@ -219,6 +220,8 @@ export default class Markji extends Output {
     // points.
     const _points = []
 
+    _points.push('[P#L#[T#B#类别]]', `${params.category.name} / ${params.sheet.name}`)
+
     if (question.solution.source) {
       _points.push(`[P#L#[T#B#来源]]`, question.solution.source.trim())
     }
@@ -246,7 +249,7 @@ export default class Markji extends Output {
    * _processChoice
    */
   // eslint-disable-next-line complexity
-  protected async _processChoice(question: any): Promise<AssertString> {
+  protected async _processChoice(question: any, params: Params): Promise<AssertString> {
     const htmlStyle = [
       '<style type="text/css">',
       'html { font-size: 42px; }',
@@ -332,9 +335,39 @@ export default class Markji extends Output {
           break
         }
 
-        // 181: 题目标题, e.g. <p>细节题</p>
+        // 181: 题目描述
         case 181: {
-          // accessory.content
+          switch (accessory.label) {
+            // 不知道
+            case null: {
+              break
+            }
+
+            // 问题描述
+            case 'questionDesc': {
+              const questionDesc = await markji.parseHtml(accessory.content)
+              _meta.content.text = `${questionDesc.text}\n${_meta.content.text}`
+              _meta.content.asserts = lodash.merge({}, questionDesc.asserts, _meta.content.asserts)
+
+              break
+            }
+
+            // 题目来源
+            case 'source': {
+              question.solution.source = question.solution.source || (await html.toText(accessory.content)).text
+
+              break
+            }
+
+            // 不知道是啥玩意儿
+            case 'customTheme': {
+              break
+            }
+
+            default: {
+              throwError('Unsupported accessory label.', {accessory, question})
+            }
+          }
 
           break
         }
@@ -400,6 +433,8 @@ export default class Markji extends Output {
     // points.
     const _points = []
 
+    _points.push('[P#L#[T#B#类别]]', `${params.category.name} / ${params.sheet.name}`)
+
     if (question.solution.source) {
       _points.push('[P#L#[T#B#来源]]', question.solution.source.trim())
     }
@@ -451,7 +486,7 @@ export default class Markji extends Output {
   /**
    * _processTranslate
    */
-  protected async _processTranslate(question: any): Promise<AssertString> {
+  protected async _processTranslate(question: any, params: Params): Promise<AssertString> {
     const _meta = {
       content: {} as AssertString,
       explain: {} as AssertString,
@@ -475,6 +510,8 @@ export default class Markji extends Output {
     // ===========================
     // points.
     const _points = []
+
+    _points.push('[P#L#[T#B#类别]]', `${params.category.name} / ${params.sheet.name}`)
 
     if (question.solution.source) {
       _points.push(`[P#L#[T#B#来源]]`, question.solution.source.trim())

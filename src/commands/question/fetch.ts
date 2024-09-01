@@ -65,7 +65,7 @@ Fetch questions (./src/commands/question/fetch.ts)
     }
 
     for (const _sheet of await vendor.sheets(bank, category, {excludeTtl: true})) {
-      this.log('\n---\n')
+      this.log('\n---')
 
       const _argv = [
         '--vendor',
@@ -84,7 +84,7 @@ Fetch questions (./src/commands/question/fetch.ts)
         _argv.push('--clean')
       }
 
-      this.log('*(question:fetch)')
+      this.log('\n*(question:fetch)')
       await this.config.runCommand('question:fetch', _argv)
     }
   }

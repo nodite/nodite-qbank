@@ -51,18 +51,50 @@ Upload questions (./src/commands/output/upload.ts)
     const sheets = await vendor.sheets(bank, category)
     const sheet = find<Sheet>(sheets, flags.sheet) as Sheet
 
-    // processing.
-    const bar = new SingleBar({}, Presets.rect)
+    if (sheet.id !== '*') {
+      // upload.
+      output.upload({bank, category, sheet, vendor}, {reupload: flags.clean})
 
-    bar.start(sheet.count || 1, 0)
+      // processing.
+      const bar = new SingleBar({}, Presets.rect)
 
-    // upload.
-    output.upload({bank, category, sheet, vendor}, {reupload: flags.clean})
+      bar.start(sheet.count || 1, 0)
 
-    for await (const data of emitter.listener('output.upload.count')) {
-      bar.update(data as number)
+      for await (const data of emitter.listener('output.upload.count')) {
+        bar.update(data as number)
+      }
+
+      bar.stop()
+
+      return
     }
 
-    bar.stop()
+    for (const _sheet of await vendor.sheets(bank, category, {excludeTtl: true})) {
+      this.log(`\n---`)
+
+      const _argv = [
+        '--vendor',
+        flags.vendor,
+        '--username',
+        flags.username,
+        '--bank',
+        bank.name,
+        '--category',
+        category.name,
+        '--sheet',
+        _sheet.name,
+        '--output',
+        flags.output,
+        '--output_username',
+        flags.output_username,
+      ]
+
+      if (flags.clean) {
+        _argv.push('--clean')
+      }
+
+      this.log(`\n*(output:upload)`)
+      await this.config.runCommand('output:upload', _argv)
+    }
   }
 }

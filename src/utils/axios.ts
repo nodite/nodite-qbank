@@ -5,7 +5,7 @@ import lodash from 'lodash'
 const axiosInstance = setupCache(Axios, {
   interpretHeader: false,
   storage: buildMemoryStorage(),
-  ttl: 0, // 0ms
+  ttl: 300, // 0ms
 })
 
 axiosInstance.interceptors.response.use(

@@ -60,7 +60,7 @@ List categories (./src/commands/category/list.ts)
 
     // '*' bank.
     for (const _bank of await vendor.banks({excludeTtl: true})) {
-      this.log('\n---\n')
+      this.log('\n---')
 
       const _argv = ['--vendor', flags.vendor, '--username', flags.username, '--bank', _bank.name]
 
@@ -72,7 +72,7 @@ List categories (./src/commands/category/list.ts)
         _argv.push('--rich')
       }
 
-      this.log('*(category:list)')
+      this.log('\n*(category:list)')
       await this.config.runCommand('category:list', _argv)
     }
   }

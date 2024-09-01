@@ -70,7 +70,7 @@ Convert questions (./src/commands/output/convert.ts)
     }
 
     for (const _sheet of await vendor.sheets(bank, category, {excludeTtl: true})) {
-      this.log('\n---\n')
+      this.log('\n---')
 
       const _argv = [
         '--vendor',
@@ -93,7 +93,7 @@ Convert questions (./src/commands/output/convert.ts)
         _argv.push('--clean')
       }
 
-      this.log('*(output:convert)')
+      this.log('\n*(output:convert)')
       await this.config.runCommand('output:convert', _argv)
     }
   }
