@@ -139,14 +139,12 @@ const parseHtml = async (text: string, style: string = ''): Promise<AssertString
  * Bulk Delete.
  */
 const bulkDelete = async (info: MarkjiInfo, cardIds: string[]): Promise<void> => {
-  await Promise.all(
-    lodash.map(cardIds, async (cardId) => {
-      return axios.delete(
-        `https://www.markji.com/api/v1/decks/${info.deck.id}/chapters/${info.chapter.id}/cards/${cardId}`,
-        info.requestConfig,
-      )
-    }),
-  )
+  for (const cardId of cardIds) {
+    await axios.delete(
+      `https://www.markji.com/api/v1/decks/${info.deck.id}/chapters/${info.chapter.id}/cards/${cardId}`,
+      info.requestConfig,
+    )
+  }
 }
 
 /**
@@ -174,6 +172,7 @@ const bulkUpload = async (options: BulkUploadOptions): Promise<void> => {
     .value()
 
   const doneQuestionCount = uploadOptions?.reupload ? 0 : markjiInfo.chapter.count || 0
+  const doneQuestionIdx = doneQuestionCount - 1
 
   // delete
   await bulkDelete(markjiInfo, markjiInfo.chapter.cardIds.slice(allQuestionKeys.length))
@@ -184,7 +183,7 @@ const bulkUpload = async (options: BulkUploadOptions): Promise<void> => {
   emitter.emit('output.upload.count', doneQuestionCount || 0)
 
   for (const [_questionIdx, _questionKey] of allQuestionKeys.entries()) {
-    if (_questionIdx < Number(doneQuestionCount)) continue
+    if (_questionIdx <= doneQuestionIdx) continue
 
     const _question: AssertString = await cacheClient.get(_questionKey)
 

@@ -46,16 +46,16 @@ const toImage = async (html: string, options?: ImageOptions): Promise<AssertStri
 }
 
 const toText = async (html: string): Promise<AssertString> => {
-  const text = await parser.toAssets(
-    convert(_htmlPreprocess(html), {
-      selectors: [{format: 'skip', selector: 'img'}],
-      wordwrap: false,
-    }),
-  )
+  const _text = await parser.toAssets(_htmlPreprocess(html))
 
-  text.text = text.text.replaceAll('\n\n\n', '\n')
+  _text.text = convert(_text.text, {
+    selectors: [{format: 'skip', selector: 'img'}],
+    wordwrap: false,
+  })
 
-  return text
+  _text.text = _text.text.replaceAll('\n\n\n', '\n')
+
+  return _text
 }
 
 export default {toImage, toText}

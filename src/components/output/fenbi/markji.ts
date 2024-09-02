@@ -127,6 +127,12 @@ export default class Markji extends Output {
           break
         }
 
+        // 84. 连线题
+        case 84: {
+          // TODO
+          break
+        }
+
         // 101. 翻译
         case 101: {
           _originQuestion.typeName = '翻译'
@@ -145,6 +151,19 @@ export default class Markji extends Output {
         case 103: {
           _originQuestion.typeName = '小作文'
           output = await this._processTranslate(_originQuestion, params)
+          break
+        }
+
+        // 2053. 选词填空
+        case 2053: {
+          // TODO
+          break
+        }
+
+        // 2055. BlankFilling, 选句填空
+        case 2055: {
+          _originQuestion.typeName = '选句填空'
+          output = await this._processBlankFilling(_originQuestion, params)
           break
         }
 
@@ -192,6 +211,7 @@ export default class Markji extends Output {
     const _meta = {
       content: {} as AssertString,
       explain: {} as AssertString,
+      options: [] as AssertString[],
     }
 
     // ===========================
@@ -199,7 +219,20 @@ export default class Markji extends Output {
     _meta.content = await markji.parseHtml(question.content)
 
     // ===========================
-    // blanks.
+    // _options.
+    const _optionAccessory = lodash.find(question.accessories, {type: 101})
+    if (!lodash.isEmpty(_optionAccessory)) {
+      _meta.content.text +=
+        '\n\n' +
+        lodash
+          .map(_optionAccessory.options, (option, idx) => {
+            return `${String.fromCodePoint(65 + Number(idx))}. ${option}`
+          })
+          .join('\n')
+    }
+
+    // ===========================
+    // _blanks.
     if (question.correctAnswer.type === 202) {
       for (const [index, assertKey] of Object.keys(_meta.content.asserts).entries()) {
         if (!assertKey.includes('input#')) continue

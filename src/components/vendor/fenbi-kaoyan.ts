@@ -1,7 +1,6 @@
 import type {CacheRequestConfig} from 'axios-cache-interceptor'
 
 import {Cacheable} from '@type-cacheable/core'
-import chunk from 'chunk'
 import lodash from 'lodash'
 import random from 'random-number'
 import sleep from 'sleep-promise'
@@ -96,6 +95,8 @@ export default class FenbiKaoyan extends Vendor {
    * Origin questions.
    */
   public async fetchQuestions(bank: Bank, category: Category, sheet: Sheet, options?: FetchOptions): Promise<void> {
+    if (sheet.id === '*') throw new Error('Sheet ID is required.')
+
     // prepare.
     const cacheClient = this.getCacheClient()
     const requestConfig = await this.login()
@@ -129,14 +130,7 @@ export default class FenbiKaoyan extends Vendor {
 
     // refetch.
     if (options?.refetch) {
-      for (const [_idx, _chunk] of chunk(questionIds, 100).entries()) {
-        exerciseIds.push(`_${_idx}`)
-        await cacheClient.set(
-          lodash.template(CACHE_KEY_ORIGIN_QUESTION_PROCESSING)({...exerciseCacheKeyParams, processId: `_${_idx}`}),
-          _chunk,
-        )
-      }
-
+      await cacheClient.delHash(lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)({...cacheKeyParams, questionId: '*'}))
       questionIds.length = 0
     }
 
@@ -165,7 +159,7 @@ export default class FenbiKaoyan extends Vendor {
       else {
         const exerciseResponse = await axios.post(
           `https://schoolapi.fenbi.com/kaoyan/iphone/${bankPrefix}/exercises`,
-          {keypointId: sheet.id, limit: 100, type: 151},
+          {keypointId: sheet.id === '0' ? category.id : sheet.id, limit: 100, type: 151},
           lodash.merge({}, requestConfig, {headers: {'Content-Type': 'application/x-www-form-urlencoded'}}),
         )
 
@@ -202,11 +196,6 @@ export default class FenbiKaoyan extends Vendor {
       const _solutions: Record<string, unknown>[] = solutionsResponse.data
 
       for (const [_questionIdx, _question] of _questions.entries()) {
-        // TODO: 2053 选词填空
-        if (_question.type === 2053) {
-          continue
-        }
-
         const _questionId = String(_question.id)
 
         _question.solution = lodash.find(_solutions, (solution) => String(solution.id) === _questionId)
