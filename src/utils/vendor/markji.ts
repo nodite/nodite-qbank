@@ -151,6 +151,9 @@ const bulkDelete = async (info: MarkjiInfo, cardIds: string[]): Promise<void> =>
  * Bulk Upload.
  */
 const bulkUpload = async (options: BulkUploadOptions): Promise<void> => {
+  // default options.
+  options.uploadOptions = options.uploadOptions || {}
+
   // prepare.
   const {cacheClient, markjiInfo, params, uploadOptions} = options
 
@@ -170,6 +173,10 @@ const bulkUpload = async (options: BulkUploadOptions): Promise<void> => {
     )
     .sort((a, b) => Number(a) - Number(b)) // asc.
     .value()
+
+  if (markjiInfo.chapter.count < allQuestionKeys.length) {
+    uploadOptions.reupload = true
+  }
 
   const doneQuestionCount = uploadOptions?.reupload ? 0 : markjiInfo.chapter.count || 0
   const doneQuestionIdx = doneQuestionCount - 1
