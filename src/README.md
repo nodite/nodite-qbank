@@ -6,4 +6,4 @@ Question - 题目
 
 TODO:
 - wantiku-zikao output
-- json-file vendor
+- 233网校 https://wx.233.com/center/study/tiku/chapter?subjectId=574&domain=chengkao&chapterType=1

@@ -368,7 +368,7 @@ export default class Markji extends Output {
     _meta.explain = await markji.parseHtml(question.explanation || '')
 
     // ===========================
-    // points.
+    // _points.
     const _points = []
 
     _points.push(
