@@ -9,18 +9,18 @@ import {FetchOptions} from '../../types/common.js'
 import {Sheet} from '../../types/sheet.js'
 import axios from '../../utils/axios.js'
 import {emitter} from '../../utils/event.js'
-import {find} from '../../utils/index.js'
+import {findAll} from '../../utils/index.js'
 import {CACHE_KEY_ORIGIN_QUESTION_ITEM} from '../cache-pattern.js'
 import {OutputClass} from '../output/common.js'
-import Skip from '../output/skip.js'
+import Markji from '../output/wantiku/markji.js'
 import {HashKeyScope, Vendor, hashKeyBuilder} from './common.js'
 
 export default class WantikuZikao extends Vendor {
-  public static META = {key: 'wantiku-zikao', name: '万题库自考'}
+  public static META = {key: 'wantiku', name: '万题库'}
 
   public get allowedOutputs(): Record<string, OutputClass> {
     return {
-      [Skip.META.key]: Skip,
+      [Markji.META.key]: Markji,
     }
   }
 
@@ -37,34 +37,38 @@ export default class WantikuZikao extends Vendor {
       lodash.merge({}, requestConfig, {params: {time: Date.now()}}),
     )
 
-    const parentSubjects = find(parentSubjectsResponse.data.SubjectEntities, '自考') as Record<string, any>
+    const groups = findAll(parentSubjectsResponse.data.SubjectEntities, ['自考类', '成考类'], {
+      fuzzy: true,
+    }) as Record<string, any>[]
 
     const banks: Bank[] = []
 
-    for (const parentSubject of parentSubjects.SubjectEntities) {
-      const subjectsResponse = await axios.get(
-        'https://api.wantiku.com/api/User/UserSubjectNew',
-        lodash.merge({}, requestConfig, {
-          headers: {SubjectLevel: 1, SubjectParentID: parentSubject.SubjectParentId},
-          params: {SubjectLevel: parentSubject.SubjectLevel, time: Date.now()},
-        }),
-      )
+    for (const group of groups) {
+      for (const parentSubject of group.SubjectEntities) {
+        const subjectsResponse = await axios.get(
+          'https://api.wantiku.com/api/User/UserSubjectNew',
+          lodash.merge({}, requestConfig, {
+            headers: {SubjectLevel: 1, SubjectParentID: parentSubject.SubjectParentId},
+            params: {SubjectLevel: parentSubject.SubjectLevel, time: Date.now()},
+          }),
+        )
 
-      const subjects = lodash.filter(subjectsResponse.data.SubjectEntities ?? [], (subject) =>
-        Boolean(subject.IsSelect),
-      )
+        const subjects = lodash.filter(subjectsResponse.data.SubjectEntities ?? [], (subject) =>
+          Boolean(subject.IsSelect),
+        )
 
-      if (subjects.length === 0) {
-        throw new Error('请前往 <万题库> App 加入题库: 发现 > 头像 > 设置 > 考试科目管理')
+        if (subjects.length === 0) {
+          throw new Error('请前往 <万题库> App 加入题库: 发现 > 头像 > 设置 > 考试科目管理')
+        }
+
+        banks.push(
+          ...lodash.map(subjects, (subject) => ({
+            id: [parentSubject.SubjectParentId, parentSubject.SubjectLevel, subject.SubjectId].join('|'),
+            key: [parentSubject.SubjectParentId, parentSubject.SubjectLevel, subject.SubjectId].join('|'),
+            name: [group.GroupName, parentSubject.SubjectName, subject.SubjectName].join(' > '),
+          })),
+        )
       }
-
-      banks.push(
-        ...lodash.map(subjects, (subject) => ({
-          id: [parentSubject.SubjectParentId, parentSubject.SubjectLevel, subject.SubjectId].join('|'),
-          key: [parentSubject.SubjectParentId, parentSubject.SubjectLevel, subject.SubjectId].join('|'),
-          name: [parentSubject.SubjectName, subject.SubjectName].join(' > '),
-        })),
-      )
     }
 
     return banks
@@ -113,27 +117,24 @@ export default class WantikuZikao extends Vendor {
       vendorKey: (this.constructor as typeof Vendor).META.key,
     }
 
-    const questionItemCacheKey = lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)(cacheKeyParams)
-
-    const questionIds = lodash.map(
-      await cacheClient.keys(questionItemCacheKey + ':*'),
-      (key) => key.split(':').pop() as string,
+    const questionKeys = await cacheClient.keys(
+      lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)({...cacheKeyParams, questionId: '*'}),
     )
 
     if (options?.refetch) {
-      await cacheClient.delHash(questionItemCacheKey + ':*')
-      questionIds.length = 0
+      await cacheClient.delHash(lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)({...cacheKeyParams, questionId: '*'}))
+      questionKeys.length = 0
     }
 
     // fetch.
-    let _prevCount = questionIds.length
+    let _prevCount = questionKeys.length
     let _times = 0
 
-    emitter.emit('questions.fetch.count', questionIds.length)
+    emitter.emit('questions.fetch.count', questionKeys.length)
 
-    while (questionIds.length < sheet.count && _times < 5) {
+    while (questionKeys.length < sheet.count && _times < 5) {
       // emit count.
-      emitter.emit('questions.fetch.count', questionIds.length)
+      emitter.emit('questions.fetch.count', questionKeys.length)
 
       const response = await axios.get(
         'https://api.wantiku.com/api/BrushQuestion/RealCustomPaper',
@@ -160,24 +161,33 @@ export default class WantikuZikao extends Vendor {
       for (const [, _question] of _questions.entries()) {
         const _questionId = String(_question.RealQuestionId)
 
-        await cacheClient.set(questionItemCacheKey + ':' + _questionId, _question)
+        const _questionKey = lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)({
+          ...cacheKeyParams,
+          questionId: _questionId,
+        })
+
+        if (questionKeys.includes(_questionKey)) continue
+
+        await cacheClient.set(_questionKey, _question)
 
         // update.
-        if (!questionIds.includes(String(_questionId))) questionIds.push(String(_questionId))
-        emitter.emit('questions.fetch.count', questionIds.length)
+        questionKeys.push(_questionKey)
+        emitter.emit('questions.fetch.count', questionKeys.length)
 
         // delay.
         await sleep(100)
       }
 
       // repeat fetch.
-      _times = questionIds.length === _prevCount ? _times + 1 : 0
-      _prevCount = questionIds.length
+      _times = questionKeys.length === _prevCount ? _times + 1 : 0
+      _prevCount = questionKeys.length
       emitter.emit('questions.fetch.times', _times)
     }
 
-    emitter.emit('questions.fetch.count', questionIds.length)
+    emitter.emit('questions.fetch.count', questionKeys.length)
+
     await sleep(1000)
+
     emitter.closeListener('questions.fetch.count')
   }
 
