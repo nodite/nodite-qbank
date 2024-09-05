@@ -5,7 +5,8 @@ import Demo from './demo.js'
 import FenbiKaoyan from './fenbi-kaoyan.js'
 import JsonFile from './json-file.js'
 import Markji from './markji.js'
-import WantikuZikao from './wantiku.js'
+import Wantiku from './wantiku.js'
+import Wx233 from './wx233.js'
 
 export default class VendorManager {
   protected static components = {
@@ -16,7 +17,8 @@ export default class VendorManager {
     [FenbiKaoyan.META.key]: FenbiKaoyan,
     [JsonFile.META.key]: JsonFile,
     [Markji.META.key]: Markji,
-    [WantikuZikao.META.key]: WantikuZikao,
+    [Wantiku.META.key]: Wantiku,
+    [Wx233.META.key]: Wx233,
   }
 
   public static getClass(name: string) {

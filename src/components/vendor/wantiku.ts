@@ -15,7 +15,7 @@ import {OutputClass} from '../output/common.js'
 import Markji from '../output/wantiku/markji.js'
 import {HashKeyScope, Vendor, hashKeyBuilder} from './common.js'
 
-export default class WantikuZikao extends Vendor {
+export default class Wantiku extends Vendor {
   public static META = {key: 'wantiku', name: '万题库'}
 
   public get allowedOutputs(): Record<string, OutputClass> {

@@ -22,43 +22,26 @@ const browser = async (create: boolean = true) => {
 }
 
 /**
- * Context.
+ * Page.
  */
-const context = async (name: string) => {
-  const cacheKey = `playwright:context:${name}`
+const page = async (name: string, url: string) => {
+  const pageCacheKey = `playwright:page:${md5(url)}`
+  let _page = await memory.cache.get<playwright.Page>(pageCacheKey)
 
-  let _context = await memory.cache.get<playwright.BrowserContext>(cacheKey)
-
-  if (!_context) {
+  if (!_page || _page.isClosed()) {
     const userAgent = new UserAgent({
       deviceCategory: 'mobile',
       platform: 'iPhone',
     }).toString()
 
-    const _browser = (await browser()) as playwright.Browser
+    _page = await (await browser())?.newPage({userAgent})
 
-    _context = await _browser.newContext({userAgent})
-
-    await memory.cache.set(cacheKey, _context)
+    await _page?.goto(url, {waitUntil: 'networkidle'})
+    await memory.cache.set(pageCacheKey, _page)
   }
 
-  return _context
-}
-
-/**
- * Page.
- */
-const page = async (name: string, url: string) => {
-  const contextCacheKey = `playwright:context:${name}`
-  const _context = await context(contextCacheKey)
-
-  const pageCacheKey = `playwright:context:${name}:page:${md5(url)}`
-  let _page = await memory.cache.get<playwright.Page>(pageCacheKey)
-
-  if (!_page || _page.isClosed()) {
-    _page = await _context.newPage()
-    await _page.goto(url, {waitUntil: 'networkidle'})
-    await memory.cache.set(pageCacheKey, _page)
+  if (!_page) {
+    throw new Error('Page not found')
   }
 
   return _page
@@ -72,4 +55,4 @@ const close = async () => {
   await Promise.all(lodash.map(cacheKeys, memory.cache.del))
 }
 
-export default {browser, close, context, page}
+export default {browser, close, page}
