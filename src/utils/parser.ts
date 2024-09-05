@@ -2,26 +2,30 @@ import lodash from 'lodash'
 import md5 from 'md5'
 import {parse} from 'node-html-parser'
 
-import {AssertString} from '../types/common.js'
+import {AssetString, ParseOptions} from '../types/common.js'
 import axios from './axios.js'
 
-const image = async (text: string): Promise<AssertString> => {
-  const assertString = {asserts: {}} as AssertString
+const image = async (text: string, options?: ParseOptions): Promise<AssetString> => {
+  const assertString = {assets: {}} as AssetString
 
   const root = parse(text)
   const images = root.querySelectorAll('img')
 
   for (const [idx, image] of images.entries()) {
-    const src = image.getAttribute('src')
+    let src = image.getAttribute('src')
 
     if (!src) continue
+
+    if (options?.imgSrcHandler) {
+      src = options.imgSrcHandler(src)
+    }
 
     const hash = md5(JSON.stringify({index: idx, text, type: 'image'})).slice(0, 8)
 
     const resp = await axios.get(src, {responseType: 'arraybuffer'})
     const base64 = Buffer.from(resp.data, 'binary').toString('base64')
 
-    assertString.asserts[`[img#${hash}]`] = `data:${resp.headers['content-type']};base64,${base64}`
+    assertString.assets[`[img#${hash}]`] = `data:${resp.headers['content-type']};base64,${base64}`
 
     image.replaceWith(`[img#${hash}]`)
   }
@@ -31,8 +35,8 @@ const image = async (text: string): Promise<AssertString> => {
   return assertString
 }
 
-const input = async (text: string): Promise<AssertString> => {
-  const assertString = {asserts: {}} as AssertString
+const input = async (text: string): Promise<AssetString> => {
+  const assertString = {assets: {}} as AssetString
 
   const root = parse(text)
 
@@ -44,7 +48,7 @@ const input = async (text: string): Promise<AssertString> => {
     const repeat = lodash.ceil(Number(input.getAttribute('size')) / 2) || 1
     const placeholder = input.getAttribute('placeholder')
 
-    assertString.asserts[`[input#${hash}]`] = placeholder
+    assertString.assets[`[input#${hash}]`] = placeholder
       ? ` [${placeholder}] `
       : ' [' + '_'.repeat(repeat) + (idx + 1) + '_'.repeat(repeat) + '] '
 
@@ -56,8 +60,8 @@ const input = async (text: string): Promise<AssertString> => {
   return assertString
 }
 
-const underline = async (text: string): Promise<AssertString> => {
-  const assertString = {asserts: {}} as AssertString
+const underline = async (text: string): Promise<AssetString> => {
+  const assertString = {assets: {}} as AssetString
 
   let idx = 0
 
@@ -66,7 +70,7 @@ const underline = async (text: string): Promise<AssertString> => {
 
     const repeat = lodash.ceil(_underline[0].length / 2) || 1
 
-    assertString.asserts[`[input#${hash}]`] = ' [' + '_'.repeat(repeat) + (idx + 1) + '_'.repeat(repeat) + '] '
+    assertString.assets[`[input#${hash}]`] = ' [' + '_'.repeat(repeat) + (idx + 1) + '_'.repeat(repeat) + '] '
 
     text = text.replace(_underline[0], `[input#${hash}]`)
 
@@ -78,8 +82,8 @@ const underline = async (text: string): Promise<AssertString> => {
   return assertString
 }
 
-const quotes = async (text: string): Promise<AssertString> => {
-  const assertString = {asserts: {}} as AssertString
+const quotes = async (text: string): Promise<AssetString> => {
+  const assertString = {assets: {}} as AssetString
 
   let idx = 0
 
@@ -91,7 +95,7 @@ const quotes = async (text: string): Promise<AssertString> => {
 
       const repeat = lodash.ceil(_quote[2].length / 2) || 1
 
-      assertString.asserts[`[input#${hash}]`] =
+      assertString.assets[`[input#${hash}]`] =
         ' ' + _quote[1] + '_'.repeat(repeat) + (idx + 1) + '_'.repeat(repeat) + _quote[3] + ' '
 
       text = text.replace(_quote[0], `[input#${hash}]`)
@@ -105,28 +109,28 @@ const quotes = async (text: string): Promise<AssertString> => {
   return assertString
 }
 
-const toAssets = async (text: string): Promise<AssertString> => {
-  const parsed = {asserts: {}, text} as AssertString
+const toAssets = async (text: string, options?: ParseOptions): Promise<AssetString> => {
+  const parsed = {assets: {}, text} as AssetString
 
   // _images.
-  const _images = await image(parsed.text)
+  const _images = await image(parsed.text, options)
   parsed.text = _images.text
-  parsed.asserts = {...parsed.asserts, ..._images.asserts}
+  parsed.assets = {...parsed.assets, ..._images.assets}
 
   // _inputs.
   const _inputs = await input(parsed.text)
   parsed.text = _inputs.text
-  parsed.asserts = {...parsed.asserts, ..._inputs.asserts}
+  parsed.assets = {...parsed.assets, ..._inputs.assets}
 
   // _underline
   const _underline = await underline(parsed.text)
   parsed.text = _underline.text
-  parsed.asserts = {...parsed.asserts, ..._underline.asserts}
+  parsed.assets = {...parsed.assets, ..._underline.assets}
 
   // _bracket
   const _quotes = await quotes(parsed.text)
   parsed.text = _quotes.text
-  parsed.asserts = {...parsed.asserts, ..._quotes.asserts}
+  parsed.assets = {...parsed.assets, ..._quotes.assets}
 
   return parsed
 }

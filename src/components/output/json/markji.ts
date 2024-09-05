@@ -1,173 +1,81 @@
 import lodash from 'lodash'
-import sleep from 'sleep-promise'
 
-import {AssertString, ConvertOptions, Params, UploadOptions} from '../../../types/common.js'
-import {emitter} from '../../../utils/event.js'
+import {AssetString, Params} from '../../../types/common.js'
 import html from '../../../utils/html.js'
-import {reverseTemplate, throwError} from '../../../utils/index.js'
-import markji from '../../../utils/vendor/markji.js'
-import {CACHE_KEY_ORIGIN_QUESTION_ITEM, CACHE_KEY_QUESTION_ITEM} from '../../cache-pattern.js'
-import {Vendor} from '../../vendor/common.js'
-import VendorManager from '../../vendor/index.js'
-import {Output} from '../common.js'
+import {throwError} from '../../../utils/index.js'
+import MarkjiBase from '../markji.js'
 
-export default class Markji extends Output {
-  public static META = {key: 'markji', name: 'Markji'}
-
+export default class Markji extends MarkjiBase {
   /**
-   * Convert.
+   * _output.
    */
-  public async convert(params: Params, options?: ConvertOptions | undefined): Promise<void> {
-    // prepare
-    const cacheClient = this.getCacheClient()
+  protected async _output(question: any, _params: Params): Promise<AssetString> {
+    const _questionType = question.type
 
-    // cache key.
-    const cacheKeyParams = {
-      bankId: params.bank.id,
-      categoryId: params.category.id,
-      outputKey: (this.constructor as typeof Output).META.key,
-      sheetId: params.sheet.id,
-      vendorKey: (params.vendor.constructor as typeof Vendor).META.key,
+    let output = {} as AssetString
+
+    // ===========================
+    if (_questionType.includes('判断选择')) {
+      question.content += '\nA.正确\nB.错误'
     }
 
-    // check origin questions.
-    const allQuestionParams = lodash.map(
-      await cacheClient.keys(lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)({...cacheKeyParams, questionId: '*'})),
-      (key) => reverseTemplate(CACHE_KEY_ORIGIN_QUESTION_ITEM, key),
-    )
-
-    // check questions.
-    if (options?.reconvert) {
-      await cacheClient.delHash(lodash.template(CACHE_KEY_QUESTION_ITEM)({...cacheKeyParams, questionId: '*'}))
+    if (_questionType === '') {
+      // nothing.
+    }
+    // 单项选择、多项选择、判断选择
+    else if (
+      _questionType.includes('单项选择') ||
+      _questionType.includes('多项选择') ||
+      _questionType.includes('判断选择')
+    ) {
+      output = await this._processChoice(question)
+    }
+    // 名词解释、简答题、论述题、案例分析题
+    else if (
+      _questionType.includes('名词解释') ||
+      _questionType.includes('简答') ||
+      _questionType.includes('论述') ||
+      _questionType.includes('案例分析')
+    ) {
+      output = await this._processTranslate(question)
+    }
+    // unknown.
+    else {
+      throwError('Unsupported question type.', question)
     }
 
-    const doneQuestionParams = lodash.map(
-      await cacheClient.keys(lodash.template(CACHE_KEY_QUESTION_ITEM)({...cacheKeyParams, questionId: '*'})),
-      (key) => reverseTemplate(CACHE_KEY_QUESTION_ITEM, key),
-    )
-
-    const undoQuestionParams = lodash
-      .differenceWith(
-        allQuestionParams,
-        doneQuestionParams,
-        (a, b) =>
-          a.bankId === b.bankId &&
-          a.categoryId === b.categoryId &&
-          a.sheetId === b.sheetId &&
-          a.questionId === b.questionId,
-      )
-      .sort((a, b) => Number(a.questionId) - Number(b.questionId))
-
-    // convert.
-    emitter.emit('output.convert.count', doneQuestionParams.length)
-
-    for (const _questionParam of undoQuestionParams) {
-      // emit.
-      emitter.emit('output.convert.count', doneQuestionParams.length)
-
-      // _questionParam.
-      _questionParam.outputKey = (this.constructor as typeof Output).META.key
-
-      // _originQuestion.
-      const _originQuestion = await cacheClient.get(lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)(_questionParam))
-
-      const _questionType = _originQuestion.type
-
-      let output = {} as AssertString
-
-      // ===========================
-      if (_questionType.includes('判断选择')) {
-        _originQuestion.content += '\nA.正确\nB.错误'
-      }
-
-      if (_questionType === '') {
-        // nothing.
-      }
-      // 单项选择、多项选择、判断选择
-      else if (
-        _questionType.includes('单项选择') ||
-        _questionType.includes('多项选择') ||
-        _questionType.includes('判断选择')
-      ) {
-        output = await this._processChoice(_originQuestion)
-      }
-      // 名词解释、简答题、论述题、案例分析题
-      else if (
-        _questionType.includes('名词解释') ||
-        _questionType.includes('简答') ||
-        _questionType.includes('论述') ||
-        _questionType.includes('案例分析')
-      ) {
-        output = await this._processTranslate(_originQuestion)
-      }
-      // unknown.
-      else {
-        throwError('Unsupported question type.', _originQuestion)
-      }
-
-      // ===========================
-      await cacheClient.set(lodash.template(CACHE_KEY_QUESTION_ITEM)(_questionParam), output)
-
-      doneQuestionParams.push(_questionParam)
-
-      await sleep(1000)
-    }
-
-    emitter.emit('output.convert.count', doneQuestionParams.length)
-
-    await sleep(1000)
-
-    emitter.closeListener('output.convert.count')
-  }
-
-  /**
-   * Upload.
-   */
-  public async upload(params: Params, options?: UploadOptions | undefined): Promise<void> {
-    params.output = this
-
-    const markjiInfo = await markji.getInfo(params, this.getOutputUsername())
-    markjiInfo.requestConfig = await new (VendorManager.getClass('markji'))(this.getOutputUsername()).login()
-
-    await markji.bulkUpload({
-      cacheClient: this.getCacheClient(),
-      markjiInfo,
-      params,
-      uploadOptions: options,
-    })
+    return output
   }
 
   /**
    * _processChoice.
    */
-  protected async _processChoice(question: any): Promise<AssertString> {
+  protected async _processChoice(question: any): Promise<AssetString> {
     const _meta = {
-      answer: {} as AssertString,
-      content: {} as AssertString,
-      explain: {} as AssertString,
-      options: [] as AssertString[],
+      answer: {assets: [] as never, text: ''} as AssetString,
+      content: {assets: [] as never, text: ''} as AssetString,
+      explain: {assets: [] as never, text: ''} as AssetString,
+      options: [] as AssetString[],
       optionsAttr: question.type.includes('多项选择') ? 'fixed,multi' : 'fixed',
     }
 
     const contents: string[] = question.content.split(/(?=\n[A-Z]\.)/)
 
-    _meta.content = await html.toText(contents.shift()?.trim() || '')
-    _meta.options = await Promise.all(lodash.map(contents, (content) => html.toText(content.trim())))
+    _meta.content = await html.toText(lodash.trim(contents.shift()) || '')
+    _meta.options = await Promise.all(lodash.map(contents, (content) => html.toText(lodash.trim(content))))
     _meta.answer = await html.toText(question.answer || '')
     _meta.explain = await html.toText(question.explain || '')
 
     _meta.options = lodash.map(_meta.options, (option) => {
       const point = option.text.split('.')[0]
       return {
-        asserts: option.asserts,
+        assets: option.assets,
         text: _meta.answer.text.includes(point) ? `* ${option.text}` : `- ${option.text}`,
       }
     })
 
     // _point.
-    const _points = []
-
-    _points.push(`[P#L#[T#B#解析]]`, _meta.explain.text.trim())
+    const _points = [`[P#L#[T#B#解析]]`, lodash.trim(_meta.explain.text)]
 
     // ===========================
     // _output.
@@ -175,8 +83,8 @@ export default class Markji extends Output {
       lodash
         .filter([
           `[${question.type}]\n`,
-          `${_meta.content.text.trim()}\n`,
-          `[Choice#${_meta.optionsAttr}#\n${lodash.map(_meta.options, 'text').join('\n').trim()}\n]\n`,
+          lodash.trim(_meta.content.text),
+          `[Choice#${_meta.optionsAttr}#\n${lodash.trim(lodash.map(_meta.options, 'text').join('\n'))}\n]\n`,
           '---\n',
           ..._points,
         ])
@@ -185,12 +93,12 @@ export default class Markji extends Output {
         .replaceAll('\n', '<br>'),
     )
 
-    output.asserts = lodash.merge(
+    output.assets = lodash.merge(
       {},
-      _meta.content.asserts,
-      ...lodash.map(_meta.options, 'asserts'),
-      _meta.answer.asserts,
-      _meta.explain.asserts,
+      _meta.content.assets,
+      ...lodash.map(_meta.options, 'assets'),
+      _meta.answer.assets,
+      _meta.explain.assets,
     )
 
     return output
@@ -199,11 +107,11 @@ export default class Markji extends Output {
   /**
    * _processTranslate
    */
-  protected async _processTranslate(question: any): Promise<AssertString> {
+  protected async _processTranslate(question: any): Promise<AssetString> {
     const _meta = {
-      content: {} as AssertString,
-      explain: {} as AssertString,
-      translation: {} as AssertString,
+      content: {assets: [] as never, text: ''} as AssetString,
+      explain: {assets: [] as never, text: ''} as AssetString,
+      translation: {assets: [] as never, text: ''} as AssetString,
     }
 
     _meta.content = await html.toText(question.content || '')
@@ -211,9 +119,7 @@ export default class Markji extends Output {
     _meta.translation = await html.toText(question.answer || '')
 
     // _points.
-    const _points = []
-
-    _points.push(`[P#L#[T#B#解析]]`, _meta.explain.text.trim())
+    const _points = [`[P#L#[T#B#解析]]`, lodash.trim(_meta.explain.text)]
 
     // ===========================
     // _output.
@@ -221,9 +127,9 @@ export default class Markji extends Output {
       lodash
         .filter([
           `[${question.type}]\n`,
-          `${_meta.content.text.trim()}`,
+          lodash.trim(_meta.content.text),
           '---',
-          _meta.translation.text.trim(),
+          _meta.translation.text,
           '---',
           ..._points,
         ])
@@ -232,7 +138,7 @@ export default class Markji extends Output {
         .replaceAll('\n', '<br>'),
     )
 
-    output.asserts = lodash.merge({}, _meta.content.asserts, _meta.explain.asserts, _meta.translation.asserts)
+    output.assets = lodash.merge({}, _meta.content.assets, _meta.explain.assets, _meta.translation.assets)
 
     return output
   }

@@ -11,7 +11,7 @@ import {HashKeyScope, Vendor} from '../../components/vendor/common.js'
 import VendorManager from '../../components/vendor/index.js'
 import {Bank} from '../../types/bank.js'
 import {Category} from '../../types/category.js'
-import {AssertString, Params} from '../../types/common.js'
+import {AssetString, Params, ParseOptions} from '../../types/common.js'
 import {MarkjiSheet} from '../../types/sheet.js'
 import {BulkUploadOptions, MarkjiInfo} from '../../types/vendor/markji.js'
 import axios from '../axios.js'
@@ -124,11 +124,11 @@ const getInfo = async (params: Params, username: string): Promise<MarkjiInfo> =>
 /**
  * Parse HTML.
  */
-const parseHtml = async (text: string, style: string = ''): Promise<AssertString> => {
-  let content = await html.toText(text)
+const parseHtml = async (text: string, options?: ParseOptions): Promise<AssetString> => {
+  let content = await html.toText(text, options)
 
-  if (content.text.length > 800 || find(Object.values(content.asserts), 'data:')) {
-    content = await html.toImage(`${style}\n${text}`)
+  if (content.text.length > 800 || find(Object.values(content.assets), 'data:', {fuzzy: true})) {
+    content = await html.toImage(`${options?.style || ''}\n${text}`)
   }
 
   return content
@@ -191,7 +191,7 @@ const bulkUpload = async (options: BulkUploadOptions): Promise<void> => {
   for (const [_questionIdx, _questionKey] of allQuestionKeys.entries()) {
     if (_questionIdx <= doneQuestionIdx) continue
 
-    const _question: AssertString = await cacheClient.get(_questionKey)
+    const _question: AssetString = await cacheClient.get(_questionKey)
 
     await upload(markjiInfo, _questionIdx, _question)
 
@@ -210,10 +210,10 @@ const bulkUpload = async (options: BulkUploadOptions): Promise<void> => {
 /**
  * Upload.
  */
-const upload = async (info: MarkjiInfo, index: number, question: AssertString): Promise<void> => {
+const upload = async (info: MarkjiInfo, index: number, question: AssetString): Promise<void> => {
   if (lodash.isEmpty(question)) return
 
-  for (const [key, value] of Object.entries(question.asserts)) {
+  for (const [key, value] of Object.entries(question.assets)) {
     if (value.startsWith('data:')) {
       const parsed = dataUriToBuffer(value)
       const filename = key + '.' + parsed.type.split('/')[1]
@@ -227,10 +227,10 @@ const upload = async (info: MarkjiInfo, index: number, question: AssertString): 
 
       const response = await axios.post('https://www.markji.com/api/v1/files', form, info.requestConfig)
 
-      question.asserts[key] = `[Pic#ID/${response.data.data.file.id}#]`
+      question.assets[key] = `[Pic#ID/${response.data.data.file.id}#]`
     }
 
-    question.text = question.text.replaceAll(key, question.asserts[key])
+    question.text = question.text.replaceAll(key, question.assets[key])
   }
 
   const cardId = info.chapter.cardIds[index]

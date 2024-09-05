@@ -1,4 +1,4 @@
-import {AssertString} from './common.js'
+import {AssetString} from './common.js'
 
 export type QuestionType =
   // 填空题
@@ -12,23 +12,23 @@ export type QuestionType =
 
 export type AnswerAccessories = {
   BlankFilling: void
-  Cloze: AssertString[]
-  MultiChoice: AssertString[]
-  SingleChoice: AssertString[]
+  Cloze: AssetString[]
+  MultiChoice: AssetString[]
+  SingleChoice: AssetString[]
 }
 
 export type Answers = {
-  BlankFilling: AssertString[]
-  Cloze: AssertString[]
-  MultiChoice: AssertString[]
-  SingleChoice: AssertString[]
+  BlankFilling: AssetString[]
+  Cloze: AssetString[]
+  MultiChoice: AssetString[]
+  SingleChoice: AssetString[]
 }
 
 export type Question = {
   answer: Answers[QuestionType]
   answerAccessory: AnswerAccessories[QuestionType]
-  content: AssertString
+  content: AssetString
   id: string
-  solution: AssertString
+  solution: AssetString
   type: QuestionType
 }

@@ -3,7 +3,7 @@ import {convert} from 'html-to-text'
 import lodash from 'lodash'
 import md5 from 'md5'
 
-import {AssertString, ImageOptions} from '../types/common.js'
+import {AssetString, ImageOptions, ParseOptions} from '../types/common.js'
 import {throwError} from './index.js'
 import parser from './parser.js'
 import playwright from './playwright.js'
@@ -12,7 +12,7 @@ const _htmlPreprocess = (html: string): string => {
   return html.replaceAll(' ', ' <wbr>').replaceAll('\n', '<br>').trim()
 }
 
-const toImage = async (html: string, options?: ImageOptions): Promise<AssertString> => {
+const toImage = async (html: string, options?: ImageOptions): Promise<AssetString> => {
   try {
     const page = await playwright.page('html', 'about:blank')
 
@@ -37,7 +37,7 @@ const toImage = async (html: string, options?: ImageOptions): Promise<AssertStri
     const hash = md5(html).slice(0, 8)
 
     return {
-      asserts: {[`[html#${hash}]`]: `data:image/jpeg;base64,${base64Buffer.toString('base64')}`},
+      assets: {[`[html#${hash}]`]: `data:image/jpeg;base64,${base64Buffer.toString('base64')}`},
       text: `[html#${hash}]`,
     }
   } catch (error) {
@@ -45,8 +45,8 @@ const toImage = async (html: string, options?: ImageOptions): Promise<AssertStri
   }
 }
 
-const toText = async (html: string): Promise<AssertString> => {
-  const _text = await parser.toAssets(_htmlPreprocess(html))
+const toText = async (html: string, options?: ParseOptions): Promise<AssetString> => {
+  const _text = await parser.toAssets(_htmlPreprocess(html), options)
 
   _text.text = convert(_text.text, {
     selectors: [{format: 'skip', selector: 'img'}],

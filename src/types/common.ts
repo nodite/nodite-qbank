@@ -4,8 +4,8 @@ import {Bank} from './bank.js'
 import {Category} from './category.js'
 import {Sheet} from './sheet.js'
 
-type AssertString = {
-  asserts: Record<string, string>
+type AssetString = {
+  assets: Record<string, string>
   text: string
 }
 
@@ -15,6 +15,11 @@ type FetchOptions = {
 
 type ConvertOptions = {
   reconvert?: boolean
+}
+
+type ParseOptions = {
+  imgSrcHandler?: (src: string) => string
+  style?: string
 }
 
 type ImageOptions = {
@@ -39,4 +44,4 @@ type Params = {
   vendor: Vendor
 }
 
-export {AssertString, ComponentMeta, ConvertOptions, FetchOptions, ImageOptions, Params, UploadOptions}
+export {AssetString, ComponentMeta, ConvertOptions, FetchOptions, ImageOptions, Params, ParseOptions, UploadOptions}
