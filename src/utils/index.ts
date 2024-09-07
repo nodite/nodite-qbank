@@ -1,4 +1,6 @@
+import cacheManager from '@type-cacheable/core'
 import fs from 'fs-extra'
+import inquirer from 'inquirer'
 import lodash from 'lodash'
 
 export type FindOptions<T = object> = {
@@ -35,27 +37,19 @@ export function find<T>(items: T[], substring: string, options?: FindOptions<T>)
   })
 }
 
+export function fiind<T>(items: T[], substring: string, options?: FindOptions<T>): T | undefined {
+  let item = find(items, substring, options)
+  if (!item) item = find(items, substring, {...options, fuzzy: true})
+  return item
+}
+
 export function findAll<T>(items: T[], substring: string | string[], options?: FindOptions<T>): T[] {
-  return lodash.filter(items, (item) => {
-    if (lodash.isArray(item)) {
-      return !lodash.isEmpty(findAll(item, substring, options))
-    }
-
-    if (lodash.isObject(item)) {
-      const subItems = Object.values(options?.excludeKey ? lodash.omit(item, options.excludeKey) : item) as any[]
-      return !lodash.isEmpty(findAll(subItems, substring, options))
-    }
-
-    const _strs = lodash.filter(lodash.isArray(substring) ? substring : [substring])
-
-    if (lodash.isEmpty(_strs)) return true
-
-    return lodash.some(_strs, (str) =>
-      options?.fuzzy
-        ? lodash.toString(item).includes(lodash.toString(str))
-        : lodash.isEqual(lodash.toString(item), lodash.toString(str)),
-    )
-  })
+  const _strs = lodash.filter(lodash.isArray(substring) ? substring : [substring])
+  return lodash
+    .chain(_strs)
+    .map((str) => fiind(items, str, options))
+    .filter()
+    .value() as T[]
 }
 
 export function throwError(message: string | unknown, data: unknown): never {
@@ -77,4 +71,32 @@ export function reverseTemplate(template: string, result: string): Record<string
   }
 
   return obj
+}
+
+export async function safeName(name: string): Promise<string> {
+  if (name.length <= 48) return name
+
+  const cacheClient = (cacheManager.default.client ?? cacheManager.default.fallbackClient) as cacheManager.CacheClient
+
+  let _safeName = await cacheClient.get(`safe-name:${name}`)
+
+  if (_safeName) return _safeName
+
+  _safeName = name
+
+  while (_safeName.length > 48) {
+    const answers = await inquirer.prompt([
+      {
+        default: _safeName,
+        message: `Safe name (max 48 chars) [default: ${_safeName}]:`,
+        name: 'safeName',
+        type: 'input',
+      },
+    ])
+    _safeName = answers.safeName
+  }
+
+  await cacheClient.set(`safe-name:${name}`, _safeName)
+
+  return _safeName
 }

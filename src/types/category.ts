@@ -4,4 +4,5 @@ export type Category = {
   fetch?: boolean
   id: string
   name: string
+  order?: number
 }

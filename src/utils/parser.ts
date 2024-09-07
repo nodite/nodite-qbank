@@ -16,18 +16,21 @@ const image = async (text: string, options?: ParseOptions): Promise<AssetString>
 
     if (!src) continue
 
-    if (options?.imgSrcHandler) {
-      src = options.imgSrcHandler(src)
-    }
+    if (options?.imgSrcHandler) src = options.imgSrcHandler(src)
 
     const hash = md5(JSON.stringify({index: idx, text, type: 'image'})).slice(0, 8)
 
-    const resp = await axios.get(src, {responseType: 'arraybuffer'})
-    const base64 = Buffer.from(resp.data, 'binary').toString('base64')
+    try {
+      const resp = await axios.get(src, {responseType: 'arraybuffer'})
 
-    assetString.assets[`[img#${hash}]`] = `data:${resp.headers['content-type']};base64,${base64}`
+      const base64String = Buffer.from(resp.data, 'binary').toString('base64')
 
-    image.replaceWith(`[img#${hash}]`)
+      assetString.assets[`[img#${hash}]`] = `data:${resp.headers['content-type']};base64,${base64String}`
+
+      image.replaceWith(`[img#${hash}]`)
+    } catch (error: any) {
+      image.replaceWith(`[img#${error.status}#${src}]`)
+    }
   }
 
   assetString.text = root.toString()

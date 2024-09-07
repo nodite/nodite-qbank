@@ -9,6 +9,7 @@ import {Category} from '../../types/category.js'
 import {FetchOptions} from '../../types/common.js'
 import {Sheet} from '../../types/sheet.js'
 import {emitter} from '../../utils/event.js'
+import {safeName} from '../../utils/index.js'
 import {CACHE_KEY_ORIGIN_QUESTION_ITEM} from '../cache-pattern.js'
 import {OutputClass} from '../output/common.js'
 import Markji from '../output/json/markji.js'
@@ -41,12 +42,15 @@ export default class JsonFile extends Vendor {
    */
   protected async fetchCategories(bank: Bank): Promise<Category[]> {
     const data = await this._getData(bank)
-    return lodash.map(data.categories, (category) => ({
+
+    const _convert = async (category: any): Promise<Category> => ({
       children: [],
       count: lodash.filter(data.questions, {category}).length,
       id: category,
-      name: category,
-    }))
+      name: await safeName(category),
+    })
+
+    return Promise.all(lodash.map(data.categories, _convert))
   }
 
   /**

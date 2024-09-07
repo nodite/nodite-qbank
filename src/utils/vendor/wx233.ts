@@ -1,7 +1,7 @@
-import playwright from '../playwright.js'
+import puppeteer from '../puppeteer.js'
 
 const sid = async (): Promise<string> => {
-  const page = await playwright.page('wx233', 'https://v.233.com/?do=notr')
+  const page = await puppeteer.page('wx233', 'https://v.233.com/?do=notr')
 
   const _sid = await page.evaluate(() => {
     return (window as any)._japi.getSid('ucpage')
@@ -11,7 +11,7 @@ const sid = async (): Promise<string> => {
 }
 
 const sign = async (httpData: any, sid: string, httpMethod: string): Promise<string> => {
-  const page = await playwright.page('wx233', 'https://v.233.com/?do=notr')
+  const page = await puppeteer.page('wx233', 'https://v.233.com/?do=notr')
 
   if (httpMethod.toLowerCase() !== 'get') httpData = JSON.stringify(httpData)
 

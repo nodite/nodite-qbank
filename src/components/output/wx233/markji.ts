@@ -8,12 +8,23 @@ import MarkjiBase from '../markji.js'
 
 const parseOptions: ParseOptions = {
   imgSrcHandler(src: string): string {
+    // trim http://wx.233.com or https://wx.233.com
+    src = src.replace(/^(https?:)?\/\/wx\.233\.com/, '')
+
+    if (src.endsWith('jpg') && !src.endsWith('.jpg')) {
+      src = src.replace(/jpg$/, '.jpg')
+    }
+
     if (src.startsWith('//') || src.startsWith('http')) {
       return src
     }
 
     if (src.startsWith('/imgcache/')) {
       return src.replace('/imgcache/', 'https://wximg.233.com/')
+    }
+
+    if (src.startsWith('file://')) {
+      return ''
     }
 
     throwError('Unknown img src', {src})
@@ -40,6 +51,14 @@ export default class Markji extends MarkjiBase {
       // 2. 多选题
       case 2: {
         question.baseQuestionTypeName = '多选题'
+        question.isMultipleChoice = true
+        _output = await this._processChoice(question, params)
+        break
+      }
+
+      case 3: {
+        question.baseQuestionTypeName = '阅读理解(不定项)'
+        question.isMultipleChoice = true
         _output = await this._processChoice(question, params)
         break
       }
@@ -76,7 +95,7 @@ export default class Markji extends MarkjiBase {
       explain: {assets: [] as never, text: ''} as AssetString,
       material: {assets: [] as never, text: ''} as AssetString,
       options: [] as AssetString[],
-      optionsAttr: 'fixed',
+      optionsAttr: question.isMultipleChoice ? 'fixed,multi' : 'fixed',
     }
 
     // ===========================
@@ -102,14 +121,7 @@ export default class Markji extends MarkjiBase {
     )
 
     // 富文本选项
-    if (
-      // 有图片
-      lodash.some(_meta.options, (option) => !lodash.isEmpty(option.assets)) ||
-      // 有下划线
-      lodash.map(question.questionOptionRspList, 'content').join('\n').includes('<u>') ||
-      // 有 span
-      lodash.map(question.questionOptionRspList, 'content').join('\n').includes('<span')
-    ) {
+    if (lodash.some(_meta.options, (option) => find(Object.values(option.assets), 'data:', {fuzzy: true}))) {
       _meta.options = []
 
       const _htmlStyle = ['<style type="text/css">', 'p { display: inline-block; }', '</style>'].join(' ')
@@ -139,6 +151,12 @@ export default class Markji extends MarkjiBase {
       assets: option.assets,
       text: `${_meta.answers.includes(option) ? '*' : '-'} ${option.text}`,
     }))
+
+    if (lodash.isEmpty(_meta.answers)) {
+      throwError('Empty answers.', question)
+    } else if (_meta.answers.length > 1) {
+      _meta.optionsAttr = 'fixed,multi'
+    }
 
     // ===========================
     // _explain.

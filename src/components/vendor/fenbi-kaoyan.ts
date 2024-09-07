@@ -12,7 +12,7 @@ import {FetchOptions} from '../../types/common.js'
 import {Sheet} from '../../types/sheet.js'
 import axios from '../../utils/axios.js'
 import {emitter} from '../../utils/event.js'
-import {throwError} from '../../utils/index.js'
+import {safeName, throwError} from '../../utils/index.js'
 import fenbi from '../../utils/vendor/fenbi.js'
 import {CACHE_KEY_ORIGIN_QUESTION_ITEM, CACHE_KEY_ORIGIN_QUESTION_PROCESSING} from '../cache-pattern.js'
 import {OutputClass} from '../output/common.js'
@@ -47,7 +47,7 @@ export default class FenbiKaoyan extends Vendor {
       throw new Error('请前往 <粉笔考研> App 加入题库: 练习 > 右上角+号')
     }
 
-    return lodash.map(response.data, (bank: unknown) => ({
+    const _convert = async (bank: Record<string, unknown>) => ({
       id: [
         lodash.get(bank, 'courseSet.id', ''),
         lodash.get(bank, 'course.id', ''),
@@ -58,14 +58,18 @@ export default class FenbiKaoyan extends Vendor {
         lodash.get(bank, 'course.prefix', ''),
         lodash.get(bank, 'quiz.prefix', ''),
       ].join('|'),
-      name: lodash
-        .filter([
-          lodash.get(bank, 'courseSet.name', ''),
-          lodash.get(bank, 'course.name', ''),
-          lodash.get(bank, 'quiz.name', ''),
-        ])
-        .join(' > '),
-    }))
+      name: await safeName(
+        lodash
+          .filter([
+            lodash.get(bank, 'courseSet.name', ''),
+            lodash.get(bank, 'course.name', ''),
+            lodash.get(bank, 'quiz.name', ''),
+          ])
+          .join(' > '),
+      ),
+    })
+
+    return Promise.all(lodash.map(response.data, _convert))
   }
 
   /**
@@ -81,14 +85,14 @@ export default class FenbiKaoyan extends Vendor {
       lodash.merge({}, requestConfig, {params: {deep: true, level: 0}}),
     )
 
-    const _convert = (category: Record<string, unknown>): Category => ({
-      children: lodash.map(category.children ?? [], _convert),
+    const _convert = async (category: Record<string, unknown>): Promise<Category> => ({
+      children: await Promise.all(lodash.map(category.children ?? [], _convert)),
       count: category.count as number,
       id: String(category.id),
-      name: String(category.name),
+      name: await safeName(String(category.name)),
     })
 
-    return lodash.map(response.data, _convert)
+    return Promise.all(lodash.map(response.data, _convert))
   }
 
   /**
@@ -281,13 +285,15 @@ export default class FenbiKaoyan extends Vendor {
    */
   @Cacheable({cacheKey: (args) => `${args[0].id}:${args[1].id}`, hashKey: hashKeyBuilder(HashKeyScope.SHEETS)})
   protected async fetchSheet(bank: Bank, category: Category): Promise<Sheet[]> {
+    const _convert = async (child: any): Promise<Sheet> => ({
+      count: child.count,
+      id: child.id,
+      name: await safeName(child.name),
+    })
+
     return lodash.isEmpty(category.children)
       ? [{count: category.count, id: '0', name: '默认'}]
-      : lodash.map(category.children, (child) => ({
-          count: child.count,
-          id: child.id,
-          name: child.name,
-        }))
+      : Promise.all(lodash.map(category.children, _convert))
   }
 
   /**

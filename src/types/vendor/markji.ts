@@ -1,15 +1,15 @@
 import cacheManager from '@type-cacheable/core'
 import {CacheRequestConfig} from 'axios-cache-interceptor'
 
-import {Bank} from '../bank.js'
+import {MarkjiFolder} from '../bank.js'
 import {Category} from '../category.js'
 import {Params, UploadOptions} from '../common.js'
-import {MarkjiSheet} from '../sheet.js'
+import {MarkjiChapter} from '../sheet.js'
 
 type MarkjiInfo = {
-  chapter: MarkjiSheet
+  chapter: MarkjiChapter
   deck: Category
-  folder: Bank
+  folder: MarkjiFolder
   requestConfig?: CacheRequestConfig
 }
 

@@ -9,7 +9,7 @@ import {FetchOptions} from '../../types/common.js'
 import {Sheet} from '../../types/sheet.js'
 import axios from '../../utils/axios.js'
 import {emitter} from '../../utils/event.js'
-import {findAll} from '../../utils/index.js'
+import {findAll, safeName} from '../../utils/index.js'
 import {CACHE_KEY_ORIGIN_QUESTION_ITEM} from '../cache-pattern.js'
 import {OutputClass} from '../output/common.js'
 import Markji from '../output/wantiku/markji.js'
@@ -61,13 +61,13 @@ export default class Wantiku extends Vendor {
           throw new Error('请前往 <万题库> App 加入题库: 发现 > 头像 > 设置 > 考试科目管理')
         }
 
-        banks.push(
-          ...lodash.map(subjects, (subject) => ({
-            id: [parentSubject.SubjectParentId, parentSubject.SubjectLevel, subject.SubjectId].join('|'),
-            key: [parentSubject.SubjectParentId, parentSubject.SubjectLevel, subject.SubjectId].join('|'),
-            name: [group.GroupName, parentSubject.SubjectName, subject.SubjectName].join(' > '),
-          })),
-        )
+        const _convert = async (subject: any) => ({
+          id: [parentSubject.SubjectParentId, parentSubject.SubjectLevel, subject.SubjectId].join('|'),
+          key: [parentSubject.SubjectParentId, parentSubject.SubjectLevel, subject.SubjectId].join('|'),
+          name: await safeName([group.GroupName, parentSubject.SubjectName, subject.SubjectName].join(' > ')),
+        })
+
+        banks.push(...(await Promise.all(lodash.map(subjects, _convert))))
       }
     }
 
@@ -92,12 +92,14 @@ export default class Wantiku extends Vendor {
       }),
     )
 
-    return lodash.map(response.data.SpecialTreeList ?? [], (ct) => ({
+    const _convert = async (ct: any): Promise<Category> => ({
       children: [],
       count: ct.TotalQuestions,
       id: ct.ExamSiteId,
-      name: ct.ExamSiteName,
-    }))
+      name: await safeName(ct.ExamSiteName),
+    })
+
+    return Promise.all(lodash.map(response.data.SpecialTreeList ?? [], _convert))
   }
 
   /**

@@ -48,9 +48,16 @@ abstract class Vendor extends Component {
   public async banks(options?: Options): Promise<Bank[]> {
     const banks = await (options?.fromCache ? this._banks() : this.fetchBanks())
 
-    if (!options?.excludeTtl) banks.unshift({id: '*', key: '*', name: '全部'})
+    if (!options?.excludeTtl) banks.unshift({id: '*', key: '*', name: '全部', order: -999})
 
-    return banks
+    return lodash
+      .chain(banks)
+      .sortBy(['order', 'id', 'name'], ['asc', 'asc', 'asc'])
+      .map((bank, idx) => ({
+        ...bank,
+        order: options?.excludeTtl ? idx : idx - 1,
+      }))
+      .value()
   }
 
   /**
@@ -76,10 +83,23 @@ abstract class Vendor extends Component {
     }
 
     if (!options?.excludeTtl) {
-      categories.unshift({children: [], count: lodash.sumBy(categories, 'count'), id: '*', name: '全部'})
+      categories.unshift({children: [], count: lodash.sumBy(categories, 'count'), id: '*', name: '全部', order: -999})
     }
 
-    return categories
+    const _sortBy = (categories: Category[]): Category[] => {
+      for (const category of categories) {
+        if (category.children.length === 0) continue
+        category.children = _sortBy(category.children)
+      }
+
+      return lodash
+        .chain(categories)
+        .sortBy(['order', 'id', 'name'], ['asc', 'asc', 'asc'])
+        .map((category, idx) => ({...category, order: options?.excludeTtl ? idx : idx - 1}))
+        .value()
+    }
+
+    return _sortBy(categories)
   }
 
   /**
@@ -130,9 +150,13 @@ abstract class Vendor extends Component {
   public async sheets(bank: Bank, category: Category, options?: Options): Promise<Sheet[]> {
     const sheets = await (options?.fromCache ? this._sheets(bank, category) : this.fetchSheet(bank, category))
 
-    if (!options?.excludeTtl) sheets.unshift({count: lodash.sumBy(sheets, 'count'), id: '*', name: '全部'})
+    if (!options?.excludeTtl) sheets.unshift({count: lodash.sumBy(sheets, 'count'), id: '*', name: '全部', order: -999})
 
-    return sheets
+    return lodash
+      .chain(sheets)
+      .sortBy(['order', 'id', 'name'], ['asc', 'asc', 'asc'])
+      .map((sheet, idx) => ({...sheet, order: options?.excludeTtl ? idx : idx - 1}))
+      .value()
   }
 
   /**

@@ -33,7 +33,7 @@
     "node-html-parser": "^6",
     "object-treeify": "^4",
     "pkg-dir": "^8",
-    "playwright": "^1",
+    "puppeteer": "^23",
     "random-number": "^0",
     "sleep-promise": "^9",
     "streamifier": "^0",

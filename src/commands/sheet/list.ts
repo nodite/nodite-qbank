@@ -54,8 +54,9 @@ List sheets (./src/commands/sheet/list.ts)
             {align: 'left', value: 'id'},
             {align: 'left', value: 'name'},
             {align: 'left', value: 'count'},
+            {align: 'center', value: 'order'},
           ],
-          sheets.map((sheet) => [sheet.id, sheet.name, sheet.count]),
+          sheets.map((sheet) => [sheet.id, sheet.name, sheet.count, sheet.order]),
         ).render(),
       )
 

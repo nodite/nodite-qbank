@@ -9,6 +9,7 @@ import {FetchOptions, Params} from '../../types/common.js'
 import {Sheet} from '../../types/sheet.js'
 import axios from '../../utils/axios.js'
 import {emitter} from '../../utils/event.js'
+import {safeName} from '../../utils/index.js'
 import biguo from '../../utils/vendor/biguo.js'
 import {CACHE_KEY_ORIGIN_QUESTION_ITEM} from '../cache-pattern.js'
 import Markji from '../output/biguo/markji.js'
@@ -72,7 +73,9 @@ export default class BiguoReal extends Vendor {
           banks.push({
             id: [province.province_id, school.id, profession.id].join('|'),
             key: [province.province_id, school.id, profession.id].join('|'),
-            name: [province.province_name, school.name, `${profession.name}(${profession.code})`].join(' > '),
+            name: await safeName(
+              [province.province_name, school.name, `${profession.name}(${profession.code})`].join(' > '),
+            ),
           })
         }
       }
@@ -122,7 +125,7 @@ export default class BiguoReal extends Vendor {
         children: [],
         count: lodash.find(homeResponse.data.data.tikus, {type: this._biguoQuestionBankParam().mainType}).total || 0,
         id: [course.courses_id, course.code].join('|'),
-        name: `${course.name}(${course.code})`,
+        name: await safeName(`${course.name}(${course.code})`),
       })
     }
 
@@ -235,11 +238,13 @@ export default class BiguoReal extends Vendor {
       }),
     )
 
-    return lodash.map(realResponse.data.data, (sheet) => ({
-      count: sheet.total_nums,
-      id: sheet.id,
-      name: sheet.name,
-    }))
+    return Promise.all(
+      lodash.map(realResponse.data.data, async (sheet) => ({
+        count: sheet.total_nums,
+        id: sheet.id,
+        name: await safeName(sheet.name),
+      })),
+    )
   }
 
   @Cacheable({

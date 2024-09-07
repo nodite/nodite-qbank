@@ -21,27 +21,22 @@ export default class Markji extends MarkjiBase {
       // 10. 单选题
       case 10: {
         question.QuestionTypeName = '单选题'
-
         output = await this._processChoice(question, params)
-
         break
       }
 
       // 20. 多选题
       case 20: {
         question.QuestionTypeName = '多选题'
-
+        question.IsMultipleChoice = true
         output = await this._processChoice(question, params)
-
         break
       }
 
       // 50. 简答题
       case 50: {
         question.QuestionTypeName = '简答题'
-
         output = await this._processTranslate(question, params)
-
         break
       }
 
@@ -63,25 +58,19 @@ export default class Markji extends MarkjiBase {
       context: {assets: [] as never, text: ''} as AssetString,
       explain: {assets: [] as never, text: ''} as AssetString,
       options: [] as AssetString[],
-      optionsAttr: 'fixed',
+      optionsAttr: question.IsMultipleChoice ? 'fixed,multi' : 'fixed',
     }
 
     // ===========================
     // _context.
-    const _context = lodash.map(question.TKContextQuestionsEntityList, (context) => context.FormatContent).join('<br>')
-
-    _meta.context = await (_context.includes('<u>')
-      ? html.toImage(_context, {style: this.HTML_STYLE})
-      : markji.parseHtml(
-          lodash.map(question.TKContextQuestionsEntityList, (context) => context.FormatContent).join('<br>'),
-          {style: this.HTML_STYLE},
-        ))
+    _meta.context = await markji.parseHtml(
+      lodash.map(question.TKContextQuestionsEntityList, (context) => context.FormatContent).join('<br>'),
+      {style: this.HTML_STYLE},
+    )
 
     // ===========================
     // _content.
-    _meta.content = await (question.FormatContent.includes('<u>') || question.FormatContent.includes('<span')
-      ? html.toImage(question.FormatContent, {style: this.HTML_STYLE})
-      : markji.parseHtml(question.FormatContent, {style: this.HTML_STYLE}))
+    _meta.content = await markji.parseHtml(question.FormatContent, {style: this.HTML_STYLE})
 
     if (question.RealOrderNumber) {
       const _char = find(Object.values(_meta.content.assets), 'data:', {fuzzy: true}) ? '\n' : ' '
@@ -99,14 +88,7 @@ export default class Markji extends MarkjiBase {
     )
 
     // 富文本选项
-    if (
-      // 有图片
-      lodash.some(_meta.options, (option) => !lodash.isEmpty(option.assets)) ||
-      // 有下划线
-      lodash.map(question.QuestionContentKeyValue, 'Value').join('\n').includes('<u>') ||
-      // 有 span
-      lodash.map(question.QuestionContentKeyValue, 'Value').join('\n').includes('<span')
-    ) {
+    if (lodash.some(_meta.options, (option) => find(Object.values(option.assets), 'data:', {fuzzy: true}))) {
       _meta.options = []
 
       const _htmlStyle = ['<style type="text/css">', 'p { display: inline-block; }', '</style>'].join(' ')
@@ -153,7 +135,7 @@ export default class Markji extends MarkjiBase {
     // points.
     const _points = [
       '[P#L#[T#B#考点]]',
-      lodash.map(question.ExamSitesEntityList, (entity) => entity.ExamSiteName).join(', '),
+      lodash.map(question.ExamSitesEntityList, (entity) => entity.ExamSiteName).join('\n'),
       '[P#L#[T#B#来源]]',
       question.RealPaperName || '',
       '[P#L#[T#B#解析]]',
@@ -197,7 +179,7 @@ export default class Markji extends MarkjiBase {
 
     // ===========================
     // 判断题.
-    const _firstPContent = parse(_translation).querySelectorAll('p').shift()?.textContent?.trim()
+    const _firstPContent = parse(_translation).querySelectorAll('p').shift()?.textContent?.trim().slice(0, 10)
     if (_firstPContent?.startsWith('正确') || _firstPContent?.startsWith('错误')) {
       const _question = lodash.cloneDeep(question)
       _question.QuestionTypeName = '判断题'
@@ -254,7 +236,7 @@ export default class Markji extends MarkjiBase {
     // _output.
     const _points = [
       '[P#L#[T#B#考点]]',
-      lodash.map(question.ExamSitesEntityList, (entity) => entity.ExamSiteName).join(', '),
+      lodash.map(question.ExamSitesEntityList, (entity) => entity.ExamSiteName).join('\n'),
       '[P#L#[T#B#来源]]',
       question.RealPaperName || '',
       '[P#L#[T#B#解析]]',

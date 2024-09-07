@@ -1,4 +1,4 @@
-import playwright from '../playwright.js'
+import puppeteer from '../puppeteer.js'
 
 const PUBLIC_KEY =
   'ANKi9PWuvDOsagwIVvrPx77mXNV0APmjySsYjB1' +
@@ -7,7 +7,7 @@ const PUBLIC_KEY =
   'TGl6J60/XBZcGSzN1XVZ80ElSjaGE8Ocg8wbPN18tbmsy761zN5SuIl'
 
 const encrypt = async (data1: any | null, data2: any | null): Promise<null | string> => {
-  const page = await playwright.page('fenbi', 'https://www.fenbi.com')
+  const page = await puppeteer.page('fenbi', 'https://www.fenbi.com')
 
   const encrypt = await page.evaluate(
     (data) => {

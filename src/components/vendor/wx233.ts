@@ -9,8 +9,8 @@ import {FetchOptions} from '../../types/common.js'
 import {Sheet} from '../../types/sheet.js'
 import axios from '../../utils/axios.js'
 import {emitter} from '../../utils/event.js'
-import {reverseTemplate, throwError} from '../../utils/index.js'
-import playwright from '../../utils/playwright.js'
+import {reverseTemplate, safeName, throwError} from '../../utils/index.js'
+import puppeteer from '../../utils/puppeteer.js'
 import wx233 from '../../utils/vendor/wx233.js'
 import {CACHE_KEY_ORIGIN_QUESTION_ITEM, CACHE_KEY_ORIGIN_QUESTION_PROCESSING} from '../cache-pattern.js'
 import {OutputClass} from '../output/common.js'
@@ -58,7 +58,7 @@ export default class Wx233 extends Vendor {
           banks.push({
             id: [domain.id, subject.id, child.id].join('|'),
             key: [domain.domain, subject.id, child.id].join('|'),
-            name: [domain.cname, subject.cname, child.cname].join(' > '),
+            name: await safeName([domain.cname, subject.cname, child.cname].join(' > ')),
           })
         }
       }
@@ -90,15 +90,19 @@ export default class Wx233 extends Vendor {
 
     for (const chapter of chapters.data?.data?.chapterInfoFrontRspList ?? []) {
       categories.push({
-        children: lodash.map(chapter.childList || [], (child) => ({
-          children: [],
-          count: child.questionsNum,
-          id: String(child.id),
-          name: child.name,
-        })),
+        children: await Promise.all(
+          lodash.map(chapter.childList || [], async (child) => ({
+            children: [],
+            count: child.questionsNum,
+            id: String(child.id),
+            name: await safeName(child.name),
+            order: child.sort,
+          })),
+        ),
         count: chapter.questionsNum,
         id: String(chapter.id),
-        name: chapter.name,
+        name: await safeName(chapter.name),
+        order: chapter.sort,
       })
     }
 
@@ -266,7 +270,14 @@ export default class Wx233 extends Vendor {
    */
   @Cacheable({cacheKey: (args) => `${args[0].id}:${args[1].id}`, hashKey: hashKeyBuilder(HashKeyScope.SHEETS)})
   public async fetchSheet(_bank: Bank, category: Category, _options?: FetchOptions): Promise<Sheet[]> {
-    return lodash.isEmpty(category.children) ? [{count: category.count, id: '0', name: '默认'}] : category.children
+    return lodash.isEmpty(category.children)
+      ? [{count: category.count, id: '0', name: '默认'}]
+      : lodash.map(category.children, (item) => ({
+          count: item.count,
+          id: item.id,
+          name: item.name,
+          order: item.order,
+        }))
   }
 
   @Cacheable({
@@ -274,16 +285,15 @@ export default class Wx233 extends Vendor {
     hashKey: hashKeyBuilder(HashKeyScope.LOGIN),
   })
   protected async toLogin(password: string): Promise<CacheRequestConfig> {
-    const page = await playwright.page('wx233.login', 'https://passport.233.com/login')
+    const page = await puppeteer.page('wx233.login', 'https://passport.233.com/login')
 
     await page.click('a[class="login_choice common js-common"]')
-    await page.fill('input[name="account"]', this.getUsername())
-    await page.fill('input[name="password"]', password)
+    await page.type('input[name="account"]', this.getUsername())
+    await page.type('input[name="password"]', password)
     await page.click('span[class="user_protocolCheck js-protocolCheck"]')
-    await page.click('input[id="normalSubmit"]')
-    await page.waitForURL('https://wx.233.com/**')
+    await Promise.all([page.waitForNavigation(), page.click('input[id="normalSubmit"]')])
 
-    const cookies = await page.context().cookies()
+    const cookies = await page.cookies()
 
     return {
       headers: {

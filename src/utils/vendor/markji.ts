@@ -9,19 +9,19 @@ import {CACHE_KEY_QUESTION_ITEM} from '../../components/cache-pattern.js'
 import {Output} from '../../components/output/common.js'
 import {HashKeyScope, Vendor} from '../../components/vendor/common.js'
 import VendorManager from '../../components/vendor/index.js'
-import {Bank} from '../../types/bank.js'
+import {Bank, MarkjiFolder} from '../../types/bank.js'
 import {Category} from '../../types/category.js'
 import {AssetString, Params, ParseOptions} from '../../types/common.js'
-import {MarkjiSheet} from '../../types/sheet.js'
+import {MarkjiChapter, Sheet} from '../../types/sheet.js'
 import {BulkUploadOptions, MarkjiInfo} from '../../types/vendor/markji.js'
 import axios from '../axios.js'
 import {emitter} from '../event.js'
 import html from '../html.js'
-import {find, throwError} from '../index.js'
+import {find, safeName, throwError} from '../index.js'
 
 const ensureContact = async (vendor: Vendor, folder: Bank, deck: Category, requestConfig: CacheRequestConfig) => {
-  const chapters = (await vendor.sheets(folder, deck)) as MarkjiSheet[]
-  const defaultChapter = find<MarkjiSheet>(chapters, '默认章节') as MarkjiSheet
+  const chapters = (await vendor.sheets(folder, deck)) as MarkjiChapter[]
+  const defaultChapter = find<MarkjiChapter>(chapters, '默认章节') as MarkjiChapter
   const cardId = defaultChapter.cardIds[0]
 
   const content = `
@@ -49,21 +49,19 @@ const ensureContact = async (vendor: Vendor, folder: Bank, deck: Category, reque
 }
 
 /**
- * Markji Info.
- * | -------------- | --------------- | --------------- |
- * | Markji Folders | markji.bank     | params.vendor   |
- * | Markji Decks   | markji.category | params.bank     |
- * | Markji Chapters| markji.sheet    | params.category |
+ * _folder.
  */
-const getInfo = async (params: Params, username: string): Promise<MarkjiInfo> => {
+const _folder = async (
+  markji: Vendor,
+  params: {vendor: Vendor},
+  requestConfig: CacheRequestConfig,
+): Promise<MarkjiFolder> => {
   const vendorMeta = (params.vendor.constructor as typeof Vendor).META
-  const markji = new (VendorManager.getClass('markji'))(username)
-  const requestConfig = await markji.login()
 
-  // markji folders.
   await markji.invalidate(HashKeyScope.BANKS)
+
   let folders = await markji.banks()
-  let folder = find<Bank>(folders, vendorMeta.name)
+  let folder = find<MarkjiFolder>(folders, vendorMeta.name)
 
   if (!folder) {
     await axios.post(
@@ -74,47 +72,192 @@ const getInfo = async (params: Params, username: string): Promise<MarkjiInfo> =>
 
     await sleep(500)
     await markji.invalidate(HashKeyScope.BANKS)
-    folders = await markji.banks()
-    folder = find<Bank>(folders, vendorMeta.name) as Bank
   }
 
-  // markji decks.
-  await markji.invalidate(HashKeyScope.CATEGORIES, folder)
-  let decks = await markji.categories(folder)
+  folders = await markji.banks()
+  folder = find<MarkjiFolder>(folders, vendorMeta.name) as Bank
+
+  return folder
+}
+
+/**
+ * _deck.
+ */
+const _deck = async (
+  markji: Vendor,
+  info: {folder: MarkjiFolder},
+  params: {bank: Bank},
+  requestConfig: CacheRequestConfig,
+): Promise<Category> => {
+  await markji.invalidate(HashKeyScope.CATEGORIES, info.folder)
+
+  let decks = await markji.categories(info.folder)
+
   let deck = find<Category>(decks, params.bank.name)
 
+  // create
   if (!deck) {
     await axios.post(
       'https://www.markji.com/api/v1/decks',
-      {folder_id: folder.id, is_private: false, name: params.bank.name},
+      {folder_id: info.folder.id, is_private: false, name: params.bank.name},
       requestConfig,
     )
 
     await sleep(500)
-    await markji.invalidate(HashKeyScope.CATEGORIES, folder)
-    decks = await markji.categories(folder)
-    deck = find<Category>(decks, params.bank.name) as Category
+    await markji.invalidate(HashKeyScope.CATEGORIES, info.folder)
+
+    decks = await markji.categories(info.folder)
   }
 
-  // markji chapters.
-  await markji.invalidate(HashKeyScope.SHEETS, folder, deck)
-  const chapterName = params.sheet.id === '0' ? params.category.name : `${params.category.name} / ${params.sheet.name}`
-  let chapters = (await markji.sheets(folder, deck)) as MarkjiSheet[]
-  let chapter = find<MarkjiSheet>(chapters, chapterName)
+  deck = find<Category>(decks, params.bank.name) as Category
 
+  // sort
+  if (deck.order !== params.bank.order) {
+    info.folder = lodash.find(await markji.banks(), {id: info.folder.id}) as MarkjiFolder
+
+    const _occupier = lodash.find(decks, {order: params.bank.order})
+
+    if (_occupier) {
+      _occupier.order = deck.order
+    }
+
+    deck.order = params.bank.order
+
+    await axios.post(
+      `https://www.markji.com/api/v1/decks/folders/${info.folder.id}/sort`,
+      {
+        items: lodash
+          .chain(decks)
+          .filter((deck) => deck.id !== '*')
+          .sortBy(['order', 'name'], ['asc', 'asc'])
+          .map((deck) => ({object_class: 'DECK', object_id: deck.id}))
+          .value(),
+        updated_time: info.folder.updated_time,
+      },
+      requestConfig,
+    )
+
+    await sleep(1000)
+    await markji.invalidate(HashKeyScope.CATEGORIES, info.folder)
+
+    decks = await markji.categories(info.folder)
+  }
+
+  deck = find<Category>(decks, params.bank.name) as Category
+
+  return deck
+}
+
+/**
+ * _chapter.
+ */
+const _chapter = async (
+  markji: Vendor,
+  info: {deck: Category; folder: MarkjiFolder},
+  params: {bank: Bank; category: Category; sheet: Sheet; vendor: Vendor},
+  requestConfig: CacheRequestConfig,
+): Promise<MarkjiChapter> => {
+  await markji.invalidate(HashKeyScope.SHEETS, info.folder, info.deck)
+
+  const chapterName = await safeName(
+    params.sheet.id === '0' ? params.category.name : `${params.category.name} / ${params.sheet.name}`,
+  )
+
+  let chapters = (await markji.sheets(info.folder, info.deck)) as MarkjiChapter[]
+
+  let chapter = find<MarkjiChapter>(chapters, chapterName)
+
+  // create.
   if (!chapter) {
     await axios.post(
-      `https://www.markji.com/api/v1/decks/${deck.id}/chapters`,
+      `https://www.markji.com/api/v1/decks/${info.deck.id}/chapters`,
       {name: chapterName, order: chapters.length},
       requestConfig,
     )
 
     await sleep(500)
-    await markji.invalidate(HashKeyScope.SHEETS, folder, deck)
-    chapters = (await markji.sheets(folder, deck)) as MarkjiSheet[]
-    chapter = find<MarkjiSheet>(chapters, chapterName) as MarkjiSheet
+    await markji.invalidate(HashKeyScope.SHEETS, info.folder, info.deck)
+
+    chapters = (await markji.sheets(info.folder, info.deck)) as MarkjiChapter[]
   }
 
+  chapter = find<MarkjiChapter>(chapters, chapterName) as MarkjiChapter
+
+  // sort
+  let _paramSheetOrder = 1
+
+  for (const _category of await params.vendor.categories(params.bank, {excludeTtl: true})) {
+    if (_category.id === params.category.id) {
+      _paramSheetOrder += params.sheet.order || 0
+      break
+    }
+
+    const _sheets = await params.vendor.sheets(params.bank, _category, {excludeTtl: true})
+    _paramSheetOrder += _sheets.length
+  }
+
+  if (chapter.order !== _paramSheetOrder) {
+    const _occupier = lodash.find(chapters, {order: _paramSheetOrder})
+
+    if (_occupier) {
+      _occupier.order = chapter.order
+    }
+
+    chapter.order = _paramSheetOrder
+
+    await axios.post(
+      `https://www.markji.com/api/v1/decks/${info.deck.id}/chapters/sort`,
+      {
+        chapter_ids: lodash
+          .chain(chapters)
+          .filter((chapter) => chapter.id !== '*')
+          .sortBy(['order', 'name'], ['asc', 'asc'])
+          .map('id')
+          .value(),
+        revision: chapter.setRevision,
+      },
+      requestConfig,
+    )
+
+    await sleep(500)
+    await markji.invalidate(HashKeyScope.SHEETS, info.folder, info.deck)
+
+    chapters = (await markji.sheets(info.folder, info.deck)) as MarkjiChapter[]
+  }
+
+  chapter = find<MarkjiChapter>(chapters, chapterName) as MarkjiChapter
+
+  return chapter
+}
+
+/**
+ * Markji Info.
+ * | -------------- | --------------- | --------------- |
+ * | Markji Folders | markji.bank     | params.vendor   |
+ * | Markji Decks   | markji.category | params.bank     |
+ * | Markji Chapters| markji.sheet    | params.category |
+ */
+const getInfo = async (params: Params, username: string): Promise<MarkjiInfo> => {
+  const markji = new (VendorManager.getClass('markji'))(username)
+  const requestConfig = await markji.login()
+
+  // markji folders.
+  const folder = await _folder(markji, {vendor: params.vendor}, requestConfig)
+
+  // ==========================
+  // markji decks.
+  const deck = await _deck(markji, {folder}, {bank: params.bank}, requestConfig)
+
+  // ==========================
+  // markji chapters.
+  const chapter = await _chapter(
+    markji,
+    {deck, folder},
+    {bank: params.bank, category: params.category, sheet: params.sheet, vendor: params.vendor},
+    requestConfig,
+  )
+
+  // ==========================
   // default card.
   await ensureContact(markji, folder, deck, requestConfig)
 
@@ -127,7 +270,16 @@ const getInfo = async (params: Params, username: string): Promise<MarkjiInfo> =>
 const parseHtml = async (text: string, options?: ParseOptions): Promise<AssetString> => {
   let content = await html.toText(text, options)
 
-  if (content.text.length > 800 || find(Object.values(content.assets), 'data:', {fuzzy: true})) {
+  if (
+    // large content.
+    content.text.length > 800 ||
+    // has image.
+    find(Object.values(content.assets), 'data:', {fuzzy: true}) ||
+    // has underline.
+    content.text.includes('<u>') ||
+    // has span.
+    content.text.includes('<span')
+  ) {
     content = await html.toImage(text, options)
   }
 

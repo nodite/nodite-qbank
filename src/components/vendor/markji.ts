@@ -3,9 +3,9 @@ import {CacheRequestConfig} from 'axios-cache-interceptor'
 import lodash from 'lodash'
 import UserAgent from 'user-agents'
 
-import {Bank} from '../../types/bank.js'
+import {Bank, MarkjiFolder} from '../../types/bank.js'
 import {Category} from '../../types/category.js'
-import {MarkjiSheet} from '../../types/sheet.js'
+import {MarkjiChapter} from '../../types/sheet.js'
 import axios from '../../utils/axios.js'
 import {OutputClass} from '../output/common.js'
 import {HashKeyScope, Vendor, hashKeyBuilder} from './common.js'
@@ -21,7 +21,7 @@ export default class Markji extends Vendor {
    * Banks = Markji Folders.
    */
   @Cacheable({cacheKey: () => '', hashKey: hashKeyBuilder(HashKeyScope.BANKS)})
-  protected async fetchBanks(): Promise<Bank[]> {
+  protected async fetchBanks(): Promise<MarkjiFolder[]> {
     const requestConfig = await this.login()
 
     const response = await axios.get('https://www.markji.com/api/v1/decks/folders', requestConfig)
@@ -32,8 +32,10 @@ export default class Markji extends Vendor {
 
     return lodash.map(response.data.data.folders, (item) => ({
       id: item.id,
+      items: item.items,
       key: item.id,
       name: item.name,
+      updated_time: item.updated_time,
     }))
   }
 
@@ -41,14 +43,14 @@ export default class Markji extends Vendor {
    * Categories = Markji Decks.
    */
   @Cacheable({cacheKey: (args) => args[0].id, hashKey: hashKeyBuilder(HashKeyScope.CATEGORIES)})
-  protected async fetchCategories(bank: Bank): Promise<Category[]> {
+  protected async fetchCategories(folder: MarkjiFolder): Promise<Category[]> {
     const requestConfig = await this.login()
 
     const response = await axios.get(
       'https://www.markji.com/api/v1/decks',
       lodash.merge(requestConfig, {
         params: {
-          folder_id: bank.id,
+          folder_id: folder.id,
           limit: 3000,
           offset: 0,
         },
@@ -59,12 +61,21 @@ export default class Markji extends Vendor {
       throw new Error(response.data.errors)
     }
 
-    return lodash.map(response.data.data.decks, (item) => ({
-      children: [],
-      count: item.card_count,
-      id: item.id,
-      name: item.name,
-    }))
+    // the deck order stored in the folder is not the same as the order in the response
+    await this.invalidate(HashKeyScope.BANKS)
+    folder = lodash.find(await this.banks({excludeTtl: true}), {id: folder.id}) as MarkjiFolder
+
+    return lodash.map(folder.items, (item, idx) => {
+      const deck = lodash.find(response.data.data.decks, {id: item.object_id})
+
+      return {
+        children: [],
+        count: deck.card_count,
+        id: deck.id,
+        name: deck.name,
+        order: Number(idx),
+      }
+    })
   }
 
   public async fetchQuestions(): Promise<void> {
@@ -75,7 +86,7 @@ export default class Markji extends Vendor {
    * Sheet = Markji Chapters.
    */
   @Cacheable({cacheKey: (args) => `${args[0].id}:${args[1].id}`, hashKey: hashKeyBuilder(HashKeyScope.SHEETS)})
-  public async fetchSheet(bank: Bank, category: Category): Promise<MarkjiSheet[]> {
+  public async fetchSheet(bank: Bank, category: Category): Promise<MarkjiChapter[]> {
     const requestConfig = await this.login()
 
     const response = await axios.get(`https://www.markji.com/api/v1/decks/${category.id}/chapters`, requestConfig)
@@ -84,11 +95,14 @@ export default class Markji extends Vendor {
       throw new Error(response.data.errors)
     }
 
-    return lodash.map(response.data.data.chapters, (item) => ({
+    return lodash.map(response.data.data.chapters, (item, idx) => ({
       cardIds: item.card_ids,
       count: item.card_ids.length,
       id: item.id,
       name: item.name,
+      order: Number(idx),
+      revision: item.revision,
+      setRevision: response.data.data.chapterset.revision,
     }))
   }
 

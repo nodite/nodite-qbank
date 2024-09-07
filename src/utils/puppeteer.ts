@@ -1,6 +1,6 @@
 import lodash from 'lodash'
 import md5 from 'md5'
-import * as playwright from 'playwright'
+import * as puppeteer from 'puppeteer'
 import UserAgent from 'user-agents'
 
 import memory from '../cache/memory.manager.js'
@@ -9,12 +9,12 @@ import memory from '../cache/memory.manager.js'
  * Browser.
  */
 const browser = async (create: boolean = true) => {
-  const cacheKey = 'playwright:browser'
+  const cacheKey = 'puppeteer:browser'
 
-  let _browser = await memory.cache.get<playwright.Browser>(cacheKey)
+  let _browser = await memory.cache.get<puppeteer.Browser>(cacheKey)
 
-  if ((!_browser || !_browser.isConnected()) && create) {
-    _browser = await playwright.chromium.launch({headless: true})
+  if ((!_browser || !_browser.connected) && create) {
+    _browser = await puppeteer.launch({headless: true})
     await memory.cache.set(cacheKey, _browser)
   }
 
@@ -25,8 +25,8 @@ const browser = async (create: boolean = true) => {
  * Page.
  */
 const page = async (name: string, url: string) => {
-  const pageCacheKey = `playwright:page:${md5(url)}`
-  let _page = await memory.cache.get<playwright.Page>(pageCacheKey)
+  const pageCacheKey = `puppeteer:page:${md5(url)}`
+  let _page = await memory.cache.get<puppeteer.Page>(pageCacheKey)
 
   if (!_page || _page.isClosed()) {
     const userAgent = new UserAgent({
@@ -34,9 +34,12 @@ const page = async (name: string, url: string) => {
       platform: 'iPhone',
     }).toString()
 
-    _page = await (await browser())?.newPage({userAgent})
+    _page = await (await browser())?.newPage()
 
-    await _page?.goto(url, {waitUntil: 'networkidle'})
+    _page?.setUserAgent(userAgent)
+
+    await _page?.goto(url, {waitUntil: 'networkidle0'})
+
     await memory.cache.set(pageCacheKey, _page)
   }
 
@@ -51,7 +54,7 @@ const close = async () => {
   const _browser = await browser(false)
   await _browser?.close()
 
-  const cacheKeys = await memory.cache.store.keys('playwright:*')
+  const cacheKeys = await memory.cache.store.keys('puppeteer:*')
   await Promise.all(lodash.map(cacheKeys, memory.cache.del))
 }
 

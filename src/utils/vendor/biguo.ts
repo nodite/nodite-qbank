@@ -1,9 +1,9 @@
-import playwright from '../playwright.js'
+import puppeteer from '../puppeteer.js'
 
 const PUBLIC_KEY = 'UQJMbB8Q+g/unV4rox2dMIfnJQPG0tAGrycas1npQAPhX4xCXg6ThXTYyv7FpTDuwunSFtRGRr+Qn2qqIg+AGA=='
 
 const showQuestionAsk = async (data1: any | null, data2: any | null): Promise<null | string> => {
-  const page = await playwright.page(
+  const page = await puppeteer.page(
     'biguo',
     'https://www.biguotk.com/web/topic/question_bank_answer/2/15841/1?sub=666489',
   )

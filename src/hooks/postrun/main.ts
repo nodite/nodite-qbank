@@ -1,10 +1,10 @@
 import {Hook} from '@oclif/core'
 
-import playwright from '../../utils/playwright.js'
+import puppeteer from '../../utils/puppeteer.js'
 
 const hook: Hook.Postrun = async () => {
   // This hook is run after a command
-  await playwright.close()
+  await puppeteer.close()
 }
 
 export default hook
