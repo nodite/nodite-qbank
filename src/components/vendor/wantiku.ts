@@ -16,7 +16,11 @@ import Markji from '../output/wantiku/markji.js'
 import {HashKeyScope, Vendor, hashKeyBuilder} from './common.js'
 
 export default class Wantiku extends Vendor {
-  public static META = {key: 'wantiku', name: '万题库'}
+  public static META = {key: 'wantiku', name: '万题库·真题'}
+
+  URL_CATEGORY = 'https://api.wantiku.com/api/BrushQuestion/RealCustomAutoSpecTree'
+
+  URL_QUESTION = 'https://api.wantiku.com/api/BrushQuestion/RealCustomPaper'
 
   public get allowedOutputs(): Record<string, OutputClass> {
     return {
@@ -84,8 +88,7 @@ export default class Wantiku extends Vendor {
     const [parentSubjectId, subjectLevel, subjectId] = bank.id.split('|')
 
     const response = await axios.get(
-      'https://api.wantiku.com/api/BrushQuestion/RealCustomAutoSpecTree',
-      // 'https://api.wantiku.com/api/BrushQuestion/ChapterCustomSpecialTree',
+      this.URL_CATEGORY,
       lodash.merge({}, requestConfig, {
         headers: {SubjectLevel: subjectLevel, SubjectParentID: parentSubjectId},
         params: {SubjectId: subjectId, time: Date.now()},
@@ -140,8 +143,7 @@ export default class Wantiku extends Vendor {
       emitter.emit('questions.fetch.count', questionKeys.length)
 
       const response = await axios.get(
-        'https://api.wantiku.com/api/BrushQuestion/RealCustomPaper',
-        // 'https://api.wantiku.com/api/BrushQuestion/ChapterCustomPaper',
+        this.URL_QUESTION,
         lodash.merge({}, requestConfig, {
           headers: {
             SubjectId: subjectId,

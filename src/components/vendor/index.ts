@@ -6,6 +6,7 @@ import FenbiKaoyan from './fenbi-kaoyan.js'
 import JsonFile from './json-file.js'
 import Markji from './markji.js'
 import Wantiku from './wantiku.js'
+import WantikuChapter from './wantiku-chapter.js'
 import Wx233 from './wx233.js'
 
 export default class VendorManager {
@@ -18,6 +19,7 @@ export default class VendorManager {
     [JsonFile.META.key]: JsonFile,
     [Markji.META.key]: Markji,
     [Wantiku.META.key]: Wantiku,
+    [WantikuChapter.META.key]: WantikuChapter,
     [Wx233.META.key]: Wx233,
   }
 
