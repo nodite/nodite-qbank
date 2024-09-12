@@ -51,6 +51,10 @@ const cacheKeyBuilder = (scope: HashKeyScope): CacheKeyBuilder => {
       cacheKeyParams.sheetId = params.sheet.id
     }
 
+    if (params.questionId) {
+      cacheKeyParams.questionId = params.questionId
+    }
+
     if (params.output) {
       cacheKeyParams.outputKey = (params.output.constructor as typeof Output).META.key
     }
@@ -68,7 +72,7 @@ const cacheKeyBuilder = (scope: HashKeyScope): CacheKeyBuilder => {
     }
 
     if (scope === HashKeyScope.QUESTIONS) {
-      return lodash.template(CACHE_KEY_QUESTION_ITEM)({...cacheKeyParams, questionId: '*'})
+      return lodash.template(CACHE_KEY_QUESTION_ITEM)(cacheKeyParams)
     }
 
     if (scope === HashKeyScope.LOGIN) {
@@ -148,7 +152,7 @@ abstract class Vendor extends Component {
    */
   public async invalidate(
     scope: HashKeyScope,
-    params?: {bank?: Bank; category?: Category; output?: Output; sheet?: Sheet},
+    params?: {bank?: Bank; category?: Category; output?: Output; questionId?: string; sheet?: Sheet},
   ): Promise<void> {
     const cacheKey = cacheKeyBuilder(scope)([params], this)
     await this.getCacheClient().delHash(cacheKey)

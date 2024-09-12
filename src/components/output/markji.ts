@@ -42,7 +42,7 @@ export default class Markji extends Output {
 
     // check questions.
     if (options?.reconvert) {
-      await params.vendor.invalidate(HashKeyScope.QUESTIONS, {...params, output: this})
+      await params.vendor.invalidate(HashKeyScope.QUESTIONS, {...params, output: this, questionId: '*'})
     }
 
     const doneQuestionParams = lodash.map(

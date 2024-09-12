@@ -71,7 +71,7 @@ Convert questions (./src/commands/output/convert.ts)
     }
 
     if (flags.clean) {
-      await vendor.invalidate(HashKeyScope.QUESTIONS, {bank, category, output, sheet})
+      await vendor.invalidate(HashKeyScope.QUESTIONS, {bank, category, output, questionId: '*', sheet})
     }
 
     for (const _sheet of await vendor.sheets({bank, category}, {excludeTtl: true})) {
