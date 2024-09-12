@@ -227,10 +227,10 @@ export default class Markji extends MarkjiBase {
 
     _output.assets = lodash.merge(
       {},
-      _meta.content.assets,
-      ...lodash.map(_meta.options, 'assets'),
-      _meta.explain.assets,
       ...lodash.map(_meta.answers, 'assets'),
+      _meta.content.assets,
+      _meta.explain.assets,
+      ...lodash.map(_meta.options, 'assets'),
     )
 
     return _output
@@ -285,7 +285,7 @@ export default class Markji extends MarkjiBase {
         .replaceAll('\n', '<br>'),
     )
 
-    _output.assets = lodash.merge({}, _meta.content.assets, _meta.translation.assets, _meta.explain.assets)
+    _output.assets = lodash.merge({}, _meta.content.assets, _meta.explain.assets, _meta.translation.assets)
 
     return _output
   }

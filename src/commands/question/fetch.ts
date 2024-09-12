@@ -39,16 +39,16 @@ Fetch questions (./src/commands/question/fetch.ts)
     const bank = find<Bank>(banks, flags.bank) as Bank
 
     // category.
-    const categories = await vendor.categories(bank)
+    const categories = await vendor.categories({bank})
     const category = find<Category>(categories, flags.category, {excludeKey: ['children']}) as Category
 
     // sheet.
-    const sheets = await vendor.sheets(bank, category)
+    const sheets = await vendor.sheets({bank, category})
     const sheet = find<Sheet>(sheets, flags.sheet) as Sheet
 
     if (sheet.id !== '*') {
       // questions.
-      vendor.fetchQuestions(bank, category, sheet, {refetch: flags.clean})
+      vendor.fetchQuestions({bank, category, sheet}, {refetch: flags.clean})
 
       // processing.
       const bar = new SingleBar({}, Presets.rect)
@@ -64,7 +64,7 @@ Fetch questions (./src/commands/question/fetch.ts)
       return
     }
 
-    for (const _sheet of await vendor.sheets(bank, category, {excludeTtl: true})) {
+    for (const _sheet of await vendor.sheets({bank, category}, {excludeTtl: true})) {
       this.log('\n---')
 
       const _argv = [

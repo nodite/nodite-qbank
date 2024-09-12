@@ -2,6 +2,7 @@ import {Flags} from '@oclif/core'
 import {Presets, SingleBar} from 'cli-progress'
 
 import BaseCommand from '../../base.js'
+import {HashKeyScope} from '../../components/cache-pattern.js'
 import VendorManager from '../../components/vendor/index.js'
 import {Bank} from '../../types/bank.js'
 import {Category} from '../../types/category.js'
@@ -44,11 +45,11 @@ Convert questions (./src/commands/output/convert.ts)
     const bank = find<Bank>(banks, flags.bank) as Bank
 
     // category.
-    const categories = await vendor.categories(bank)
+    const categories = await vendor.categories({bank})
     const category = find<Category>(categories, flags.category, {excludeKey: ['children']}) as Category
 
     // sheet.
-    const sheets = await vendor.sheets(bank, category)
+    const sheets = await vendor.sheets({bank, category})
     const sheet = find<Sheet>(sheets, flags.sheet) as Sheet
 
     if (sheet.id !== '*') {
@@ -69,7 +70,11 @@ Convert questions (./src/commands/output/convert.ts)
       return
     }
 
-    for (const _sheet of await vendor.sheets(bank, category, {excludeTtl: true})) {
+    if (flags.clean) {
+      await vendor.invalidate(HashKeyScope.QUESTIONS, {bank, category, output, sheet})
+    }
+
+    for (const _sheet of await vendor.sheets({bank, category}, {excludeTtl: true})) {
       this.log('\n---')
 
       const _argv = [

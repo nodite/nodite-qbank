@@ -41,9 +41,9 @@ List categories (./src/commands/category/list.ts)
     // no '*' bank.
     if (bank.id !== '*') {
       // categories.
-      if (flags.clean) await vendor.invalidate(HashKeyScope.CATEGORIES, bank)
+      if (flags.clean) await vendor.invalidate(HashKeyScope.CATEGORIES, {bank})
 
-      const categories = await vendor.categories(bank)
+      const categories = await vendor.categories({bank})
 
       const _convert = (cts: Category[]): unknown => {
         return lodash

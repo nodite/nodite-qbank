@@ -37,16 +37,16 @@ List sheets (./src/commands/sheet/list.ts)
     const bank = find<Bank>(banks, flags.bank) as Bank
 
     // category.
-    const categories = await vendor.categories(bank)
+    const categories = await vendor.categories({bank})
     const category = find<Category>(categories, flags.category) as Category
 
     // no '*'
     if (category.id !== '*') {
       // Invalidate cache.
-      if (flags.clean) await vendor.invalidate(HashKeyScope.SHEETS, bank, category)
+      if (flags.clean) await vendor.invalidate(HashKeyScope.SHEETS, {bank, category})
 
       // sheets.
-      const sheets = await vendor.sheets(bank, category)
+      const sheets = await vendor.sheets({bank, category})
 
       this.log(
         ttyTable(
@@ -64,7 +64,7 @@ List sheets (./src/commands/sheet/list.ts)
     }
 
     // '*'
-    for (const _category of await vendor.categories(bank, {excludeTtl: true})) {
+    for (const _category of await vendor.categories({bank}, {excludeTtl: true})) {
       this.log('\n---')
 
       const _argv = [

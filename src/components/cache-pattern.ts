@@ -9,7 +9,27 @@ export enum HashKeyScope {
   SHEETS = 'sheets',
 }
 
-export const CACHE_KEY_PREFIX = '{{vendorKey}}:{{scope}}'
+export const CACHE_KEY_PREFIX = ''
+
+//
+// banks.
+//
+export const CACHE_KEY_BANKS = `{{vendorKey}}:${HashKeyScope.BANKS}:`
+
+//
+// categories.
+//
+export const CACHE_KEY_CATEGORIES = `{{vendorKey}}:${HashKeyScope.CATEGORIES}:{{bankId}}`
+
+//
+// login.
+//
+export const CACHE_KEY_LOGIN = `{{vendorKey}}:${HashKeyScope.LOGIN}:{{username}}`
+
+//
+// sheets.
+//
+export const CACHE_KEY_SHEETS = `{{vendorKey}}:${HashKeyScope.SHEETS}:{{bankId}}:{{categoryId}}`
 
 //
 // origin questions.

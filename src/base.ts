@@ -104,7 +104,7 @@ export default abstract class BaseCommand extends Command {
       throw new Error()
     }
 
-    const categories = await vendor.categories(bank)
+    const categories = await vendor.categories({bank})
 
     const _categories = findAll(categories, flags.category as string, {excludeKey: ['children'], fuzzy: true})
 
@@ -182,14 +182,14 @@ export default abstract class BaseCommand extends Command {
 
     const bank = find<Bank>(await vendor.banks(), flags.bank) as Bank
 
-    const category = find<Category>(await vendor.categories(bank), flags.category) as Category
+    const category = find<Category>(await vendor.categories({bank}), flags.category) as Category
 
     if (category.id === '*') {
       console.log(`${colors.yellow('⚠')} ${colors.bold('试卷')}: ${colors.yellow('分类为 "*" 时无法选择')}`)
       throw new Error()
     }
 
-    const sheets = await vendor.sheets(bank, category)
+    const sheets = await vendor.sheets({bank, category})
 
     const _sheets = findAll(sheets, flags.sheet as string, {fuzzy: true})
 

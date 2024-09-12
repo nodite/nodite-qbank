@@ -121,7 +121,7 @@ export default class Markji extends MarkjiBase {
     )
 
     // 富文本选项
-    if (lodash.some(_meta.options, (option) => find(Object.values(option.assets), 'data:', {fuzzy: true}))) {
+    if (lodash.some(_meta.options, (op) => find(Object.values(op.assets), 'data:', {fuzzy: true}))) {
       _meta.options = []
 
       const _htmlStyle = ['<style type="text/css">', 'p { display: inline-block; }', '</style>'].join(' ')
@@ -190,11 +190,11 @@ export default class Markji extends MarkjiBase {
 
     _output.assets = lodash.merge(
       {},
-      _meta.material.assets,
-      _meta.content.assets,
-      ...lodash.map(_meta.options, 'assets'),
-      _meta.explain.assets,
       ...lodash.map(_meta.answers, 'assets'),
+      _meta.content.assets,
+      _meta.explain.assets,
+      _meta.material.assets,
+      ...lodash.map(_meta.options, 'assets'),
     )
 
     return _output
@@ -261,9 +261,9 @@ export default class Markji extends MarkjiBase {
 
     _output.assets = lodash.merge(
       {},
-      _meta.material.assets,
       _meta.content.assets,
       _meta.explain.assets,
+      _meta.material.assets,
       _meta.translation.assets,
     )
 

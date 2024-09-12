@@ -14,7 +14,7 @@ import biguo from '../../utils/vendor/biguo.js'
 import {CACHE_KEY_ORIGIN_QUESTION_ITEM} from '../cache-pattern.js'
 import Markji from '../output/biguo/markji.js'
 import {OutputClass} from '../output/common.js'
-import {HashKeyScope, Vendor, hashKeyBuilder} from './common.js'
+import {HashKeyScope, Vendor, cacheKeyBuilder} from './common.js'
 
 export default class BiguoReal extends Vendor {
   public static META = {key: 'biguo-real', name: '笔果真题'}
@@ -28,7 +28,7 @@ export default class BiguoReal extends Vendor {
   /**
    * Banks.
    */
-  @Cacheable({cacheKey: () => '', hashKey: hashKeyBuilder(HashKeyScope.BANKS)})
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.BANKS)})
   protected async fetchBanks(): Promise<Bank[]> {
     const LIMIT = [{province_name: '福建省', school_name: '福州大学'}]
 
@@ -87,10 +87,10 @@ export default class BiguoReal extends Vendor {
   /**
    * Categories.
    */
-  @Cacheable({cacheKey: (args) => args[0].id, hashKey: hashKeyBuilder(HashKeyScope.CATEGORIES)})
-  protected async fetchCategories(bank: Bank): Promise<Category[]> {
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.CATEGORIES)})
+  protected async fetchCategories(params: {bank: Bank}): Promise<Category[]> {
     const requestConfig = this.login()
-    const [provinceId, schoolId, professionId] = bank.id.split('|')
+    const [provinceId, schoolId, professionId] = params.bank.id.split('|')
 
     const courseResponse = await axios.get(
       'https://www.biguotk.com/api/v4/study/user_courses',
@@ -136,9 +136,7 @@ export default class BiguoReal extends Vendor {
    * Questions.
    */
   public async fetchQuestions(
-    bank: Bank,
-    category: Category,
-    sheet: Sheet,
+    params: {bank: Bank; category: Category; sheet: Sheet},
     options?: FetchOptions | undefined,
   ): Promise<void> {
     // prepare.
@@ -147,9 +145,9 @@ export default class BiguoReal extends Vendor {
 
     // cache key.
     const cacheKeyParams = {
-      bankId: bank.id,
-      categoryId: category.id,
-      sheetId: sheet.id,
+      bankId: params.bank.id,
+      categoryId: params.category.id,
+      sheetId: params.sheet.id,
       vendorKey: (this.constructor as typeof Vendor).META.key,
     }
 
@@ -165,11 +163,16 @@ export default class BiguoReal extends Vendor {
 
     emitter.emit('questions.fetch.count', originQuestionKeys.length)
 
-    if (originQuestionKeys.length < sheet.count) {
+    if (originQuestionKeys.length < params.sheet.count) {
       const questionBankResponse = await axios.get(
         'https://www.biguotk.com/api/v5/exams/getQuestionBank',
         lodash.merge({}, requestConfig, {
-          params: this._biguoQuestionBankParam({bank, category, sheet, vendor: this}),
+          params: this._biguoQuestionBankParam({
+            bank: params.bank,
+            category: params.category,
+            sheet: params.sheet,
+            vendor: this,
+          }),
         }),
       )
 
@@ -195,7 +198,7 @@ export default class BiguoReal extends Vendor {
         if (originQuestionKeys.includes(_questionCacheKey)) continue
 
         _question.questionAsk = await biguo.showQuestionAsk(biguo.PUBLIC_KEY, _question.questionAsk)
-        _question.sheet = sheet
+        _question.sheet = params.sheet
 
         await cacheClient.set(_questionCacheKey, _question)
 
@@ -218,11 +221,11 @@ export default class BiguoReal extends Vendor {
   /**
    * Sheet.
    */
-  @Cacheable({cacheKey: (args) => `${args[0].id}:${args[1].id}`, hashKey: hashKeyBuilder(HashKeyScope.SHEETS)})
-  protected async fetchSheet(bank: Bank, category: Category): Promise<Sheet[]> {
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.SHEETS)})
+  protected async fetchSheet(params: {bank: Bank; category: Category}): Promise<Sheet[]> {
     const requestConfig = this.login()
-    const [provinceId, schoolId, professionId] = bank.id.split('|')
-    const [courseId] = category.id.split('|')
+    const [provinceId, schoolId, professionId] = params.bank.id.split('|')
+    const [courseId] = params.category.id.split('|')
 
     const realResponse = await axios.get(
       'https://www.biguotk.com/api/v4/exams/real_paper_list',
@@ -247,10 +250,7 @@ export default class BiguoReal extends Vendor {
     )
   }
 
-  @Cacheable({
-    cacheKey: (_, context) => context.getUsername(),
-    hashKey: hashKeyBuilder(HashKeyScope.LOGIN),
-  })
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN)})
   protected async toLogin(password: string): Promise<CacheRequestConfig<any, any>> {
     const userAgent = 'Biguo_Pro/6.9.1 (com.depeng.biguo; build:2; iOS 17.5.1) Alamofire/5.9.1'
 
@@ -261,6 +261,7 @@ export default class BiguoReal extends Vendor {
         password,
       },
       {
+        cache: false,
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
           'User-Agent': userAgent,

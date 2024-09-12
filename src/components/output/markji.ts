@@ -5,7 +5,7 @@ import {AssetString, ConvertOptions, Params, UploadOptions} from '../../types/co
 import {emitter} from '../../utils/event.js'
 import {reverseTemplate, throwError} from '../../utils/index.js'
 import markji from '../../utils/vendor/markji.js'
-import {CACHE_KEY_ORIGIN_QUESTION_ITEM, CACHE_KEY_QUESTION_ITEM} from '../cache-pattern.js'
+import {CACHE_KEY_ORIGIN_QUESTION_ITEM, CACHE_KEY_QUESTION_ITEM, HashKeyScope} from '../cache-pattern.js'
 import {Vendor} from '../vendor/common.js'
 import VendorManager from '../vendor/index.js'
 import {Output} from './common.js'
@@ -42,7 +42,7 @@ export default class Markji extends Output {
 
     // check questions.
     if (options?.reconvert) {
-      await cacheClient.delHash(lodash.template(CACHE_KEY_QUESTION_ITEM)({...cacheKeyParams, questionId: '*'}))
+      await params.vendor.invalidate(HashKeyScope.QUESTIONS, {...params, output: this})
     }
 
     const doneQuestionParams = lodash.map(

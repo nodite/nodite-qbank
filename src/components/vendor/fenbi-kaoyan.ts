@@ -17,7 +17,7 @@ import fenbi from '../../utils/vendor/fenbi.js'
 import {CACHE_KEY_ORIGIN_QUESTION_ITEM, CACHE_KEY_ORIGIN_QUESTION_PROCESSING} from '../cache-pattern.js'
 import {OutputClass} from '../output/common.js'
 import Markji from '../output/fenbi/markji.js'
-import {HashKeyScope, Vendor, hashKeyBuilder} from './common.js'
+import {HashKeyScope, Vendor, cacheKeyBuilder} from './common.js'
 
 export default class FenbiKaoyan extends Vendor {
   public static META = {key: 'fenbi-kaoyan', name: '粉笔考研'}
@@ -34,7 +34,7 @@ export default class FenbiKaoyan extends Vendor {
   /**
    * Banks.
    */
-  @Cacheable({cacheKey: () => '', hashKey: hashKeyBuilder(HashKeyScope.BANKS)})
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.BANKS)})
   protected async fetchBanks(): Promise<Bank[]> {
     const requestConfig = await this.login()
 
@@ -75,9 +75,9 @@ export default class FenbiKaoyan extends Vendor {
   /**
    * Categories.
    */
-  @Cacheable({cacheKey: (args) => args[0].id, hashKey: hashKeyBuilder(HashKeyScope.CATEGORIES)})
-  protected async fetchCategories(bank: Bank): Promise<Category[]> {
-    const bankPrefix = lodash.filter(bank.key.split('|')).pop() as string
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.BANKS)})
+  protected async fetchCategories(params: {bank: Bank}): Promise<Category[]> {
+    const bankPrefix = lodash.filter(params.bank.key.split('|')).pop() as string
     const requestConfig = await this.login()
 
     const response = await axios.get(
@@ -98,19 +98,22 @@ export default class FenbiKaoyan extends Vendor {
   /**
    * Origin questions.
    */
-  public async fetchQuestions(bank: Bank, category: Category, sheet: Sheet, options?: FetchOptions): Promise<void> {
-    if (sheet.id === '*') throw new Error('Sheet ID is required.')
+  public async fetchQuestions(
+    params: {bank: Bank; category: Category; sheet: Sheet},
+    options?: FetchOptions,
+  ): Promise<void> {
+    if (params.sheet.id === '*') throw new Error('Sheet ID is required.')
 
     // prepare.
     const cacheClient = this.getCacheClient()
     const requestConfig = await this.login()
-    const bankPrefix = lodash.filter(bank.key.split('|')).pop() as string
+    const bankPrefix = lodash.filter(params.bank.key.split('|')).pop() as string
 
     // cache key.
     const cacheKeyParams = {
-      bankId: bank.id,
-      categoryId: category.id,
-      sheetId: sheet.id,
+      bankId: params.bank.id,
+      categoryId: params.category.id,
+      sheetId: params.sheet.id,
       vendorKey: (this.constructor as typeof Vendor).META.key,
     }
 
@@ -144,7 +147,7 @@ export default class FenbiKaoyan extends Vendor {
 
     emitter.emit('questions.fetch.count', questionIds.length)
 
-    while ((questionIds.length < sheet.count || exerciseIds.length > 0) && _times < 5) {
+    while ((questionIds.length < params.sheet.count || exerciseIds.length > 0) && _times < 5) {
       // emit count.
       emitter.emit('questions.fetch.count', questionIds.length)
 
@@ -163,7 +166,7 @@ export default class FenbiKaoyan extends Vendor {
       else {
         const exerciseResponse = await axios.post(
           `https://schoolapi.fenbi.com/kaoyan/iphone/${bankPrefix}/exercises`,
-          {keypointId: sheet.id === '0' ? category.id : sheet.id, limit: 100, type: 151},
+          {keypointId: params.sheet.id === '0' ? params.category.id : params.sheet.id, limit: 100, type: 151},
           lodash.merge({}, requestConfig, {headers: {'Content-Type': 'application/x-www-form-urlencoded'}}),
         )
 
@@ -283,23 +286,23 @@ export default class FenbiKaoyan extends Vendor {
   /**
    * Sheet.
    */
-  @Cacheable({cacheKey: (args) => `${args[0].id}:${args[1].id}`, hashKey: hashKeyBuilder(HashKeyScope.SHEETS)})
-  protected async fetchSheet(bank: Bank, category: Category): Promise<Sheet[]> {
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.SHEETS)})
+  protected async fetchSheet(params: {bank: Bank; category: Category}): Promise<Sheet[]> {
     const _convert = async (child: any): Promise<Sheet> => ({
       count: child.count,
       id: child.id,
       name: await safeName(child.name),
     })
 
-    return lodash.isEmpty(category.children)
-      ? [{count: category.count, id: '0', name: '默认'}]
-      : Promise.all(lodash.map(category.children, _convert))
+    return lodash.isEmpty(params.category.children)
+      ? [{count: params.category.count, id: '0', name: '默认'}]
+      : Promise.all(lodash.map(params.category.children, _convert))
   }
 
   /**
    * Login.
    */
-  @Cacheable({cacheKey: (_, context) => context.getUsername(), hashKey: hashKeyBuilder(HashKeyScope.LOGIN)})
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN)})
   protected async toLogin(password: string): Promise<CacheRequestConfig> {
     const userAgent = new UserAgent({
       deviceCategory: 'mobile',
@@ -326,6 +329,7 @@ export default class FenbiKaoyan extends Vendor {
         phone: this.getUsername(),
       },
       {
+        cache: false,
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
           'User-Agent': userAgent,

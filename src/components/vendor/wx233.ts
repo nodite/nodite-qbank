@@ -15,7 +15,7 @@ import wx233 from '../../utils/vendor/wx233.js'
 import {CACHE_KEY_ORIGIN_QUESTION_ITEM, CACHE_KEY_ORIGIN_QUESTION_PROCESSING} from '../cache-pattern.js'
 import {OutputClass} from '../output/common.js'
 import Markji from '../output/wx233/markji.js'
-import {HashKeyScope, Vendor, hashKeyBuilder} from './common.js'
+import {HashKeyScope, Vendor, cacheKeyBuilder} from './common.js'
 
 export default class Wx233 extends Vendor {
   public static META = {key: 'wx233', name: '233网校'}
@@ -29,7 +29,7 @@ export default class Wx233 extends Vendor {
   /**
    * Banks.
    */
-  @Cacheable({cacheKey: () => '', hashKey: hashKeyBuilder(HashKeyScope.BANKS)})
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.BANKS)})
   protected async fetchBanks(): Promise<Bank[]> {
     const requestConfig = await this.login()
 
@@ -70,19 +70,19 @@ export default class Wx233 extends Vendor {
   /**
    * Categories.
    */
-  @Cacheable({cacheKey: (args) => args[0].id, hashKey: hashKeyBuilder(HashKeyScope.CATEGORIES)})
-  protected async fetchCategories(bank: Bank): Promise<Category[]> {
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.CATEGORIES)})
+  protected async fetchCategories(params: {bank: Bank}): Promise<Category[]> {
     const requestConfig = await this.login()
-    const subjectId = bank.id.split('|')[2]
+    const subjectId = params.bank.id.split('|')[2]
 
     const sid = await wx233.sid()
-    const params = {chapterType: 1, isApplet: 0, subjectId}
+    const reqParams = {chapterType: 1, isApplet: 0, subjectId}
 
     const chapters = await axios.get(
       'https://japi.233.com/ess-tiku-api/front/chapter/do/init',
       lodash.merge({}, requestConfig, {
-        headers: {sid, sign: await wx233.sign(params, sid, 'GET')},
-        params,
+        headers: {sid, sign: await wx233.sign(reqParams, sid, 'GET')},
+        reqParams,
       }),
     )
 
@@ -112,20 +112,23 @@ export default class Wx233 extends Vendor {
   /**
    * Fetch Questions.
    */
-  public async fetchQuestions(bank: Bank, category: Category, sheet: Sheet, options?: FetchOptions): Promise<void> {
+  public async fetchQuestions(
+    params: {bank: Bank; category: Category; sheet: Sheet},
+    options?: FetchOptions,
+  ): Promise<void> {
     // prepare.
     const cacheClient = this.getCacheClient()
     const requestConfig = await this.login()
-    const domainKey = bank.key.split('|')[0]
-    const objectId = sheet.id === '0' ? category.id : sheet.id
-    const subjectId = bank.id.split('|')[2]
+    const domainKey = params.bank.key.split('|')[0]
+    const objectId = params.sheet.id === '0' ? params.category.id : params.sheet.id
+    const subjectId = params.bank.id.split('|')[2]
     let sid
 
     // cache key.
     const cacheKeyParams = {
-      bankId: bank.id,
-      categoryId: category.id,
-      sheetId: sheet.id,
+      bankId: params.bank.id,
+      categoryId: params.category.id,
+      sheetId: params.sheet.id,
       vendorKey: (this.constructor as typeof Vendor).META.key,
     }
 
@@ -152,7 +155,7 @@ export default class Wx233 extends Vendor {
 
     emitter.emit('questions.fetch.count', questionKeys.length)
 
-    while ((questionKeys.length < sheet.count || exerciseKeys.length > 0) && _times < 5) {
+    while ((questionKeys.length < params.sheet.count || exerciseKeys.length > 0) && _times < 5) {
       sid = sid || (await wx233.sid())
 
       // emit count.
@@ -198,7 +201,7 @@ export default class Wx233 extends Vendor {
 
       if (lodash.isUndefined(_exerciseId) || _exerciseId === '0') {
         await cacheClient.del(_exerciseKey)
-        throwError('Fetch exercise failed', {bank, category, sheet})
+        throwError('Fetch exercise failed', params)
       }
 
       // questions processing.
@@ -268,11 +271,11 @@ export default class Wx233 extends Vendor {
   /**
    * Sheet.
    */
-  @Cacheable({cacheKey: (args) => `${args[0].id}:${args[1].id}`, hashKey: hashKeyBuilder(HashKeyScope.SHEETS)})
-  public async fetchSheet(_bank: Bank, category: Category, _options?: FetchOptions): Promise<Sheet[]> {
-    return lodash.isEmpty(category.children)
-      ? [{count: category.count, id: '0', name: '默认'}]
-      : lodash.map(category.children, (item) => ({
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.SHEETS)})
+  public async fetchSheet(params: {bank: Bank; category: Category}, _options?: FetchOptions): Promise<Sheet[]> {
+    return lodash.isEmpty(params.category.children)
+      ? [{count: params.category.count, id: '0', name: '默认'}]
+      : lodash.map(params.category.children, (item) => ({
           count: item.count,
           id: item.id,
           name: item.name,
@@ -280,10 +283,7 @@ export default class Wx233 extends Vendor {
         }))
   }
 
-  @Cacheable({
-    cacheKey: (_, context) => context.getUsername(),
-    hashKey: hashKeyBuilder(HashKeyScope.LOGIN),
-  })
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN)})
   protected async toLogin(password: string): Promise<CacheRequestConfig> {
     const page = await puppeteer.page('wx233.login', 'https://passport.233.com/login')
 

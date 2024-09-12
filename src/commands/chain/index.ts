@@ -253,7 +253,7 @@ Chain to qbank (./src/commands/chain/index.ts)
     params: {bank: Bank; vendor: Vendor},
     todoFn: (category: Category) => Promise<void>,
   ): Promise<void> {
-    const _categories = findAll(await params.vendor.categories(params.bank), flags.category_list, {fuzzy: true})
+    const _categories = findAll(await params.vendor.categories(params), flags.category_list, {fuzzy: true})
 
     const _wildCategory = lodash.find(_categories, {id: '*'})
 
@@ -261,7 +261,7 @@ Chain to qbank (./src/commands/chain/index.ts)
     if (_wildCategory) {
       await this._runSheetList(flags, params.bank, _wildCategory)
 
-      for (const _category of await params.vendor.categories(params.bank, {excludeTtl: true})) {
+      for (const _category of await params.vendor.categories(params, {excludeTtl: true})) {
         await todoFn(_category)
       }
     }
@@ -283,7 +283,7 @@ Chain to qbank (./src/commands/chain/index.ts)
     params: {bank: Bank; category: Category; vendor: Vendor},
     todoFn: (sheet: Sheet) => Promise<void>,
   ): Promise<void> {
-    const _sheets = findAll(await params.vendor.sheets(params.bank, params.category), flags.sheet_list, {fuzzy: true})
+    const _sheets = findAll(await params.vendor.sheets(params), flags.sheet_list, {fuzzy: true})
 
     const _wildSheet = lodash.find(_sheets, {id: '*'})
 

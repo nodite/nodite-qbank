@@ -95,10 +95,10 @@ export default class Markji extends MarkjiBase {
 
     output.assets = lodash.merge(
       {},
-      _meta.content.assets,
-      ...lodash.map(_meta.options, 'assets'),
       _meta.answer.assets,
+      _meta.content.assets,
       _meta.explain.assets,
+      ...lodash.map(_meta.options, 'assets'),
     )
 
     return output

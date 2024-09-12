@@ -44,11 +44,11 @@ Upload questions (./src/commands/output/upload.ts)
     const bank = find<Bank>(banks, flags.bank) as Bank
 
     // category.
-    const categories = await vendor.categories(bank)
+    const categories = await vendor.categories({bank})
     const category = find<Category>(categories, flags.category, {excludeKey: ['children']}) as Category
 
     // sheet.
-    const sheets = await vendor.sheets(bank, category)
+    const sheets = await vendor.sheets({bank, category})
     const sheet = find<Sheet>(sheets, flags.sheet) as Sheet
 
     if (sheet.id !== '*') {
@@ -69,7 +69,7 @@ Upload questions (./src/commands/output/upload.ts)
       return
     }
 
-    for (const _sheet of await vendor.sheets(bank, category, {excludeTtl: true})) {
+    for (const _sheet of await vendor.sheets({bank, category}, {excludeTtl: true})) {
       this.log(`\n---`)
 
       const _argv = [

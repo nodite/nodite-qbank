@@ -6,7 +6,7 @@ import {Category} from '../../types/category.js'
 import {Params} from '../../types/common.js'
 import {Sheet} from '../../types/sheet.js'
 import BiguoReal from './biguo-real.js'
-import {HashKeyScope, hashKeyBuilder} from './common.js'
+import {HashKeyScope, cacheKeyBuilder} from './common.js'
 
 export default class BiguoVip extends BiguoReal {
   public static META = {key: 'biguo-vip', name: '笔果💯'}
@@ -14,9 +14,9 @@ export default class BiguoVip extends BiguoReal {
   /**
    * Sheet.
    */
-  @Cacheable({cacheKey: (args) => `${args[0].id}:${args[1].id}`, hashKey: hashKeyBuilder(HashKeyScope.SHEETS)})
-  protected async fetchSheet(_bank: Bank, category: Category): Promise<Sheet[]> {
-    return [{count: category.count, id: '0', name: '默认'}]
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.SHEETS)})
+  protected async fetchSheet(params: {bank: Bank; category: Category}): Promise<Sheet[]> {
+    return [{count: params.category.count, id: '0', name: '默认'}]
   }
 
   /**

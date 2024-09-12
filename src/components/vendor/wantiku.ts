@@ -13,7 +13,7 @@ import {findAll, safeName} from '../../utils/index.js'
 import {CACHE_KEY_ORIGIN_QUESTION_ITEM} from '../cache-pattern.js'
 import {OutputClass} from '../output/common.js'
 import Markji from '../output/wantiku/markji.js'
-import {HashKeyScope, Vendor, hashKeyBuilder} from './common.js'
+import {HashKeyScope, Vendor, cacheKeyBuilder} from './common.js'
 
 export default class Wantiku extends Vendor {
   public static META = {key: 'wantiku', name: '万题库·真题'}
@@ -31,7 +31,7 @@ export default class Wantiku extends Vendor {
   /**
    * Banks.
    */
-  @Cacheable({cacheKey: () => '', hashKey: hashKeyBuilder(HashKeyScope.BANKS)})
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.BANKS)})
   protected async fetchBanks(): Promise<Bank[]> {
     const requestConfig = await this.login()
 
@@ -81,11 +81,11 @@ export default class Wantiku extends Vendor {
   /**
    * Categories.
    */
-  @Cacheable({cacheKey: (args) => args[0].id, hashKey: hashKeyBuilder(HashKeyScope.CATEGORIES)})
-  protected async fetchCategories(bank: Bank): Promise<Category[]> {
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.CATEGORIES)})
+  protected async fetchCategories(params: {bank: Bank}): Promise<Category[]> {
     const requestConfig = await this.login()
 
-    const [parentSubjectId, subjectLevel, subjectId] = bank.id.split('|')
+    const [parentSubjectId, subjectLevel, subjectId] = params.bank.id.split('|')
 
     const response = await axios.get(
       this.URL_CATEGORY,
@@ -108,18 +108,21 @@ export default class Wantiku extends Vendor {
   /**
    * Fetch Questions.
    */
-  public async fetchQuestions(bank: Bank, category: Category, sheet: Sheet, options?: FetchOptions): Promise<void> {
+  public async fetchQuestions(
+    params: {bank: Bank; category: Category; sheet: Sheet},
+    options?: FetchOptions,
+  ): Promise<void> {
     // prepare.
     const cacheClient = this.getCacheClient()
     const requestConfig = await this.login()
 
-    const [parentSubjectId, subjectLevel, subjectId] = bank.id.split('|')
+    const [parentSubjectId, subjectLevel, subjectId] = params.bank.id.split('|')
 
     // cache key.
     const cacheKeyParams = {
-      bankId: bank.id,
-      categoryId: category.id,
-      sheetId: sheet.id,
+      bankId: params.bank.id,
+      categoryId: params.category.id,
+      sheetId: params.sheet.id,
       vendorKey: (this.constructor as typeof Vendor).META.key,
     }
 
@@ -138,7 +141,7 @@ export default class Wantiku extends Vendor {
 
     emitter.emit('questions.fetch.count', questionKeys.length)
 
-    while (questionKeys.length < sheet.count && _times < 5) {
+    while (questionKeys.length < params.sheet.count && _times < 5) {
       // emit count.
       emitter.emit('questions.fetch.count', questionKeys.length)
 
@@ -151,7 +154,7 @@ export default class Wantiku extends Vendor {
             SubjectParentID: parentSubjectId,
           },
           params: {
-            ExamSiteId: category.id,
+            ExamSiteId: params.category.id,
             SubjectId: subjectId,
             practiceTypeEnum: 0,
             questionNum: 100, // 一次请求的题目数量
@@ -204,16 +207,17 @@ export default class Wantiku extends Vendor {
     emitter.closeListener('questions.fetch.count')
   }
 
-  public async fetchSheet(_bank: Bank, category: Category, _options?: FetchOptions): Promise<Sheet[]> {
-    return [{count: category.count, id: '0', name: '默认'}]
+  /**
+   * Fetch Sheet.
+   */
+  public async fetchSheet(params: {bank: Bank; category: Category}, _options?: FetchOptions): Promise<Sheet[]> {
+    return [{count: params.category.count, id: '0', name: '默认'}]
   }
 
-  @Cacheable({
-    cacheKey: (_, context) => context.getUsername(),
-    hashKey: hashKeyBuilder(HashKeyScope.LOGIN),
-  })
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN)})
   protected async toLogin(password: string): Promise<CacheRequestConfig> {
     const response = await axios.get('https://api.wantiku.com/api/Login/LoginV2', {
+      cache: false,
       headers: {
         'User-Agent': 'wantiku/5.6.5 (iPhone; iOS 17.5.1; Scale/3.00)',
       },

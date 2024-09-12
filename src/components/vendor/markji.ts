@@ -8,7 +8,7 @@ import {Category} from '../../types/category.js'
 import {MarkjiChapter} from '../../types/sheet.js'
 import axios from '../../utils/axios.js'
 import {OutputClass} from '../output/common.js'
-import {HashKeyScope, Vendor, hashKeyBuilder} from './common.js'
+import {HashKeyScope, Vendor, cacheKeyBuilder} from './common.js'
 
 export default class Markji extends Vendor {
   public static META = {key: 'markji', name: 'Markji'}
@@ -20,11 +20,14 @@ export default class Markji extends Vendor {
   /**
    * Banks = Markji Folders.
    */
-  @Cacheable({cacheKey: () => '', hashKey: hashKeyBuilder(HashKeyScope.BANKS)})
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.BANKS)})
   protected async fetchBanks(): Promise<MarkjiFolder[]> {
     const requestConfig = await this.login()
 
-    const response = await axios.get('https://www.markji.com/api/v1/decks/folders', requestConfig)
+    const response = await axios.get(
+      'https://www.markji.com/api/v1/decks/folders',
+      lodash.merge({}, requestConfig, {cache: false}),
+    )
 
     if (response.data.success === false) {
       throw new Error(response.data.errors)
@@ -42,15 +45,16 @@ export default class Markji extends Vendor {
   /**
    * Categories = Markji Decks.
    */
-  @Cacheable({cacheKey: (args) => args[0].id, hashKey: hashKeyBuilder(HashKeyScope.CATEGORIES)})
-  protected async fetchCategories(folder: MarkjiFolder): Promise<Category[]> {
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.CATEGORIES)})
+  protected async fetchCategories(params: {bank: MarkjiFolder}): Promise<Category[]> {
     const requestConfig = await this.login()
 
     const response = await axios.get(
       'https://www.markji.com/api/v1/decks',
-      lodash.merge(requestConfig, {
+      lodash.merge({}, requestConfig, {
+        cache: false,
         params: {
-          folder_id: folder.id,
+          folder_id: params.bank.id,
           limit: 3000,
           offset: 0,
         },
@@ -63,9 +67,9 @@ export default class Markji extends Vendor {
 
     // the deck order stored in the folder is not the same as the order in the response
     await this.invalidate(HashKeyScope.BANKS)
-    folder = lodash.find(await this.banks({excludeTtl: true}), {id: folder.id}) as MarkjiFolder
+    params.bank = lodash.find(await this.banks({excludeTtl: true}), {id: params.bank.id}) as MarkjiFolder
 
-    return lodash.map(folder.items, (item, idx) => {
+    return lodash.map(params.bank.items, (item, idx) => {
       const deck = lodash.find(response.data.data.decks, {id: item.object_id})
 
       return {
@@ -85,11 +89,14 @@ export default class Markji extends Vendor {
   /**
    * Sheet = Markji Chapters.
    */
-  @Cacheable({cacheKey: (args) => `${args[0].id}:${args[1].id}`, hashKey: hashKeyBuilder(HashKeyScope.SHEETS)})
-  public async fetchSheet(bank: Bank, category: Category): Promise<MarkjiChapter[]> {
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.SHEETS)})
+  public async fetchSheet(params: {bank: Bank; category: Category}): Promise<MarkjiChapter[]> {
     const requestConfig = await this.login()
 
-    const response = await axios.get(`https://www.markji.com/api/v1/decks/${category.id}/chapters`, requestConfig)
+    const response = await axios.get(
+      `https://www.markji.com/api/v1/decks/${params.category.id}/chapters`,
+      lodash.merge({}, requestConfig, {cache: false}),
+    )
 
     if (response.data.success === false) {
       throw new Error(response.data.errors)
@@ -106,7 +113,7 @@ export default class Markji extends Vendor {
     }))
   }
 
-  @Cacheable({cacheKey: (_, context) => context.getUsername(), hashKey: hashKeyBuilder(HashKeyScope.LOGIN)})
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN)})
   protected async toLogin(password: string): Promise<CacheRequestConfig> {
     const userAgent = new UserAgent({
       deviceCategory: 'mobile',
@@ -121,6 +128,7 @@ export default class Markji extends Vendor {
         password,
       },
       {
+        cache: false,
         headers: {
           'User-Agent': userAgent,
         },

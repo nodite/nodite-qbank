@@ -40,8 +40,8 @@ export default class JsonFile extends Vendor {
   /**
    * Fetch categories.
    */
-  protected async fetchCategories(bank: Bank): Promise<Category[]> {
-    const data = await this._getData(bank)
+  protected async fetchCategories(params: {bank: Bank}): Promise<Category[]> {
+    const data = await this._getData(params.bank)
 
     const _convert = async (category: any): Promise<Category> => ({
       children: [],
@@ -57,18 +57,16 @@ export default class JsonFile extends Vendor {
    * Questions.
    */
   public async fetchQuestions(
-    bank: Bank,
-    category: Category,
-    sheet: Sheet,
+    params: {bank: Bank; category: Category; sheet: Sheet},
     options?: FetchOptions | undefined,
   ): Promise<void> {
     const cacheClient = this.getCacheClient()
 
     // cache key.
     const cacheKeyParams = {
-      bankId: bank.id,
-      categoryId: category.id,
-      sheetId: sheet.id,
+      bankId: params.bank.id,
+      categoryId: params.category.id,
+      sheetId: params.sheet.id,
       vendorKey: (this.constructor as typeof Vendor).META.key,
     }
 
@@ -82,10 +80,10 @@ export default class JsonFile extends Vendor {
       originQuestionKeys.length = 0
     }
 
-    const data = await this._getData(bank)
-    const questions = lodash.filter(data.questions, {category: category.id})
-    const answers = lodash.filter(data.answers, {category: category.id})
-    const explains = lodash.filter(data.explains, {category: category.id})
+    const data = await this._getData(params.bank)
+    const questions = lodash.filter(data.questions, {category: params.category.id})
+    const answers = lodash.filter(data.answers, {category: params.category.id})
+    const explains = lodash.filter(data.explains, {category: params.category.id})
 
     emitter.emit('questions.fetch.count', originQuestionKeys.length)
 
@@ -115,8 +113,8 @@ export default class JsonFile extends Vendor {
   /**
    * Fetch sheet.
    */
-  protected async fetchSheet(_bank: Bank, category: Category): Promise<Sheet[]> {
-    return [{count: category.count, id: '0', name: '默认'}]
+  protected async fetchSheet(params: {bank: Bank; category: Category}): Promise<Sheet[]> {
+    return [{count: params.category.count, id: '0', name: '默认'}]
   }
 
   /**

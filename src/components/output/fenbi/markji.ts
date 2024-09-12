@@ -180,7 +180,12 @@ export default class Markji extends MarkjiBase {
         .replaceAll('\n', '<br>'),
     )
 
-    _output.assets = lodash.merge({}, _meta.content.assets, _meta.explain.assets)
+    _output.assets = lodash.merge(
+      {},
+      _meta.content.assets,
+      _meta.explain.assets,
+      ...lodash.map(_meta.options, 'assets'),
+    )
 
     return _output
   }
@@ -198,7 +203,7 @@ export default class Markji extends MarkjiBase {
       materials: [] as AssetString[],
       options: [] as AssetString[],
       optionsAttr: question.type === 2 ? 'fixed,multi' : 'fixed',
-      optionsTrans: {assets: [] as never, text: ''} as Record<string, string>,
+      optionsTrans: {} as Record<string, string>,
     }
 
     // ===========================
@@ -399,11 +404,12 @@ export default class Markji extends MarkjiBase {
 
     _output.assets = lodash.merge(
       {},
-      ...lodash.map(_meta.materials, 'assets'),
-      _meta.content.assets,
-      ...lodash.map(_meta.options, 'assets'),
-      _meta.explain.assets,
       ...lodash.map(_meta.answers, 'assets'),
+      _meta.content.assets,
+      _meta.contentTrans.assets,
+      _meta.explain.assets,
+      ...lodash.map(_meta.materials, 'assets'),
+      ...lodash.map(_meta.options, 'assets'),
     )
 
     return _output
@@ -461,7 +467,7 @@ export default class Markji extends MarkjiBase {
         .replaceAll('\n', '<br>'),
     )
 
-    _output.assets = lodash.merge({}, _meta.content.assets, _meta.translation.assets, _meta.explain.assets)
+    _output.assets = lodash.merge({}, _meta.content.assets, _meta.explain.assets, _meta.translation.assets)
 
     return _output
   }
