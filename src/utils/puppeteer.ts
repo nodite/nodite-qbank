@@ -38,7 +38,9 @@ const page = async (name: string, url: string) => {
 
     _page?.setUserAgent(userAgent)
 
-    await _page?.goto(url, {waitUntil: 'networkidle0'})
+    _page?.setCacheEnabled(true)
+
+    await _page?.goto(url, {waitUntil: 'networkidle2'})
 
     await memory.cache.set(pageCacheKey, _page)
   }
