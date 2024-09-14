@@ -47,29 +47,33 @@ export default class FenbiKaoyan extends Vendor {
       throw new Error('请前往 <粉笔考研> App 加入题库: 练习 > 右上角+号')
     }
 
-    const _convert = async (bank: Record<string, unknown>) => ({
-      id: [
-        lodash.get(bank, 'courseSet.id', ''),
-        lodash.get(bank, 'course.id', ''),
-        lodash.get(bank, 'quiz.id', ''),
-      ].join('|'),
-      key: [
-        lodash.get(bank, 'courseSet.prefix', ''),
-        lodash.get(bank, 'course.prefix', ''),
-        lodash.get(bank, 'quiz.prefix', ''),
-      ].join('|'),
-      name: await safeName(
-        lodash
-          .filter([
-            lodash.get(bank, 'courseSet.name', ''),
-            lodash.get(bank, 'course.name', ''),
-            lodash.get(bank, 'quiz.name', ''),
-          ])
-          .join(' > '),
-      ),
-    })
+    const banks = [] as Bank[]
 
-    return Promise.all(lodash.map(response.data, _convert))
+    for (const bank of response.data) {
+      banks.push({
+        id: [
+          lodash.get(bank, 'courseSet.id', ''),
+          lodash.get(bank, 'course.id', ''),
+          lodash.get(bank, 'quiz.id', ''),
+        ].join('|'),
+        key: [
+          lodash.get(bank, 'courseSet.prefix', ''),
+          lodash.get(bank, 'course.prefix', ''),
+          lodash.get(bank, 'quiz.prefix', ''),
+        ].join('|'),
+        name: await safeName(
+          lodash
+            .filter([
+              lodash.get(bank, 'courseSet.name', ''),
+              lodash.get(bank, 'course.name', ''),
+              lodash.get(bank, 'quiz.name', ''),
+            ])
+            .join(' > '),
+        ),
+      })
+    }
+
+    return banks
   }
 
   /**
@@ -85,14 +89,28 @@ export default class FenbiKaoyan extends Vendor {
       lodash.merge({}, requestConfig, {params: {deep: true, level: 0}}),
     )
 
-    const _convert = async (category: Record<string, unknown>): Promise<Category> => ({
-      children: await Promise.all(lodash.map(category.children ?? [], _convert)),
-      count: category.count as number,
-      id: String(category.id),
-      name: await safeName(String(category.name)),
-    })
+    const _convert = async (category: Record<string, any>): Promise<Category> => {
+      const children = [] as Category[]
 
-    return Promise.all(lodash.map(response.data, _convert))
+      for (const child of category.children ?? []) {
+        children.push(await _convert(child))
+      }
+
+      return {
+        children,
+        count: category.count as number,
+        id: String(category.id),
+        name: await safeName(String(category.name)),
+      }
+    }
+
+    const categories = [] as Category[]
+
+    for (const child of response.data) {
+      categories.push(await _convert(child))
+    }
+
+    return categories
   }
 
   /**
@@ -288,15 +306,21 @@ export default class FenbiKaoyan extends Vendor {
    */
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.SHEETS)})
   protected async fetchSheet(params: {bank: Bank; category: Category}): Promise<Sheet[]> {
-    const _convert = async (child: any): Promise<Sheet> => ({
-      count: child.count,
-      id: child.id,
-      name: await safeName(child.name),
-    })
+    if (lodash.isEmpty(params.category.children)) {
+      return [{count: params.category.count, id: '0', name: '默认'}]
+    }
 
-    return lodash.isEmpty(params.category.children)
-      ? [{count: params.category.count, id: '0', name: '默认'}]
-      : Promise.all(lodash.map(params.category.children, _convert))
+    const sheets = [] as Sheet[]
+
+    for (const child of params.category.children) {
+      sheets.push({
+        count: child.count,
+        id: child.id,
+        name: await safeName(child.name),
+      })
+    }
+
+    return sheets
   }
 
   /**

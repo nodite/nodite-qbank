@@ -7,7 +7,7 @@ import OutputManager from './components/output/index.js'
 import VendorManager from './components/vendor/index.js'
 import {Bank} from './types/bank.js'
 import {Category} from './types/category.js'
-import {find, findAll} from './utils/index.js'
+import {fiindAll, find, findAll} from './utils/index.js'
 
 export default abstract class BaseCommand extends Command {
   static baseFlags = {
@@ -69,7 +69,7 @@ export default abstract class BaseCommand extends Command {
 
     const banks = await vendor.banks()
 
-    const _banks = findAll(banks, flags.bank as string, {fuzzy: true})
+    const _banks = fiindAll(banks, [flags.bank as string], {fuzzy: true})
 
     if (lodash.isEmpty(_banks)) _banks.push(...banks)
 
@@ -97,7 +97,7 @@ export default abstract class BaseCommand extends Command {
   protected async _ensureCategory(flags: any): Promise<void> {
     const vendor = new (VendorManager.getClass(flags.vendor))(flags.username)
 
-    const bank = find<Bank>(await vendor.banks(), flags.bank) as Bank
+    const bank = find(await vendor.banks(), flags.bank) as Bank
 
     if (bank.id === '*') {
       console.log(`${colors.yellow('⚠')} ${colors.bold('分类')}: ${colors.yellow('题库为 "*" 时无法选择')}`)
@@ -106,7 +106,7 @@ export default abstract class BaseCommand extends Command {
 
     const categories = await vendor.categories({bank})
 
-    const _categories = findAll(categories, flags.category as string, {excludeKey: ['children'], fuzzy: true})
+    const _categories = fiindAll(categories, [flags.category as string], {excludeKey: ['children'], fuzzy: true})
 
     if (lodash.isEmpty(_categories)) _categories.push(...categories)
 
@@ -136,7 +136,7 @@ export default abstract class BaseCommand extends Command {
 
     const outputs = OutputManager.getMetas(Object.values(vendor.allowedOutputs))
 
-    const _outputs = findAll(outputs, flags.output as string, {fuzzy: true})
+    const _outputs = fiindAll(outputs, [flags.output as string], {fuzzy: true})
 
     if (lodash.isEmpty(_outputs)) _outputs.push(...outputs)
 
@@ -180,9 +180,9 @@ export default abstract class BaseCommand extends Command {
   protected async _ensureSheet(flags: any): Promise<void> {
     const vendor = new (VendorManager.getClass(flags.vendor))(flags.username)
 
-    const bank = find<Bank>(await vendor.banks(), flags.bank) as Bank
+    const bank = find(await vendor.banks(), flags.bank) as Bank
 
-    const category = find<Category>(await vendor.categories({bank}), flags.category) as Category
+    const category = find(await vendor.categories({bank}), flags.category) as Category
 
     if (category.id === '*') {
       console.log(`${colors.yellow('⚠')} ${colors.bold('试卷')}: ${colors.yellow('分类为 "*" 时无法选择')}`)

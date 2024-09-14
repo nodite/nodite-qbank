@@ -11,22 +11,12 @@ export type FindOptions<T = object> = {
 export function find<T>(items: T[], substring: string, options?: FindOptions<T>): T | undefined {
   return lodash.find(items, (item) => {
     if (lodash.isArray(item)) {
-      return (
-        // accurate
-        Boolean(find(item, substring, {...options, fuzzy: false})) ||
-        // fuzzy
-        Boolean(find(item, substring, {...options, fuzzy: true}))
-      )
+      return !lodash.isEmpty(find(item, substring, options))
     }
 
     if (lodash.isObject(item)) {
       const subItems: never[] = Object.values(options?.excludeKey ? lodash.omit(item, options.excludeKey) : item)
-      return (
-        // accurate
-        Boolean(find(subItems, substring, {...options, fuzzy: false})) ||
-        // fuzzy
-        Boolean(find(subItems, substring, {...options, fuzzy: true}))
-      )
+      return !lodash.isEmpty(find(subItems, substring, options))
     }
 
     if (lodash.isEmpty(substring)) return true
@@ -38,18 +28,42 @@ export function find<T>(items: T[], substring: string, options?: FindOptions<T>)
 }
 
 export function fiind<T>(items: T[], substring: string, options?: FindOptions<T>): T | undefined {
-  let item = find(items, substring, options)
+  let item = find(items, substring, {...options, fuzzy: false})
   if (!item) item = find(items, substring, {...options, fuzzy: true})
   return item
 }
 
-export function findAll<T>(items: T[], substring: string | string[], options?: FindOptions<T>): T[] {
-  const _strs = lodash.filter(lodash.isArray(substring) ? substring : [substring])
+export function findAll<T>(items: T[], substring: string, options?: FindOptions<T>): T[] {
+  return lodash.filter(items, (item) => {
+    if (lodash.isArray(item)) {
+      return !lodash.isEmpty(findAll(item, substring, options))
+    }
+
+    if (lodash.isObject(item)) {
+      const subItems: never[] = Object.values(options?.excludeKey ? lodash.omit(item, options.excludeKey) : item)
+      return !lodash.isEmpty(findAll(subItems, substring, options))
+    }
+
+    if (lodash.isEmpty(substring)) return true
+
+    return options?.fuzzy
+      ? lodash.toString(item).includes(lodash.toString(substring))
+      : lodash.isEqual(lodash.toString(item), lodash.toString(substring))
+  })
+}
+
+export function fiindAll<T>(items: T[], substrings: string[], options?: FindOptions<T>): T[] {
+  if (lodash.isEmpty(substrings)) return items
+
   return lodash
-    .chain(_strs)
-    .map((str) => fiind(items, str, options))
-    .filter()
-    .value() as T[]
+    .chain(substrings)
+    .map((substring) => {
+      let results = findAll(items, substring, {...options, fuzzy: false})
+      if (lodash.isEmpty(results)) results = findAll(items, substring, {...options, fuzzy: true})
+      return results
+    })
+    .flattenDeep()
+    .value()
 }
 
 export function throwError(message: string | unknown, data: unknown): never {
@@ -88,7 +102,7 @@ export async function safeName(name: string): Promise<string> {
     const answers = await inquirer.prompt([
       {
         default: _safeName,
-        message: `Safe name (max 48 chars) [default: ${_safeName}]:`,
+        message: `Safe name (max 48 chars):\n`,
         name: 'safeName',
         type: 'input',
       },

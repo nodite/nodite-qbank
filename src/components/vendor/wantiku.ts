@@ -9,7 +9,7 @@ import {FetchOptions} from '../../types/common.js'
 import {Sheet} from '../../types/sheet.js'
 import axios from '../../utils/axios.js'
 import {emitter} from '../../utils/event.js'
-import {findAll, safeName} from '../../utils/index.js'
+import {fiindAll, safeName} from '../../utils/index.js'
 import {CACHE_KEY_ORIGIN_QUESTION_ITEM} from '../cache-pattern.js'
 import {OutputClass} from '../output/common.js'
 import Markji from '../output/wantiku/markji.js'
@@ -41,7 +41,7 @@ export default class Wantiku extends Vendor {
       lodash.merge({}, requestConfig, {params: {time: Date.now()}}),
     )
 
-    const groups = findAll(parentSubjectsResponse.data.SubjectEntities, ['自考类', '成考类'], {
+    const groups = fiindAll(parentSubjectsResponse.data.SubjectEntities, ['自考类', '成考类'], {
       fuzzy: true,
     }) as Record<string, any>[]
 
@@ -65,13 +65,13 @@ export default class Wantiku extends Vendor {
           throw new Error('请前往 <万题库> App 加入题库: 发现 > 头像 > 设置 > 考试科目管理')
         }
 
-        const _convert = async (subject: any) => ({
-          id: [parentSubject.SubjectParentId, parentSubject.SubjectLevel, subject.SubjectId].join('|'),
-          key: [parentSubject.SubjectParentId, parentSubject.SubjectLevel, subject.SubjectId].join('|'),
-          name: await safeName([group.GroupName, parentSubject.SubjectName, subject.SubjectName].join(' > ')),
-        })
-
-        banks.push(...(await Promise.all(lodash.map(subjects, _convert))))
+        for (const subject of subjects) {
+          banks.push({
+            id: [parentSubject.SubjectParentId, parentSubject.SubjectLevel, subject.SubjectId].join('|'),
+            key: [parentSubject.SubjectParentId, parentSubject.SubjectLevel, subject.SubjectId].join('|'),
+            name: await safeName([group.GroupName, parentSubject.SubjectName, subject.SubjectName].join(' > ')),
+          })
+        }
       }
     }
 
@@ -95,14 +95,18 @@ export default class Wantiku extends Vendor {
       }),
     )
 
-    const _convert = async (ct: any): Promise<Category> => ({
-      children: [],
-      count: ct.TotalQuestions,
-      id: ct.ExamSiteId,
-      name: await safeName(ct.ExamSiteName),
-    })
+    const categories = [] as Category[]
 
-    return Promise.all(lodash.map(response.data.SpecialTreeList ?? [], _convert))
+    for (const ct of response.data.SpecialTreeList ?? []) {
+      categories.push({
+        children: [],
+        count: ct.TotalQuestions,
+        id: ct.ExamSiteId,
+        name: await safeName(ct.ExamSiteName),
+      })
+    }
+
+    return categories
   }
 
   /**

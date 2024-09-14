@@ -241,13 +241,17 @@ export default class BiguoReal extends Vendor {
       }),
     )
 
-    return Promise.all(
-      lodash.map(realResponse.data.data, async (sheet) => ({
+    const sheets = [] as Sheet[]
+
+    for (const sheet of realResponse.data.data) {
+      sheets.push({
         count: sheet.total_nums,
         id: sheet.id,
         name: await safeName(sheet.name),
-      })),
-    )
+      })
+    }
+
+    return sheets
   }
 
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN)})

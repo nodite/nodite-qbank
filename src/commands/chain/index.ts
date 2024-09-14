@@ -8,7 +8,7 @@ import VendorManager from '../../components/vendor/index.js'
 import {Bank} from '../../types/bank.js'
 import {Category} from '../../types/category.js'
 import {Sheet} from '../../types/sheet.js'
-import {findAll} from '../../utils/index.js'
+import {fiindAll} from '../../utils/index.js'
 
 export default class Index extends BaseCommand {
   static args = {}
@@ -223,7 +223,7 @@ Chain to qbank (./src/commands/chain/index.ts)
     // fetch banks.
     await this._runBankList(flags)
 
-    const _banks = findAll(await params.vendor.banks(), flags.bank_list, {fuzzy: true})
+    const _banks = fiindAll(await params.vendor.banks(), flags.bank_list as string[], {fuzzy: true})
 
     const _wildBank = lodash.find(_banks, {id: '*'})
 
@@ -253,7 +253,7 @@ Chain to qbank (./src/commands/chain/index.ts)
     params: {bank: Bank; vendor: Vendor},
     todoFn: (category: Category) => Promise<void>,
   ): Promise<void> {
-    const _categories = findAll(await params.vendor.categories(params), flags.category_list, {fuzzy: true})
+    const _categories = fiindAll(await params.vendor.categories(params), flags.category_list as string[], {fuzzy: true})
 
     const _wildCategory = lodash.find(_categories, {id: '*'})
 
@@ -283,7 +283,7 @@ Chain to qbank (./src/commands/chain/index.ts)
     params: {bank: Bank; category: Category; vendor: Vendor},
     todoFn: (sheet: Sheet) => Promise<void>,
   ): Promise<void> {
-    const _sheets = findAll(await params.vendor.sheets(params), flags.sheet_list, {fuzzy: true})
+    const _sheets = fiindAll(await params.vendor.sheets(params), flags.sheet_list as string[], {fuzzy: true})
 
     const _wildSheet = lodash.find(_sheets, {id: '*'})
 

@@ -43,14 +43,18 @@ export default class JsonFile extends Vendor {
   protected async fetchCategories(params: {bank: Bank}): Promise<Category[]> {
     const data = await this._getData(params.bank)
 
-    const _convert = async (category: any): Promise<Category> => ({
-      children: [],
-      count: lodash.filter(data.questions, {category}).length,
-      id: category,
-      name: await safeName(category),
-    })
+    const categories = [] as Category[]
 
-    return Promise.all(lodash.map(data.categories, _convert))
+    for (const category of data.categories) {
+      categories.push({
+        children: [],
+        count: lodash.filter(data.questions, {category}).length,
+        id: category,
+        name: await safeName(category),
+      })
+    }
+
+    return categories
   }
 
   /**

@@ -82,23 +82,27 @@ export default class Wx233 extends Vendor {
       'https://japi.233.com/ess-tiku-api/front/chapter/do/init',
       lodash.merge({}, requestConfig, {
         headers: {sid, sign: await wx233.sign(reqParams, sid, 'GET')},
-        reqParams,
+        params: reqParams,
       }),
     )
 
     const categories = [] as Category[]
 
     for (const chapter of chapters.data?.data?.chapterInfoFrontRspList ?? []) {
+      const children = [] as Category[]
+
+      for (const child of chapter.childList) {
+        children.push({
+          children: [],
+          count: child.questionsNum,
+          id: String(child.id),
+          name: await safeName(child.name),
+          order: child.sort,
+        })
+      }
+
       categories.push({
-        children: await Promise.all(
-          lodash.map(chapter.childList || [], async (child) => ({
-            children: [],
-            count: child.questionsNum,
-            id: String(child.id),
-            name: await safeName(child.name),
-            order: child.sort,
-          })),
-        ),
+        children,
         count: chapter.questionsNum,
         id: String(chapter.id),
         name: await safeName(chapter.name),
