@@ -11,8 +11,17 @@ const axiosInstance = setupCache(Axios, {
 axiosInstance.interceptors.response.use(
   (response) => {
     // biguo.
-    if (lodash.has(response, 'data.result_code') && response.data.result_code !== 1) {
-      return Promise.reject(response.data)
+    if (
+      lodash.has(response, 'data.result_code') &&
+      lodash.isNumber(response.data.result_code) &&
+      response.data.result_code !== 1
+    ) {
+      throw new Error(JSON.stringify(response.data))
+    }
+
+    // wx233.
+    if (lodash.has(response, 'data.status') && lodash.isBoolean(response.data.status) && !response.data.status) {
+      throw new Error(JSON.stringify(response.data))
     }
 
     return response

@@ -1,4 +1,5 @@
 export type Bank = {
+  count?: number
   id: string
   key: string
   name: string

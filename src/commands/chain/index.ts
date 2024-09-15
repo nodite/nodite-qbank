@@ -1,6 +1,5 @@
 import {Flags} from '@oclif/core'
 import lodash from 'lodash'
-import sleep from 'sleep-promise'
 
 import BaseCommand from '../../base.js'
 import {Vendor} from '../../components/vendor/common.js'
@@ -58,9 +57,6 @@ Chain to qbank (./src/commands/chain/index.ts)
           // output for each sheet.
           await this._runOutputConvert(flags, bank, category, sheet)
           await this._runOutputUpload(flags, bank, category, sheet)
-
-          // delay.
-          await sleep(flags.delay)
         })
       })
     })

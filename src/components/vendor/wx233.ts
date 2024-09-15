@@ -289,7 +289,7 @@ export default class Wx233 extends Vendor {
 
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN)})
   protected async toLogin(password: string): Promise<CacheRequestConfig> {
-    const page = await puppeteer.page('wx233.login', 'https://passport.233.com/login')
+    const page = await puppeteer.page('wx233', 'https://passport.233.com/login')
 
     await page.click('a[class="login_choice common js-common"]')
     await page.type('input[name="account"]', this.getUsername())

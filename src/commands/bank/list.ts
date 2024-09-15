@@ -37,9 +37,10 @@ List banks (./src/commands/course/list.ts)
           {align: 'left', value: 'id'},
           {align: 'left', value: 'name'},
           {align: 'left', value: 'key'},
+          {align: 'left', value: 'count'},
           {align: 'center', value: 'order'},
         ],
-        banks.map((bank) => [bank.id, bank.name, bank.key, bank.order]),
+        banks.map((bank) => [bank.id, bank.name, bank.key, bank.count ?? '', bank.order]),
       ).render(),
     )
   }

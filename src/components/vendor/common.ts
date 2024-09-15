@@ -93,7 +93,9 @@ abstract class Vendor extends Component {
   public async banks(options?: Options): Promise<Bank[]> {
     const banks = await this.fetchBanks()
 
-    if (!options?.excludeTtl) banks.unshift({id: '*', key: '*', name: '全部', order: -999})
+    if (!options?.excludeTtl) {
+      banks.unshift({count: lodash.sumBy(banks, 'count'), id: '*', key: '*', name: '全部', order: -999})
+    }
 
     return lodash
       .chain(banks)
