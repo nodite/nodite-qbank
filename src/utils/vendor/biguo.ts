@@ -8,6 +8,14 @@ const showQuestionAsk = async (data1: any | null, data2: any | null): Promise<nu
     'https://www.biguotk.com/web/topic/question_bank_answer/2/15841/1?sub=666489',
   )
 
+  // wait window.showQuestionAsk.
+  await page.waitForFunction(
+    () => {
+      return (window as any).showQuestionAsk
+    },
+    {timeout: 0},
+  )
+
   const decrypt = await page.evaluate(
     (data) => {
       return (window as any).showQuestionAsk(data.data1, data.data2)

@@ -1,7 +1,6 @@
 import lodash from 'lodash'
 import md5 from 'md5'
 import * as puppeteer from 'puppeteer'
-import UserAgent from 'user-agents'
 
 import memory from '../cache/memory.manager.js'
 
@@ -29,10 +28,9 @@ const page = async (name: string, url: string) => {
   let _page = await memory.cache.get<puppeteer.Page>(pageCacheKey)
 
   if (!_page || _page.isClosed()) {
-    const userAgent = new UserAgent({
-      deviceCategory: 'mobile',
-      platform: 'iPhone',
-    }).toString()
+    const userAgent =
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) ' +
+      'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36 Edg/128.0.0.0'
 
     _page = await (await browser())?.newPage()
 
@@ -40,7 +38,7 @@ const page = async (name: string, url: string) => {
 
     _page?.setCacheEnabled(true)
 
-    await _page?.goto(url, {waitUntil: 'networkidle2'})
+    await _page?.goto(url, {timeout: 0, waitUntil: 'load'})
 
     await memory.cache.set(pageCacheKey, _page)
   }

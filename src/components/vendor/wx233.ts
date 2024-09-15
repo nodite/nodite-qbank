@@ -91,7 +91,7 @@ export default class Wx233 extends Vendor {
     for (const chapter of chapters.data?.data?.chapterInfoFrontRspList ?? []) {
       const children = [] as Category[]
 
-      for (const child of chapter.childList) {
+      for (const child of chapter?.childList ?? []) {
         children.push({
           children: [],
           count: child.questionsNum,

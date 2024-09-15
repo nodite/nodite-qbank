@@ -3,6 +3,14 @@ import puppeteer from '../puppeteer.js'
 const sid = async (): Promise<string> => {
   const page = await puppeteer.page('wx233', 'https://v.233.com/?do=notr')
 
+  // wait window._japi.getSid
+  await page.waitForFunction(
+    () => {
+      return (window as any)._japi
+    },
+    {timeout: 0},
+  )
+
   const _sid = await page.evaluate(() => {
     return (window as any)._japi.getSid('ucpage')
   })
@@ -12,6 +20,14 @@ const sid = async (): Promise<string> => {
 
 const sign = async (params: any, sid: string, type: string): Promise<string> => {
   const page = await puppeteer.page('wx233', 'https://v.233.com/?do=notr')
+
+  // wait window._japi
+  await page.waitForFunction(
+    () => {
+      return (window as any)._japi
+    },
+    {timeout: 0},
+  )
 
   if (type.toLowerCase() !== 'get') params = JSON.stringify(params)
 

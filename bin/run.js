@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env node --expose-gc
 
 import {execute} from '@oclif/core'
 

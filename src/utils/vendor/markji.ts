@@ -19,33 +19,40 @@ import {emitter} from '../event.js'
 import html from '../html.js'
 import {find, safeName, throwError} from '../index.js'
 
-const ensureContact = async (vendor: Vendor, folder: Bank, deck: Category, requestConfig: CacheRequestConfig) => {
-  const chapters = (await vendor.sheets({bank: folder, category: deck})) as MarkjiChapter[]
+const ensureContact = async (
+  params: {deck: Category; folder: Bank; markji: Vendor},
+  requestConfig: CacheRequestConfig,
+) => {
+  const chapters = (await params.markji.sheets({bank: params.folder, category: params.deck})) as MarkjiChapter[]
   const defaultChapter = find<MarkjiChapter>(chapters, '默认章节') as MarkjiChapter
   const cardId = defaultChapter.cardIds[0]
 
-  const content = `
-[P#H1,center#[T#!36b59d#感谢大家的使用]]
-由于 app 没有回复反馈的功能，关于牌组的使用问题，可以添加我的微信，请备注来自 Markji。
-同时，如果希望[T#!36b59d,!!#添加新牌组]，请[T#!36b59d,!!#提供一下题库信息]，我也会评估工作量再决定是否添加。
+  if (cardId) {
+    bulkDelete({...params, chapter: defaultChapter, requestConfig}, [cardId])
+  }
 
-[P#L#[T#B#微信：]oscaner1997]
-[P#L#[T#B#新题库信息：]]
-1. 题库来源（尽可能详细）
-2. 如果是 vip 题库，请提供一个 vip 账号。（不强求，自行考虑）
-`
+  //   const content = `
+  // [P#H1,center#[T#!36b59d#感谢大家的使用]]
+  // 由于 app 没有回复反馈的功能，关于牌组的使用问题，可以添加我的微信，请备注来自 Markji。
+  // 同时，如果希望[T#!36b59d,!!#添加新牌组]，请[T#!36b59d,!!#提供一下题库信息]，我也会评估工作量再决定是否添加。
 
-  await (cardId
-    ? axios.post(
-        `https://www.markji.com/api/v1/decks/${deck.id}/cards/${cardId}`,
-        {card: {content, grammar_version: 3}, order: 0},
-        requestConfig,
-      )
-    : axios.post(
-        `https://www.markji.com/api/v1/decks/${deck.id}/chapters/${defaultChapter.id}/cards`,
-        {card: {content, grammar_version: 3}, order: 0},
-        requestConfig,
-      ))
+  // [P#L#[T#B#微信：]oscaner1997]
+  // [P#L#[T#B#新题库信息：]]
+  // 1. 题库来源（尽可能详细）
+  // 2. 如果是 vip 题库，请提供一个 vip 账号。（不强求，自行考虑）
+  // `
+
+  // await (cardId
+  //   ? axios.post(
+  //       `https://www.markji.com/api/v1/decks/${deck.id}/cards/${cardId}`,
+  //       {card: {content, grammar_version: 3}, order: 0},
+  //       requestConfig,
+  //     )
+  //   : axios.post(
+  //       `https://www.markji.com/api/v1/decks/${deck.id}/chapters/${defaultChapter.id}/cards`,
+  //       {card: {content, grammar_version: 3}, order: 0},
+  //       requestConfig,
+  //     ))
 }
 
 /**
@@ -254,7 +261,7 @@ const getInfo = async (params: Params, username: string): Promise<MarkjiInfo> =>
 
   // ==========================
   // default card.
-  await ensureContact(markji, folder, deck, requestConfig)
+  await ensureContact({deck, folder, markji}, requestConfig)
 
   return {chapter, deck, folder}
 }
@@ -273,7 +280,11 @@ const parseHtml = async (text: string, options?: ParseOptions): Promise<AssetStr
     // has underline.
     content.text.includes('<u>') ||
     // has span.
-    content.text.includes('<span')
+    content.text.includes('<span') ||
+    // 上标
+    content.text.includes('<sup>') ||
+    // 下标
+    content.text.includes('<sub>')
   ) {
     content = await html.toImage(text, options)
   }

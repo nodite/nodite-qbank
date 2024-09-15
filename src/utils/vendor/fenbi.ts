@@ -9,6 +9,14 @@ const PUBLIC_KEY =
 const encrypt = async (data1: any | null, data2: any | null): Promise<null | string> => {
   const page = await puppeteer.page('fenbi', 'https://www.fenbi.com')
 
+  // wait window.encrypt
+  await page.waitForFunction(
+    () => {
+      return (window as any).encrypt
+    },
+    {timeout: 0},
+  )
+
   const encrypt = await page.evaluate(
     (data) => {
       return (window as any).encrypt(data.data1, data.data2)

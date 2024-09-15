@@ -21,7 +21,11 @@ axiosInstance.interceptors.response.use(
 
     // wx233.
     if (lodash.has(response, 'data.status') && lodash.isBoolean(response.data.status) && !response.data.status) {
-      throw new Error(JSON.stringify(response.data))
+      if (response.data.code === 999 && response.data.message === '考试科目错误') {
+        // pass
+      } else {
+        throw new Error(JSON.stringify(response.data))
+      }
     }
 
     return response

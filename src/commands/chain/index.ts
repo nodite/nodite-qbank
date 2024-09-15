@@ -1,4 +1,5 @@
 import {Flags} from '@oclif/core'
+import colors from 'ansi-colors'
 import lodash from 'lodash'
 
 import BaseCommand from '../../base.js'
@@ -47,27 +48,39 @@ Chain to qbank (./src/commands/chain/index.ts)
 
     // bank.
     await this._wrapBank(flags, {vendor}, async (bank) => {
+      this.log(colors.green(`\n|=== bank = (${bank.name}) ===>`))
+
       // category
       await this._wrapCategory(flags, {bank, vendor}, async (category) => {
+        this.log(colors.green(`\n\t|=== category = (${category.name}) ===>`))
+
         // sheet
         await this._wrapSheet(flags, {bank, category, vendor}, async (sheet) => {
+          this.log(colors.green(`\n\t\t|=== sheet = (${sheet.name}) ===>`))
+
           // question fetch.
           await this._runQuestionFetch(flags, bank, category, sheet)
 
           // output for each sheet.
           await this._runOutputConvert(flags, bank, category, sheet)
           await this._runOutputUpload(flags, bank, category, sheet)
+
+          this.log(colors.green('\n\t\t|=== sheet ===|'))
         })
+
+        this.log(colors.green('\n\t|=== category ===|'))
       })
+
+      this.log(colors.green('\n|=== bank ===|'))
     })
+
+    this.log(colors.green('\n|===|'))
   }
 
   /**
    * bank:list
    */
   protected async _runBankList(flags: any): Promise<void> {
-    this.log('\n---')
-
     const _argv = ['--vendor', flags.vendor, '--username', flags.username]
 
     if (lodash.intersection(flags.clean, ['bank.list', '*']).length > 0) {
@@ -82,8 +95,6 @@ Chain to qbank (./src/commands/chain/index.ts)
    * category:list
    */
   protected async _runCategoryList(flags: any, bank: Bank): Promise<void> {
-    this.log('\n---')
-
     const _argv = ['--vendor', flags.vendor, '--username', flags.username, '--bank', bank.name]
 
     if (lodash.intersection(flags.clean, ['category.list', '*']).length > 0) {
@@ -98,8 +109,6 @@ Chain to qbank (./src/commands/chain/index.ts)
    * output:convert
    */
   protected async _runOutputConvert(flags: any, bank: Bank, category: Category, sheet: Sheet): Promise<void> {
-    this.log('\n---')
-
     const _argv = [
       '--vendor',
       flags.vendor,
@@ -129,8 +138,6 @@ Chain to qbank (./src/commands/chain/index.ts)
    * output:upload
    */
   protected async _runOutputUpload(flags: any, bank: Bank, category: Category, sheet: Sheet): Promise<void> {
-    this.log('\n---')
-
     const _argv = [
       '--vendor',
       flags.vendor,
@@ -160,8 +167,6 @@ Chain to qbank (./src/commands/chain/index.ts)
    * question:fetch
    */
   protected async _runQuestionFetch(flags: any, bank: Bank, category: Category, sheet: Sheet): Promise<void> {
-    this.log('\n---')
-
     const _argv = [
       '--vendor',
       flags.vendor,
@@ -187,8 +192,6 @@ Chain to qbank (./src/commands/chain/index.ts)
    * sheet:list
    */
   protected async _runSheetList(flags: any, bank: Bank, category: Category): Promise<void> {
-    this.log('\n---')
-
     const _argv = [
       '--vendor',
       flags.vendor,
@@ -219,25 +222,18 @@ Chain to qbank (./src/commands/chain/index.ts)
     // fetch banks.
     await this._runBankList(flags)
 
-    const _banks = fiindAll(await params.vendor.banks(), flags.bank_list as string[], {fuzzy: true})
+    let _banks = fiindAll(await params.vendor.banks(), flags.bank_list as string[], {fuzzy: true})
 
     const _wildBank = lodash.find(_banks, {id: '*'})
 
-    // 所有 bank.
     if (_wildBank) {
-      await this._runCategoryList(flags, _wildBank)
-
-      for (const _bank of await params.vendor.banks({excludeTtl: true})) {
-        await todoFn(_bank)
-      }
+      _banks = await params.vendor.banks({excludeTtl: true})
     }
-    // 部分 bank.
-    else {
-      for (const _bank of _banks) {
-        await this._runCategoryList(flags, _bank)
 
-        await todoFn(_bank)
-      }
+    for (const _bank of _banks) {
+      await this._runCategoryList(flags, _bank)
+
+      await todoFn(_bank)
     }
   }
 
@@ -249,25 +245,18 @@ Chain to qbank (./src/commands/chain/index.ts)
     params: {bank: Bank; vendor: Vendor},
     todoFn: (category: Category) => Promise<void>,
   ): Promise<void> {
-    const _categories = fiindAll(await params.vendor.categories(params), flags.category_list as string[], {fuzzy: true})
+    let _categories = fiindAll(await params.vendor.categories(params), flags.category_list as string[], {fuzzy: true})
 
     const _wildCategory = lodash.find(_categories, {id: '*'})
 
-    // 所有 category.
     if (_wildCategory) {
-      await this._runSheetList(flags, params.bank, _wildCategory)
-
-      for (const _category of await params.vendor.categories(params, {excludeTtl: true})) {
-        await todoFn(_category)
-      }
+      _categories = await params.vendor.categories(params, {excludeTtl: true})
     }
-    // 部分 category.
-    else {
-      for (const _category of _categories) {
-        await this._runSheetList(flags, params.bank, _category)
 
-        await todoFn(_category)
-      }
+    for (const _category of _categories) {
+      await this._runSheetList(flags, params.bank, _category)
+
+      await todoFn(_category)
     }
   }
 
@@ -279,13 +268,15 @@ Chain to qbank (./src/commands/chain/index.ts)
     params: {bank: Bank; category: Category; vendor: Vendor},
     todoFn: (sheet: Sheet) => Promise<void>,
   ): Promise<void> {
-    const _sheets = fiindAll(await params.vendor.sheets(params), flags.sheet_list as string[], {fuzzy: true})
+    let _sheets = fiindAll(await params.vendor.sheets(params), flags.sheet_list as string[], {fuzzy: true})
 
     const _wildSheet = lodash.find(_sheets, {id: '*'})
 
-    const _todoSheets = _wildSheet ? [_wildSheet] : _sheets
+    if (_wildSheet) {
+      _sheets = await params.vendor.sheets(params, {excludeTtl: true})
+    }
 
-    for (const _sheet of _todoSheets) {
+    for (const _sheet of _sheets) {
       await todoFn(_sheet)
     }
   }
