@@ -30,7 +30,10 @@ export default class BiguoReal extends Vendor {
    */
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.BANKS)})
   protected async fetchBanks(): Promise<Bank[]> {
-    const LIMIT = [{province_name: '福建省', school_name: '福州大学'}]
+    const LIMIT = [
+      {profession_names: ['汉语言文学', '应用心理学'], school_name: '福州大学'},
+      {profession_names: ['计算机'], school_name: '上海交通大学'},
+    ]
 
     const requestConfig = await this.login()
 
@@ -42,7 +45,6 @@ export default class BiguoReal extends Vendor {
       .flatten()
       .map((city) => ({province_id: city.province_id, province_name: city.province_name}))
       .uniqBy('province_id')
-      .filter((province) => lodash.map(LIMIT, 'province_name').includes(province.province_name))
       .value()
 
     const banks = [] as Bank[]
@@ -70,12 +72,21 @@ export default class BiguoReal extends Vendor {
 
         // professions.
         for (const profession of professionResponse.data.data) {
+          const _limit_pnames = lodash
+            .chain(LIMIT)
+            .filter((item) => item.school_name === school.name)
+            .map('profession_names')
+            .flatten()
+            .value()
+
+          if (!lodash.some(_limit_pnames, (pname) => profession.name.includes(pname))) {
+            continue
+          }
+
           banks.push({
             id: [province.province_id, school.id, profession.id].join('|'),
             key: [province.province_id, school.id, profession.id].join('|'),
-            name: await safeName(
-              [province.province_name, school.name, `${profession.name}(${profession.code})`].join(' > '),
-            ),
+            name: await safeName([school.name, `${profession.name}(${profession.code})`].join(' > ')),
           })
         }
       }
