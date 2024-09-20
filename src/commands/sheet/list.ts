@@ -38,7 +38,7 @@ List sheets (./src/commands/sheet/list.ts)
 
     // category.
     const categories = await vendor.categories({bank})
-    const category = find<Category>(categories, flags.category) as Category
+    const category = find(categories, flags.category, {excludeKey: ['children']}) as Category
 
     // no '*'
     if (category.id !== '*') {

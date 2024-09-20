@@ -245,7 +245,10 @@ Chain to qbank (./src/commands/chain/index.ts)
     params: {bank: Bank; vendor: Vendor},
     todoFn: (category: Category) => Promise<void>,
   ): Promise<void> {
-    let _categories = fiindAll(await params.vendor.categories(params), flags.category_list as string[], {fuzzy: true})
+    let _categories = fiindAll(await params.vendor.categories(params), flags.category_list as string[], {
+      excludeKey: ['children'],
+      fuzzy: true,
+    })
 
     const _wildCategory = lodash.find(_categories, {id: '*'})
 

@@ -7,7 +7,7 @@ import OutputManager from './components/output/index.js'
 import VendorManager from './components/vendor/index.js'
 import {Bank} from './types/bank.js'
 import {Category} from './types/category.js'
-import {fiindAll, find, findAll} from './utils/index.js'
+import {fiindAll, find} from './utils/index.js'
 
 export default abstract class BaseCommand extends Command {
   static baseFlags = {
@@ -182,7 +182,7 @@ export default abstract class BaseCommand extends Command {
 
     const bank = find(await vendor.banks(), flags.bank) as Bank
 
-    const category = find(await vendor.categories({bank}), flags.category) as Category
+    const category = find(await vendor.categories({bank}), flags.category, {excludeKey: ['children']}) as Category
 
     if (category.id === '*') {
       console.log(`${colors.yellow('⚠')} ${colors.bold('试卷')}: ${colors.yellow('分类为 "*" 时无法选择')}`)
@@ -191,7 +191,7 @@ export default abstract class BaseCommand extends Command {
 
     const sheets = await vendor.sheets({bank, category})
 
-    const _sheets = findAll(sheets, flags.sheet as string, {fuzzy: true})
+    const _sheets = fiindAll(sheets, [flags.sheet as string], {fuzzy: true})
 
     if (lodash.isEmpty(_sheets)) _sheets.push(...sheets)
 

@@ -36,20 +36,17 @@ export default class FenbiKaoyan extends Vendor {
    */
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.BANKS)})
   protected async fetchBanks(): Promise<Bank[]> {
-    const requestConfig = await this.login()
+    const config = await this.login()
 
-    const response = await axios.get(
-      'https://schoolapi.fenbi.com/kaoyan/iphone/kaoyan/selected_quiz_list',
-      requestConfig,
-    )
+    const response = await axios.get(this._fetchBankMeta.endpoint, config)
 
-    if (response.data.length === 0) {
-      throw new Error('请前往 <粉笔考研> App 加入题库: 练习 > 右上角+号')
+    if (lodash.isEmpty(lodash.get(response, this._fetchBankMeta.path))) {
+      throw new Error(this._fetchBankMeta.emptyMessage)
     }
 
     const banks = [] as Bank[]
 
-    for (const bank of response.data) {
+    for (const bank of lodash.get(response, this._fetchBankMeta.path, [])) {
       banks.push({
         id: [
           lodash.get(bank, 'courseSet.id', ''),
@@ -73,27 +70,59 @@ export default class FenbiKaoyan extends Vendor {
       })
     }
 
-    return banks
+    return lodash
+      .chain(banks)
+      .sortBy(['key', 'id'], ['asc', 'asc'])
+      .map((bank, idx) => ({...bank, order: idx}))
+      .value()
   }
 
   /**
    * Categories.
    */
-  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.BANKS)})
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.CATEGORIES)})
   protected async fetchCategories(params: {bank: Bank}): Promise<Category[]> {
-    const bankPrefix = lodash.filter(params.bank.key.split('|')).pop() as string
-    const requestConfig = await this.login()
+    const reqConfig = await this.login()
+
+    let bankPrefix = lodash.filter(params.bank.key.split('|')).pop() as string
+    const getParams = this._fetchCategoryMeta.params
+
+    switch (bankPrefix) {
+      case 'shenlun': {
+        bankPrefix = 'shenlun/pdpg'
+
+        break
+      }
+
+      case 'zhyynl': {
+        bankPrefix = 'zhyynl/etRuleQuestion'
+
+        break
+      }
+
+      case 'sydwms': {
+        getParams.filter = 'giant'
+
+        break
+      }
+    }
 
     const response = await axios.get(
-      `https://schoolapi.fenbi.com/kaoyan/iphone/${bankPrefix}/categories`,
-      lodash.merge({}, requestConfig, {params: {deep: true, level: 0}}),
+      lodash.template(this._fetchCategoryMeta.endpoint)({bankPrefix}),
+      lodash.merge({}, reqConfig, {params: getParams}),
     )
 
-    const _convert = async (category: Record<string, any>): Promise<Category> => {
+    const _convert = async (index: number, category: Record<string, any>): Promise<Category> => {
       const children = [] as Category[]
 
-      for (const child of category.children ?? []) {
-        children.push(await _convert(child))
+      for (const [_childIndex, child] of (category.children ?? []).entries()) {
+        children.push({
+          children: [],
+          count: child.count as number,
+          id: String(child.id),
+          name: await safeName(String(child.name)),
+          order: _childIndex,
+        })
       }
 
       return {
@@ -101,13 +130,14 @@ export default class FenbiKaoyan extends Vendor {
         count: category.count as number,
         id: String(category.id),
         name: await safeName(String(category.name)),
+        order: index,
       }
     }
 
     const categories = [] as Category[]
 
-    for (const child of response.data) {
-      categories.push(await _convert(child))
+    for (const [index, child] of response.data.entries()) {
+      categories.push(await _convert(index, child))
     }
 
     return categories
@@ -183,7 +213,7 @@ export default class FenbiKaoyan extends Vendor {
       // new exercise.
       else {
         const exerciseResponse = await axios.post(
-          `https://schoolapi.fenbi.com/kaoyan/iphone/${bankPrefix}/exercises`,
+          lodash.template(this._fetchQuestionMeta.exercisesEndpoint)({bankPrefix}),
           {keypointId: params.sheet.id === '0' ? params.category.id : params.sheet.id, limit: 100, type: 151},
           lodash.merge({}, requestConfig, {headers: {'Content-Type': 'application/x-www-form-urlencoded'}}),
         )
@@ -207,12 +237,12 @@ export default class FenbiKaoyan extends Vendor {
 
       // questions processing.
       const questionsResponse = await axios.get(
-        `https://schoolapi.fenbi.com/kaoyan/iphone/${bankPrefix}/universal/questions`,
+        lodash.template(this._fetchQuestionMeta.questionsEndpoint)({bankPrefix}),
         lodash.merge({}, requestConfig, {params: {questionIds: _questionIds.join(',')}}),
       )
 
       const solutionsResponse = await axios.get(
-        `https://schoolapi.fenbi.com/kaoyan/iphone/${bankPrefix}/pure/solutions`,
+        lodash.template(this._fetchQuestionMeta.solutionsEndpoint)({bankPrefix}),
         lodash.merge({}, requestConfig, {params: {ids: _questionIds.join(',')}}),
       )
 
@@ -237,8 +267,11 @@ export default class FenbiKaoyan extends Vendor {
 
           let {correctAnswer, id: questionId} = _question
 
-          // 101: 翻译. 102: 英语大作文. 103: 英语小作文.
-          if ([101, 102, 103].includes(Number(_question.type))) {
+          // 101: 翻译.
+          // 102: 英语大作文.
+          // 103: 英语小作文.
+          // 104: 公务员申论.
+          if ([101, 102, 103, 104].includes(Number(_question.type))) {
             correctAnswer = {
               answer: lodash.get(
                 lodash.find(lodash.get(_question, 'solution.solutionAccessories', []) as never, {
@@ -253,7 +286,7 @@ export default class FenbiKaoyan extends Vendor {
           }
 
           await axios.post(
-            `https://schoolapi.fenbi.com/kaoyan/iphone/${bankPrefix}/async/exercises/${_exerciseId}/incr`,
+            lodash.template(this._fetchQuestionMeta.incrEndpoint)({bankPrefix, exerciseId: _exerciseId}),
             [
               {
                 answer: correctAnswer,
@@ -278,9 +311,12 @@ export default class FenbiKaoyan extends Vendor {
       // submit exercise.
       if (!String(_exerciseId).startsWith('_')) {
         await axios.post(
-          `https://schoolapi.fenbi.com/kaoyan/iphone/${bankPrefix}/async/exercises/${_exerciseId}/submit`,
+          lodash.template(this._fetchQuestionMeta.submitEndpoint)({bankPrefix, exerciseId: _exerciseId}),
           {status: 1},
-          lodash.merge({}, requestConfig, {headers: {'Content-Type': 'application/x-www-form-urlencoded'}}),
+          lodash.merge({}, requestConfig, {
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            validateStatus: () => true,
+          }),
         )
       }
 
@@ -317,6 +353,7 @@ export default class FenbiKaoyan extends Vendor {
         count: child.count,
         id: child.id,
         name: await safeName(child.name),
+        order: child.order,
       })
     }
 
@@ -367,13 +404,49 @@ export default class FenbiKaoyan extends Vendor {
       throw new Error(response.data.msg)
     }
 
+    const cookies = response.headers['set-cookie']?.map((cookie) => cookie.split(';')[0]).join('; ')
+
     return {
       headers: {
         'Content-Type': 'application/json',
-        Cookie: (response.headers['set-cookie'] ?? []).join('; '),
+        Cookie: cookies,
         'User-Agent': userAgent,
       },
       params,
+    }
+  }
+
+  /**
+   * Bank meta.
+   */
+  protected get _fetchBankMeta(): Record<string, any> {
+    return {
+      emptyMessage: '请前往 <粉笔考研> App 加入题库: 练习 > 右上角+号',
+      endpoint: 'https://schoolapi.fenbi.com/kaoyan/iphone/kaoyan/selected_quiz_list',
+      path: 'data',
+    }
+  }
+
+  /**
+   * Category meta.
+   */
+  protected get _fetchCategoryMeta(): Record<string, any> {
+    return {
+      endpoint: 'https://schoolapi.fenbi.com/kaoyan/iphone/{{bankPrefix}}/categories',
+      params: {deep: true, level: 0},
+    }
+  }
+
+  /**
+   * Questions meta.
+   */
+  protected get _fetchQuestionMeta(): Record<string, any> {
+    return {
+      exercisesEndpoint: 'https://schoolapi.fenbi.com/kaoyan/iphone/{{bankPrefix}}/exercises',
+      incrEndpoint: 'https://schoolapi.fenbi.com/kaoyan/iphone/{{bankPrefix}}/async/exercises/{{exerciseId}}/incr',
+      questionsEndpoint: 'https://schoolapi.fenbi.com/kaoyan/iphone/{{bankPrefix}}/universal/questions',
+      solutionsEndpoint: 'https://schoolapi.fenbi.com/kaoyan/iphone/{{bankPrefix}}/pure/solutions',
+      submitEndpoint: 'https://schoolapi.fenbi.com/kaoyan/iphone/{{bankPrefix}}/async/exercises/{{exerciseId}}/submit',
     }
   }
 }

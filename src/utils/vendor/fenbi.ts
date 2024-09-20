@@ -1,3 +1,6 @@
+import lodash from 'lodash'
+
+import {isJSON, throwError} from '../index.js'
 import puppeteer from '../puppeteer.js'
 
 const PUBLIC_KEY =
@@ -27,4 +30,74 @@ const encrypt = async (data1: any | null, data2: any | null): Promise<null | str
   return encrypt as string
 }
 
-export default {PUBLIC_KEY, encrypt}
+const parseDoc = async (str: string): Promise<string> => {
+  if (!isJSON(str)) return str
+
+  const data = JSON.parse(str)
+
+  const elements = []
+
+  switch (data.name) {
+    case 'doc': {
+      if (!lodash.isEmpty(data.value)) {
+        throwError('Not implemented yet', data)
+      }
+
+      if (!lodash.isEmpty(data.children)) {
+        const children = await Promise.all(lodash.map(data.children, async (child) => parseDoc(JSON.stringify(child))))
+        elements.push(...children)
+      }
+
+      break
+    }
+
+    case 'p': {
+      elements.push('<p>')
+
+      if (!lodash.isEmpty(data.value)) {
+        throwError('Not implemented yet', data)
+      }
+
+      if (!lodash.isEmpty(data.children)) {
+        const children = await Promise.all(lodash.map(data.children, async (child) => parseDoc(JSON.stringify(child))))
+        elements.push(...children)
+      }
+
+      elements.push('</p>')
+
+      break
+    }
+
+    case 'tex': {
+      elements.push(`<img src="https://fb.fenbike.cn/api/planet/accessories/formulas?latex=${data.value}" />`)
+
+      break
+    }
+
+    case 'txt': {
+      elements.push(data.value)
+
+      break
+    }
+
+    case 'br': {
+      elements.push('<br />')
+
+      break
+    }
+
+    case 'img': {
+      elements.push(`<img src="https://fb.fenbike.cn/api/tarzan/images/${data.value}" />`)
+
+      break
+    }
+
+    default: {
+      throwError(`Not implemented yet of data name (${data.name})`, data)
+    }
+  }
+
+  return elements.join('')
+}
+
+export default {PUBLIC_KEY, encrypt, parseDoc}

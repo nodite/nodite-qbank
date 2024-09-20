@@ -4,8 +4,17 @@ import {AssetString, Params} from '../../../types/common.js'
 import html from '../../../utils/html.js'
 import {find, throwError} from '../../../utils/index.js'
 import parser from '../../../utils/parser.js'
+import fenbi from '../../../utils/vendor/fenbi.js'
 import markji from '../../../utils/vendor/markji.js'
 import MarkjiBase from '../markji.js'
+
+const imgSrcHandler = (src: string): string => {
+  if (src.startsWith('/api/planet/accessories')) {
+    src = 'https://fb.fenbike.cn' + src
+  }
+
+  return src
+}
 
 export default class Markji extends MarkjiBase {
   /**
@@ -21,13 +30,16 @@ export default class Markji extends MarkjiBase {
       // 1. SingleChoice, 单选题
       case 1: {
         question.typeName = '单选题'
+        question.optionsAttr = 'fixed'
         output = await this._processChoice(question, params)
         break
       }
 
       // 2. MultipleChoice, 多选题
-      case 2: {
+      case 2:
+      case 3: {
         question.typeName = '多选题'
+        question.optionsAttr = 'fixed,multi'
         output = await this._processChoice(question, params)
         break
       }
@@ -93,6 +105,13 @@ export default class Markji extends MarkjiBase {
         break
       }
 
+      // 104.
+      case 104: {
+        question.typeName = '归纳概括'
+        output = await this._processTranslate(question, params)
+        break
+      }
+
       // 2053. 选词填空
       case 2053: {
         // TODO
@@ -126,7 +145,7 @@ export default class Markji extends MarkjiBase {
 
     // ===========================
     // _content.
-    _meta.content = await markji.parseHtml(question.content, {style: this.HTML_STYLE})
+    _meta.content = await markji.parseHtml(question.content, {imgSrcHandler, style: this.HTML_STYLE})
 
     // ===========================
     // _options.
@@ -157,7 +176,7 @@ export default class Markji extends MarkjiBase {
 
     // ===========================
     // explain.
-    _meta.explain = await markji.parseHtml(question.solution.solution || '', {style: this.HTML_STYLE})
+    _meta.explain = await markji.parseHtml(question.solution.solution || '', {imgSrcHandler, style: this.HTML_STYLE})
 
     // ===========================
     // points.
@@ -202,7 +221,7 @@ export default class Markji extends MarkjiBase {
       explain: {assets: [] as never, text: ''} as AssetString,
       materials: [] as AssetString[],
       options: [] as AssetString[],
-      optionsAttr: question.type === 2 ? 'fixed,multi' : 'fixed',
+      optionsAttr: question.optionsAttr || ([2, 3].includes(question.type) ? 'fixed,multi' : 'fixed'),
       optionsTrans: {} as Record<string, string>,
     }
 
@@ -227,7 +246,7 @@ export default class Markji extends MarkjiBase {
       _meta.content.text = _meta.content.text.replaceAll(/<p>(\d+)<\/p>/g, '第 $1 题')
     }
 
-    _meta.content = await markji.parseHtml(_meta.content.text, {style: this.HTML_STYLE})
+    _meta.content = await markji.parseHtml(_meta.content.text, {imgSrcHandler, style: this.HTML_STYLE})
 
     // ===========================
     // _options.
@@ -254,7 +273,7 @@ export default class Markji extends MarkjiBase {
 
           for (const option of accessory.options) {
             const point = String.fromCodePoint(65 + _options.length)
-            _options.push(`${point}. ${option}`)
+            _options.push(`${point}. ${await fenbi.parseDoc(option)}`)
             _meta.options.push({assets: [] as never, text: point})
           }
 
@@ -285,7 +304,7 @@ export default class Markji extends MarkjiBase {
 
             // 问题描述
             case 'questionDesc': {
-              const questionDesc = await markji.parseHtml(accessory.content, {style: this.HTML_STYLE})
+              const questionDesc = await markji.parseHtml(accessory.content, {imgSrcHandler, style: this.HTML_STYLE})
               _meta.content.text = `${questionDesc.text}\n${_meta.content.text}`
               _meta.content.assets = lodash.merge({}, questionDesc.assets, _meta.content.assets)
 
@@ -367,23 +386,23 @@ export default class Markji extends MarkjiBase {
 
     // ===========================
     // _explain.
-    _meta.explain = await markji.parseHtml(question.solution.solution || '', {style: this.HTML_STYLE})
+    _meta.explain = await markji.parseHtml(question.solution.solution || '', {imgSrcHandler, style: this.HTML_STYLE})
 
     // ===========================
     // _points.
-    const _points = [
+    const _points = lodash.filter([
       '[P#L#[T#B#类别]]',
       `${params.category.name} / ${params.sheet.name}`,
       '[P#L#[T#B#来源]]',
       question.solution?.source || '',
-      '[P#L#[T#B#题目翻译]]',
-      lodash.trim(_meta.content.text),
-      lodash.trim(_meta.contentTrans.text),
-      '[P#L#[T#B#选项翻译]]',
+      _meta.contentTrans.text ? '[P#L#[T#B#题目翻译]]' : '',
+      _meta.contentTrans.text ? lodash.trim(_meta.content.text) : '',
+      _meta.contentTrans.text ? lodash.trim(_meta.contentTrans.text) : '',
+      lodash.isEmpty(_meta.optionsTrans) ? '' : '[P#L#[T#B#选项翻译]]',
       ...lodash.map(_meta.optionsTrans || {}, (value, key) => `${lodash.trim(key)}: ${lodash.trim(value)}`),
       '[P#L#[T#B#解析]]',
       lodash.trim(_meta.explain.text),
-    ]
+    ])
 
     // ===========================
     // _output.
@@ -427,17 +446,17 @@ export default class Markji extends MarkjiBase {
 
     // ===========================
     // _content.
-    _meta.content = await markji.parseHtml(question.content || '', {style: this.HTML_STYLE})
+    _meta.content = await markji.parseHtml(question.content || '', {imgSrcHandler, style: this.HTML_STYLE})
 
     // ===========================
     // _translation.
     const translation = find<any>(question.solution.solutionAccessories, 'reference')
 
-    _meta.translation = await markji.parseHtml(translation?.content || '', {style: this.HTML_STYLE})
+    _meta.translation = await markji.parseHtml(translation?.content || '', {imgSrcHandler, style: this.HTML_STYLE})
 
     // ===========================
     // _explain.
-    _meta.explain = await markji.parseHtml(question.solution.solution || '', {style: this.HTML_STYLE})
+    _meta.explain = await markji.parseHtml(question.solution.solution || '', {imgSrcHandler, style: this.HTML_STYLE})
 
     // ===========================
     // points.

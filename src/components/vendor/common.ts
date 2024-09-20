@@ -113,6 +113,18 @@ abstract class Vendor extends Component {
   public async categories(params: {bank: Bank}, options?: Options): Promise<Category[]> {
     const categories = await this.fetchCategories(params)
 
+    // If there is no category, add a default category.
+    if (lodash.isEmpty(categories)) {
+      categories.push({
+        children: [],
+        count: 0,
+        id: '0',
+        name: '暂无',
+        order: 0,
+      })
+    }
+
+    // Check if the category has been fetched.
     for (const category of categories) {
       const cacheKeyParams = {
         bankId: params.bank.id,
@@ -133,6 +145,7 @@ abstract class Vendor extends Component {
       categories.unshift({children: [], count: lodash.sumBy(categories, 'count'), id: '*', name: '全部', order: -999})
     }
 
+    // Sort categories.
     const _sortBy = (categories: Category[]): Category[] => {
       for (const category of categories) {
         if (category.children.length === 0) continue

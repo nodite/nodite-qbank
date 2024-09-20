@@ -58,7 +58,7 @@ Upload questions (./src/commands/output/upload.ts)
       // processing.
       const bar = new SingleBar({}, Presets.rect)
 
-      bar.start(sheet.count || 1, 0)
+      bar.start(sheet.count || 0, 0)
 
       for await (const data of emitter.listener('output.upload.count')) {
         bar.update(data as number)

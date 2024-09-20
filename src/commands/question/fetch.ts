@@ -53,7 +53,7 @@ Fetch questions (./src/commands/question/fetch.ts)
       // processing.
       const bar = new SingleBar({}, Presets.rect)
 
-      bar.start(sheet.count || 1, 0)
+      bar.start(sheet.count || 0, 0)
 
       for await (const data of emitter.listener('questions.fetch.count')) {
         bar.update(data as number)

@@ -14,7 +14,7 @@ export function find<T>(items: T[], substring: string, options?: FindOptions<T>)
       return !lodash.isEmpty(find(item, substring, options))
     }
 
-    if (lodash.isObject(item)) {
+    if (lodash.isObject(item) && !lodash.isArray(item)) {
       const subItems: never[] = Object.values(options?.excludeKey ? lodash.omit(item, options.excludeKey) : item)
       return !lodash.isEmpty(find(subItems, substring, options))
     }
@@ -39,7 +39,7 @@ export function findAll<T>(items: T[], substring: string, options?: FindOptions<
       return !lodash.isEmpty(findAll(item, substring, options))
     }
 
-    if (lodash.isObject(item)) {
+    if (lodash.isObject(item) && !lodash.isArray(item)) {
       const subItems: never[] = Object.values(options?.excludeKey ? lodash.omit(item, options.excludeKey) : item)
       return !lodash.isEmpty(findAll(subItems, substring, options))
     }
@@ -113,4 +113,13 @@ export async function safeName(name: string): Promise<string> {
   await cacheClient.set(`safe-name:${name}`, _safeName)
 
   return _safeName
+}
+
+export function isJSON(str: string): boolean {
+  try {
+    JSON.parse(str)
+    return true
+  } catch {
+    return false
+  }
 }

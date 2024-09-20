@@ -3,6 +3,7 @@ import BiguoReal from './biguo-real.js'
 import BiguoVip from './biguo-vip.js'
 import ChaoXing from './chaoxing.js'
 import Demo from './demo.js'
+import {Fenbi} from './fenbi.js'
 import FenbiKaoyan from './fenbi-kaoyan.js'
 import JsonFile from './json-file.js'
 import Markji from './markji.js'
@@ -17,6 +18,7 @@ export default class VendorManager {
     [BiguoVip.META.key]: BiguoVip,
     [ChaoXing.META.key]: ChaoXing,
     [Demo.META.key]: Demo,
+    [Fenbi.META.key]: Fenbi,
     [FenbiKaoyan.META.key]: FenbiKaoyan,
     [JsonFile.META.key]: JsonFile,
     [Markji.META.key]: Markji,

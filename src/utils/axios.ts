@@ -28,6 +28,15 @@ axiosInstance.interceptors.response.use(
       }
     }
 
+    // fenbi.
+    if (response.config.url?.includes('fenbi.com')) {
+      if (response.status === 402 && response.statusText === 'Payment Required') {
+        // pass
+      } else if (response.status !== 200) {
+        throw new Error(JSON.stringify(response.data))
+      }
+    }
+
     return response
   },
   (error) => {
