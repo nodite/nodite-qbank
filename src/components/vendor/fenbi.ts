@@ -57,10 +57,10 @@ export class Fenbi extends FenbiKaoyan {
    */
   protected get _fetchQuestionMeta(): Record<string, any> {
     return {
-      exercisesEndpoint: 'https://tiku.fenbi.com/api/{{bankPrefix}}/exercises',
+      exercisesEndpoint: 'https://tiku.fenbi.com/api/{{bankPrefix}}/{{exerciseType}}',
       incrEndpoint: 'https://tiku.fenbi.com/api/{{bankPrefix}}/async/exercises/{{exerciseId}}/incr',
       questionsEndpoint: 'https://tiku.fenbi.com/api/{{bankPrefix}}/universal/questions',
-      solutionsEndpoint: 'https://tiku.fenbi.com/api/{{bankPrefix}}/pure/solutions',
+      solutionsEndpoint: 'https://tiku.fenbi.com/api/{{bankPrefix}}/{{solutionType}}/solutions',
       submitEndpoint: 'https://tiku.fenbi.com/api/{{bankPrefix}}/async/exercises/{{exerciseId}}/submit',
     }
   }

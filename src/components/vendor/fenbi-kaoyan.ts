@@ -116,19 +116,14 @@ export default class FenbiKaoyan extends Vendor {
       const children = [] as Category[]
 
       for (const [_childIndex, child] of (category.children ?? []).entries()) {
-        children.push({
-          children: [],
-          count: child.count as number,
-          id: String(child.id),
-          name: await safeName(String(child.name)),
-          order: _childIndex,
-        })
+        children.push(await _convert(_childIndex, child))
       }
 
       return {
         children,
         count: category.count as number,
         id: String(category.id),
+        meta: lodash.omit(category, ['children', 'count', 'id', 'name']),
         name: await safeName(String(category.name)),
         order: index,
       }
@@ -146,6 +141,7 @@ export default class FenbiKaoyan extends Vendor {
   /**
    * Origin questions.
    */
+  // eslint-disable-next-line complexity
   public async fetchQuestions(
     params: {bank: Bank; category: Category; sheet: Sheet},
     options?: FetchOptions,
@@ -165,10 +161,7 @@ export default class FenbiKaoyan extends Vendor {
       vendorKey: (this.constructor as typeof Vendor).META.key,
     }
 
-    const exerciseCacheKeyParams = {
-      ...cacheKeyParams,
-      processScope: 'exercise',
-    }
+    const exerciseCacheKeyParams = {...cacheKeyParams, processScope: 'exercise'}
 
     // check.
     const exerciseIds = lodash.map(
@@ -189,6 +182,29 @@ export default class FenbiKaoyan extends Vendor {
       questionIds.length = 0
     }
 
+    // customize exercises for giant questions.
+    if (questionIds.length < params.sheet.count && params.sheet.meta?.giantOnly) {
+      const exerciseResponse = await axios.get(
+        lodash.template(this._fetchQuestionMeta.exercisesEndpoint)({bankPrefix, exerciseType: 'giants'}),
+        lodash.merge({}, requestConfig, {
+          params: {keypointId: params.sheet.id === '0' ? params.category.id : params.sheet.id},
+        }),
+      )
+
+      for (const [_idx, _questionsIds] of lodash.chunk(exerciseResponse.data, 100).entries()) {
+        const _exerciseId = `_${_idx}`
+
+        await cacheClient.set(
+          lodash.template(CACHE_KEY_ORIGIN_QUESTION_PROCESSING)({...exerciseCacheKeyParams, processId: _exerciseId}),
+          _questionsIds,
+        )
+
+        exerciseIds.push(_exerciseId)
+      }
+
+      questionIds.length = 0
+    }
+
     // fetch.
     let _prevCount = questionIds.length
     let _times = 0
@@ -200,32 +216,32 @@ export default class FenbiKaoyan extends Vendor {
       emitter.emit('questions.fetch.count', questionIds.length)
 
       // exercise processing.
-      let _exerciseId
-      let _questionIds
+      let _exerciseId: string
+      let _questionIds: string[]
 
       // existing exercise.
       if (exerciseIds.length > 0) {
-        _exerciseId = exerciseIds.shift()
+        _exerciseId = exerciseIds.shift() as string
         _questionIds = await cacheClient.get(
           lodash.template(CACHE_KEY_ORIGIN_QUESTION_PROCESSING)({...exerciseCacheKeyParams, processId: _exerciseId}),
         )
       }
-      // new exercise.
+      // new exercise for default.
       else {
         const exerciseResponse = await axios.post(
-          lodash.template(this._fetchQuestionMeta.exercisesEndpoint)({bankPrefix}),
+          lodash.template(this._fetchQuestionMeta.exercisesEndpoint)({bankPrefix, exerciseType: 'exercises'}),
           {keypointId: params.sheet.id === '0' ? params.category.id : params.sheet.id, limit: 100, type: 151},
           lodash.merge({}, requestConfig, {headers: {'Content-Type': 'application/x-www-form-urlencoded'}}),
         )
 
         _exerciseId = lodash.get(exerciseResponse.data, 'id', 0)
         _questionIds = lodash.get(exerciseResponse.data, 'sheet.questionIds', [])
-
-        await cacheClient.set(
-          lodash.template(CACHE_KEY_ORIGIN_QUESTION_PROCESSING)({...exerciseCacheKeyParams, processId: _exerciseId}),
-          _questionIds,
-        )
       }
+
+      await cacheClient.set(
+        lodash.template(CACHE_KEY_ORIGIN_QUESTION_PROCESSING)({...exerciseCacheKeyParams, processId: _exerciseId}),
+        _questionIds,
+      )
 
       // check.
       if (lodash.isUndefined(_questionIds)) {
@@ -236,20 +252,39 @@ export default class FenbiKaoyan extends Vendor {
       }
 
       // questions processing.
-      const questionsResponse = await axios.get(
-        lodash.template(this._fetchQuestionMeta.questionsEndpoint)({bankPrefix}),
-        lodash.merge({}, requestConfig, {params: {questionIds: _questionIds.join(',')}}),
-      )
+      let _questions: Record<string, unknown>[] = []
+      let _materials: Record<string, unknown>[] = []
+      let _solutions: Record<string, unknown>[] = []
 
-      const solutionsResponse = await axios.get(
-        lodash.template(this._fetchQuestionMeta.solutionsEndpoint)({bankPrefix}),
-        lodash.merge({}, requestConfig, {params: {ids: _questionIds.join(',')}}),
-      )
+      // giant
+      if (params.sheet.meta?.giantOnly) {
+        const solutionsResponse = await axios.get(
+          lodash.template(this._fetchQuestionMeta.solutionsEndpoint)({bankPrefix, solutionType: 'universal/auth'}),
+          lodash.merge({}, requestConfig, {params: {questionIds: _questionIds.join(','), type: 9}}),
+        )
 
-      const _questions: Record<string, unknown>[] = lodash.get(questionsResponse.data, 'questions', [])
-      const _materials: Record<string, unknown>[] = lodash.get(questionsResponse.data, 'materials', [])
-      const _solutions: Record<string, unknown>[] = solutionsResponse.data
+        _questions = lodash.chain(solutionsResponse).get('data.solutions', []).cloneDeep().value()
+        _materials = lodash.chain(solutionsResponse).get('data.materials', []).cloneDeep().value()
+        _solutions = lodash.chain(solutionsResponse).get('data.solutions', []).cloneDeep().value()
+      }
+      // default
+      else {
+        const questionsResponse = await axios.get(
+          lodash.template(this._fetchQuestionMeta.questionsEndpoint)({bankPrefix}),
+          lodash.merge({}, requestConfig, {params: {questionIds: _questionIds.join(',')}}),
+        )
 
+        const solutionsResponse = await axios.get(
+          lodash.template(this._fetchQuestionMeta.solutionsEndpoint)({bankPrefix, solutionType: 'pure'}),
+          lodash.merge({}, requestConfig, {params: {ids: _questionIds.join(',')}}),
+        )
+
+        _questions = lodash.get(questionsResponse.data, 'questions', [])
+        _materials = lodash.get(questionsResponse.data, 'materials', [])
+        _solutions = solutionsResponse.data
+      }
+
+      // go, go, go...
       for (const [_questionIdx, _question] of _questions.entries()) {
         const _questionId = String(_question.id)
 
@@ -352,6 +387,7 @@ export default class FenbiKaoyan extends Vendor {
       sheets.push({
         count: child.count,
         id: child.id,
+        meta: child.meta,
         name: await safeName(child.name),
         order: child.order,
       })

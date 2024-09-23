@@ -2,7 +2,7 @@ import lodash from 'lodash'
 
 import {AssetString, Params} from '../../../types/common.js'
 import html from '../../../utils/html.js'
-import {find, throwError} from '../../../utils/index.js'
+import {throwError} from '../../../utils/index.js'
 import parser from '../../../utils/parser.js'
 import fenbi from '../../../utils/vendor/fenbi.js'
 import markji from '../../../utils/vendor/markji.js'
@@ -68,6 +68,12 @@ export default class Markji extends MarkjiBase {
       case 6: {
         question.typeName = '阅读理解7选5'
         output = await this._processChoice(question, params)
+        break
+      }
+
+      case 12: {
+        question.typeName = '论述题'
+        output = await this._processTranslate(question, params)
         break
       }
 
@@ -440,8 +446,16 @@ export default class Markji extends MarkjiBase {
   protected async _processTranslate(question: any, params: Params): Promise<AssetString> {
     const _meta = {
       content: {assets: [] as never, text: ''} as AssetString,
+      demonstrate: {assets: [] as never, text: ''} as AssetString,
       explain: {assets: [] as never, text: ''} as AssetString,
+      materials: [] as AssetString[],
       translation: {assets: [] as never, text: ''} as AssetString,
+    }
+
+    // ===========================
+    // _materials.
+    for (const material of question.materials) {
+      _meta.materials.push(await html.toImage(material.content, {imgSrcHandler, style: this.HTML_STYLE}))
     }
 
     // ===========================
@@ -450,13 +464,29 @@ export default class Markji extends MarkjiBase {
 
     // ===========================
     // _translation.
-    const translation = find<any>(question.solution.solutionAccessories, 'reference')
+    const _translation = lodash
+      .chain(question.solution.solutionAccessories)
+      .filter(({label}) => ['reference', 'sfdt'].includes(label))
+      .map('content')
+      .join('<br>')
+      .value()
 
-    _meta.translation = await markji.parseHtml(translation?.content || '', {imgSrcHandler, style: this.HTML_STYLE})
+    _meta.translation = await markji.parseHtml(_translation, {imgSrcHandler, style: this.HTML_STYLE})
 
     // ===========================
     // _explain.
     _meta.explain = await markji.parseHtml(question.solution.solution || '', {imgSrcHandler, style: this.HTML_STYLE})
+
+    // ===========================
+    // _demonstrate.
+    const _demonstrate = lodash
+      .chain(question.solution.solutionAccessories)
+      .filter(({label}) => ['demonstrate', 'stzd'].includes(label))
+      .map('content')
+      .join('<br />')
+      .value()
+
+    _meta.demonstrate = await markji.parseHtml(_demonstrate, {imgSrcHandler, style: this.HTML_STYLE})
 
     // ===========================
     // points.
@@ -465,8 +495,10 @@ export default class Markji extends MarkjiBase {
       `${params.category.name} / ${params.sheet.name}`,
       `[P#L#[T#B#来源]]`,
       question.solution?.source || '',
-      `[P#L#[T#B#解析]]`,
+      lodash.isEmpty(_meta.explain.text) ? '' : `[P#L#[T#B#解析]]`,
       lodash.trim(_meta.explain.text),
+      lodash.isEmpty(_meta.demonstrate.text) ? '' : `[P#L#[T#B#维度分析]]`,
+      lodash.trim(_meta.demonstrate.text),
     ]
 
     // ===========================
@@ -475,6 +507,7 @@ export default class Markji extends MarkjiBase {
       lodash
         .filter([
           `[${question.typeName}]`,
+          ...lodash.map(_meta.materials, 'text'),
           lodash.trim(_meta.content.text),
           '---',
           _meta.translation.text,
@@ -486,7 +519,14 @@ export default class Markji extends MarkjiBase {
         .replaceAll('\n', '<br>'),
     )
 
-    _output.assets = lodash.merge({}, _meta.content.assets, _meta.explain.assets, _meta.translation.assets)
+    _output.assets = lodash.merge(
+      {},
+      _meta.content.assets,
+      _meta.demonstrate.assets,
+      _meta.explain.assets,
+      ...lodash.map(_meta.materials, 'assets'),
+      _meta.translation.assets,
+    )
 
     return _output
   }

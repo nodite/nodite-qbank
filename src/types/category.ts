@@ -1,8 +1,8 @@
 export type Category = {
   children: Category[]
   count: number
-  fetch?: boolean
   id: string
+  meta?: Record<string, any>
   name: string
   order?: number
 }

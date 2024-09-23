@@ -11,7 +11,6 @@ import {
   CACHE_KEY_BANKS,
   CACHE_KEY_CATEGORIES,
   CACHE_KEY_LOGIN,
-  CACHE_KEY_ORIGIN_QUESTION_ITEM,
   CACHE_KEY_QUESTION_ITEM,
   CACHE_KEY_SHEETS,
   HashKeyScope,
@@ -122,23 +121,6 @@ abstract class Vendor extends Component {
         name: '暂无',
         order: 0,
       })
-    }
-
-    // Check if the category has been fetched.
-    for (const category of categories) {
-      const cacheKeyParams = {
-        bankId: params.bank.id,
-        categoryId: category.id,
-        questionId: '*',
-        sheetId: '*',
-        vendorKey: (this.constructor as typeof Vendor).META.key,
-      }
-
-      const originQuestionItemCacheKey = lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)(cacheKeyParams)
-
-      const originQuestionCount = (await this.getCacheClient().keys(originQuestionItemCacheKey + ':*')).length
-
-      category.fetch = originQuestionCount >= category.count
     }
 
     if (!options?.excludeTtl) {
