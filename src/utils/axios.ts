@@ -32,6 +32,12 @@ axiosInstance.interceptors.response.use(
     if (response.config.url?.includes('fenbi.com')) {
       if (response.status === 402 && response.statusText === 'Payment Required') {
         // pass
+      } else if (
+        lodash.has(response, 'data.success') &&
+        lodash.isBoolean(response.data.success) &&
+        !response.data.success
+      ) {
+        throw new Error(JSON.stringify(response.data))
       } else if (response.status !== 200) {
         throw new Error(JSON.stringify(response.data))
       }
@@ -40,6 +46,7 @@ axiosInstance.interceptors.response.use(
     return response
   },
   (error) => {
+    console.log('\n')
     console.log('request:', error?.request?.path)
     console.log('response:', error?.response?.data)
     // console.log('error:', error)

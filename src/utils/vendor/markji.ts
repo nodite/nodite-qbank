@@ -280,13 +280,15 @@ const parseHtml = async (text: string, options?: ParseOptions): Promise<AssetStr
     // has image.
     find(Object.values(content.assets), 'data:', {fuzzy: true}) ||
     // has underline.
-    content.text.includes('<u>') ||
+    text.includes('<u>') ||
     // has span.
-    content.text.includes('<span') ||
+    text.includes('<span') ||
     // 上标
-    content.text.includes('<sup>') ||
+    text.includes('<sup>') ||
     // 下标
-    content.text.includes('<sub>')
+    text.includes('<sub>') ||
+    // 加粗
+    text.includes('<b>')
   ) {
     content = await html.toImage(text, options)
   }

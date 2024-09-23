@@ -1,7 +1,6 @@
 import {Cacheable} from '@type-cacheable/core'
 import {CacheRequestConfig} from 'axios-cache-interceptor'
 import lodash from 'lodash'
-import UserAgent from 'user-agents'
 
 import {Bank, MarkjiFolder} from '../../types/bank.js'
 import {Category} from '../../types/category.js'
@@ -61,10 +60,6 @@ export default class Markji extends Vendor {
       }),
     )
 
-    if (response.data.success === false) {
-      throw new Error(response.data.errors)
-    }
-
     // the deck order stored in the folder is not the same as the order in the response
     await this.invalidate(HashKeyScope.BANKS)
     params.bank = lodash.find(await this.banks({excludeTtl: true}), {id: params.bank.id}) as MarkjiFolder
@@ -115,10 +110,10 @@ export default class Markji extends Vendor {
 
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN)})
   protected async toLogin(password: string): Promise<CacheRequestConfig> {
-    const userAgent = new UserAgent({
-      deviceCategory: 'mobile',
-      platform: 'iPhone',
-    }).toString()
+    const userAgent =
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) ' +
+      'AppleWebKit/537.36 (KHTML, like Gecko) ' +
+      'Chrome/129.0.0.0 Safari/537.36 Edg/129.0.0.0'
 
     const response = await axios.post(
       'https://www.markji.com/api/v1/users/login',
