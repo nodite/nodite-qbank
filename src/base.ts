@@ -24,7 +24,10 @@ export default abstract class BaseCommand extends Command {
 
     if (!flags.vendor) {
       questions.push({
-        choices: lodash.map(VendorManager.getMetas(), (meta) => ({name: meta.name, value: meta.key})),
+        choices: lodash.map(VendorManager.getMetas(), (meta) => ({
+          name: `${meta.name} (${meta.key})`,
+          value: meta.key,
+        })),
         message: '题库供应商:',
         name: 'vendor',
         type: 'list',
