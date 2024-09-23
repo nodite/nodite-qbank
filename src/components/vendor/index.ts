@@ -7,6 +7,7 @@ import {Fenbi} from './fenbi.js'
 import FenbiKaoyan from './fenbi-kaoyan.js'
 import JsonFile from './json-file.js'
 import Markji from './markji.js'
+import MyTODO from './mytodo.js'
 import Wantiku from './wantiku.js'
 import WantikuChapter from './wantiku-chapter.js'
 import Wx233 from './wx233.js'
@@ -22,6 +23,7 @@ export default class VendorManager {
     [FenbiKaoyan.META.key]: FenbiKaoyan,
     [JsonFile.META.key]: JsonFile,
     [Markji.META.key]: Markji,
+    [MyTODO.META.key]: MyTODO,
     [Wantiku.META.key]: Wantiku,
     [WantikuChapter.META.key]: WantikuChapter,
     [Wx233.META.key]: Wx233,
