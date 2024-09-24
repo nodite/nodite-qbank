@@ -72,7 +72,7 @@ export default class Markji extends MarkjiBase {
 
     // ====================
     // _content.
-    _meta.content = await markji.parseHtml(question.questionAsk)
+    _meta.content = await markji.parseHtml(question.questionAsk, {style: this.HTML_STYLE})
 
     // ====================
     // _blanks.
@@ -115,7 +115,7 @@ export default class Markji extends MarkjiBase {
 
     // ====================
     // _explain.
-    _meta.explain = await markji.parseHtml(question.explanation)
+    _meta.explain = await markji.parseHtml(question.explanation, {style: this.HTML_STYLE})
 
     // ====================
     // _points.
@@ -157,7 +157,7 @@ export default class Markji extends MarkjiBase {
 
     // ====================
     // _content.
-    _meta.content = await markji.parseHtml(question.questionAsk)
+    _meta.content = await markji.parseHtml(question.questionAsk, {style: this.HTML_STYLE})
 
     // ====================
     // _options.
@@ -179,7 +179,9 @@ export default class Markji extends MarkjiBase {
     }
     // 普通选项
     else {
-      _meta.options = await Promise.all(lodash.map(_options, (option) => markji.parseHtml(option)))
+      _meta.options = await Promise.all(
+        lodash.map(_options, (option) => markji.parseHtml(option, {style: this.HTML_STYLE})),
+      )
     }
 
     // ====================
@@ -196,7 +198,7 @@ export default class Markji extends MarkjiBase {
 
     // ====================
     // _explain.
-    _meta.explain = await markji.parseHtml(question.explanation)
+    _meta.explain = await markji.parseHtml(question.explanation, {style: this.HTML_STYLE})
 
     // ====================
     // _points.
@@ -248,15 +250,15 @@ export default class Markji extends MarkjiBase {
 
     // ===========================
     // _content.
-    _meta.content = await markji.parseHtml(question.questionAsk || '')
+    _meta.content = await markji.parseHtml(question.questionAsk || '', {style: this.HTML_STYLE})
 
     // ===========================
     // _translation.
-    _meta.translation = await markji.parseHtml(question.correctOption || '')
+    _meta.translation = await markji.parseHtml(question.correctOption || '', {style: this.HTML_STYLE})
 
     // ===========================
     // _explain.
-    _meta.explain = await markji.parseHtml(question.explanation || '')
+    _meta.explain = await markji.parseHtml(question.explanation || '', {style: this.HTML_STYLE})
 
     // ===========================
     // _points.

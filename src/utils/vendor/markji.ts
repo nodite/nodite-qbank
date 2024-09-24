@@ -42,7 +42,12 @@ const ensureContact = async (
   // 2. 如果是 vip 题库，请提供一个 vip 账号。（不强求，自行考虑）
   // `
 
-  const content = `[P#H1,center#[T#!36b59d#感谢大家的使用]]`
+  const content = `
+[P#H1,center#[T#!36b59d#感谢大家的使用]]
+由于 app 没有回复反馈的功能，关于牌组的使用问题，可以添加我的微信，请备注来自 Markji。
+
+[P#L#[T#B#微信：]oscaner1997]
+`
 
   await (cardId
     ? axios.post(
@@ -343,7 +348,7 @@ const bulkUpload = async (options: BulkUploadOptions): Promise<void> => {
   const doneQuestionIdx = doneQuestionCount - 1
 
   // delete
-  await bulkDelete(markjiInfo, markjiInfo.chapter.cardIds.slice(allQuestionKeys.length))
+  // await bulkDelete(markjiInfo, markjiInfo.chapter.cardIds.slice(allQuestionKeys.length))
 
   // upload.
   if (uploadOptions?.totalEmit) uploadOptions?.totalEmit(allQuestionKeys.length)

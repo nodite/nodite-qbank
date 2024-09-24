@@ -13,7 +13,7 @@ import {fiindAll} from '../../utils/index.js'
 export default class Index extends BaseCommand {
   static args = {}
 
-  static description = 'Chain to qbank'
+  static description = '链式调用 qbank 命令'
 
   static example = [
     `<%= config.bin %> <%= command.id %>

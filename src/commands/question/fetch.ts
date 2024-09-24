@@ -12,7 +12,7 @@ import {find} from '../../utils/index.js'
 export default class Fetch extends BaseCommand {
   static args = {}
 
-  static description = 'Fetch questions'
+  static description = '爬取题目'
 
   static example = [
     `<%= config.bin %> <%= command.id %>

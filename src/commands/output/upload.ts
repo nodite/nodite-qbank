@@ -12,7 +12,7 @@ import {find} from '../../utils/index.js'
 export default class Upload extends BaseCommand {
   static args = {}
 
-  static description = 'Upload questions'
+  static description = '上传题目到接收方'
 
   static example = [
     `<%= config.bin %> <%= command.id %>

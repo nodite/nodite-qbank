@@ -116,8 +116,23 @@
     ],
     "topicSeparator": " ",
     "topics": {
-      "hello": {
-        "description": "Say hello to the world and others"
+      "vendor": {
+        "description": "题库供应商，如 “粉笔考研”、“万题库”"
+      },
+      "bank": {
+        "description": "题库，如 “数二”、“英二”"
+      },
+      "category": {
+        "description": "类别，如 “完型填空”"
+      },
+      "sheet": {
+        "description": "章节/篇章/试卷，如 “2022年数学二模”"
+      },
+      "question": {
+        "description": "题目"
+      },
+      "output": {
+        "description": "题库接收方，如 “Anki”、“Notion”"
       }
     }
   },

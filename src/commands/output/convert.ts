@@ -2,7 +2,6 @@ import {Flags} from '@oclif/core'
 import {Presets, SingleBar} from 'cli-progress'
 
 import BaseCommand from '../../base.js'
-import {HashKeyScope} from '../../components/cache-pattern.js'
 import VendorManager from '../../components/vendor/index.js'
 import {Bank} from '../../types/bank.js'
 import {Category} from '../../types/category.js'
@@ -13,7 +12,7 @@ import {find} from '../../utils/index.js'
 export default class Convert extends BaseCommand {
   static args = {}
 
-  static description = 'Convert questions'
+  static description = '转换题目格式'
 
   static example = [
     `<%= config.bin %> <%= command.id %>
@@ -68,10 +67,6 @@ Convert questions (./src/commands/output/convert.ts)
       bar.stop()
 
       return
-    }
-
-    if (flags.clean) {
-      await vendor.invalidate(HashKeyScope.QUESTIONS, {bank, category, output, questionId: '*', sheet})
     }
 
     for (const _sheet of await vendor.sheets({bank, category}, {excludeTtl: true})) {

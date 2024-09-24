@@ -6,7 +6,7 @@ import {HashKeyScope} from '../../components/vendor/common.js'
 import VendorManager from '../../components/vendor/index.js'
 
 export default class Login extends BaseCommand {
-  static description = 'Login to vendor'
+  static description = '登录供应商'
 
   static examples = [
     `<%= config.bin %> <%= command.id %>

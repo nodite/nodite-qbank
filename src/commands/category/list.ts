@@ -13,7 +13,7 @@ import {find} from '../../utils/index.js'
 export default class List extends BaseCommand {
   static args = {}
 
-  static description = 'List categories'
+  static description = '类别列表'
 
   static example = [
     `<%= config.bin %> <%= command.id %>

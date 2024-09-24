@@ -11,7 +11,7 @@ import {find} from '../../utils/index.js'
 export default class List extends BaseCommand {
   static args = {}
 
-  static description = 'List sheets'
+  static description = '章节/篇章/试卷列表'
 
   static example = [
     `<%= config.bin %> <%= command.id %>

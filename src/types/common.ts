@@ -19,6 +19,7 @@ type ConvertOptions = {
 
 type ParseOptions = {
   imgSrcHandler?: (src: string) => string
+  showIndex?: boolean
   style?: string
   width?: number
 }
