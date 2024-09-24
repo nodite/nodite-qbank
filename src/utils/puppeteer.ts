@@ -23,7 +23,7 @@ const browser = async (create: boolean = true) => {
 /**
  * Page.
  */
-const page = async (name: string, url: string) => {
+const page = async (name: string, url: string, params?: {cookies?: puppeteer.CookieParam[]}) => {
   const pageCacheKey = `puppeteer:page:${md5(url)}`
   let _page = await memory.cache.get<puppeteer.Page>(pageCacheKey)
 
@@ -37,6 +37,8 @@ const page = async (name: string, url: string) => {
     _page?.setUserAgent(userAgent)
 
     _page?.setCacheEnabled(true)
+
+    _page?.setCookie(...(params?.cookies || []))
 
     await _page?.goto(url, {timeout: 0, waitUntil: 'load'})
 

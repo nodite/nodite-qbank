@@ -234,7 +234,7 @@ export default class Markji extends MarkjiBase {
     // ===========================
     // _materials.
     for (const material of question.materials) {
-      const _material = await parser.input(material.content)
+      const _material = await parser.input(material.content, {showIndex: true})
 
       for (const [key, value] of Object.entries(_material.assets)) {
         _material.text = _material.text.replaceAll(key, value)
@@ -295,7 +295,7 @@ export default class Markji extends MarkjiBase {
 
         // 151: 题目翻译
         case 151: {
-          _meta.contentTrans = await html.toText(accessory.translation)
+          _meta.contentTrans = await html.toText(await fenbi.parseDoc(accessory.translation))
 
           break
         }

@@ -7,7 +7,7 @@ import VendorManager from '../../components/vendor/index.js'
 export default class List extends BaseCommand {
   static args = {}
 
-  static description = 'List banks'
+  static description = '题库列表'
 
   static example = [
     `<%= config.bin %> <%= command.id %>

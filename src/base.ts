@@ -20,26 +20,28 @@ export default abstract class BaseCommand extends Command {
    * Ensure flags.
    */
   protected async ensureFlags<T extends {[name: string]: any}>(flags: T): Promise<void> {
-    const questions = []
+    if (flags.vendor) {
+      console.log(`${colors.green('✔')} ${colors.bold('题库供应商')}: ${colors.cyan(flags.vendor)}`)
+    } else {
+      const answers = await inquirer.prompt([
+        {
+          choices: lodash.map(VendorManager.getMetas(), (meta) => ({
+            name: `${meta.name} (${meta.key})`,
+            value: meta.key,
+          })),
+          message: '题库供应商:',
+          name: 'vendor',
+          type: 'list',
+        },
+      ])
 
-    if (!flags.vendor) {
-      questions.push({
-        choices: lodash.map(VendorManager.getMetas(), (meta) => ({
-          name: `${meta.name} (${meta.key})`,
-          value: meta.key,
-        })),
-        message: '题库供应商:',
-        name: 'vendor',
-        type: 'list',
-      })
+      Object.assign(flags, answers)
     }
 
-    if (!flags.username) {
-      questions.push({message: '用户名/邮箱/手机号:', name: 'username', type: 'input'})
-    }
-
-    if (questions.length > 0) {
-      const answers = await inquirer.prompt(questions as never)
+    if (flags.username) {
+      console.log(`${colors.green('✔')} ${colors.bold('供应商账号')}: ${colors.cyan(flags.username)}`)
+    } else {
+      const answers = await inquirer.prompt([{message: '供应商账号:', name: 'username', type: 'input'}])
       Object.assign(flags, answers)
     }
 
@@ -163,12 +165,17 @@ export default abstract class BaseCommand extends Command {
     }
 
     // output username
-    if (!flags.output_username && flags.output) {
+    if (flags['output-username']) {
+      flags['output-username'] = flags['output-username'].toString()
+      console.log(`${colors.green('✔')} ${colors.bold('接收方账号')}: ${colors.cyan(flags['output-username'])}`)
+    }
+    // input output username.
+    else {
       const answers = await inquirer.prompt([
         {
           default: flags.username,
-          message: '接收方用户名:',
-          name: 'output_username',
+          message: '接收方账号:',
+          name: 'output-username',
           type: 'input',
         },
       ] as never)

@@ -1,11 +1,28 @@
 import Axios from 'axios'
 import {buildMemoryStorage, setupCache} from 'axios-cache-interceptor'
+import axiosRetry from 'axios-retry'
 import lodash from 'lodash'
 
 const axiosInstance = setupCache(Axios, {
   interpretHeader: false,
   storage: buildMemoryStorage(),
   ttl: 1000 * 60 * 5, // 5min
+})
+
+axiosRetry(axiosInstance, {
+  retries: 3,
+  retryCondition(error) {
+    if (error.response?.status === 502) {
+      return true
+    }
+
+    if (axiosRetry.isNetworkOrIdempotentRequestError(error)) {
+      return true
+    }
+
+    return false
+  },
+  retryDelay: axiosRetry.linearDelay(),
 })
 
 axiosInstance.interceptors.response.use(

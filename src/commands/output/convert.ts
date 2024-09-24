@@ -2,7 +2,6 @@ import {Flags} from '@oclif/core'
 import {Presets, SingleBar} from 'cli-progress'
 
 import BaseCommand from '../../base.js'
-import {HashKeyScope} from '../../components/cache-pattern.js'
 import VendorManager from '../../components/vendor/index.js'
 import {Bank} from '../../types/bank.js'
 import {Category} from '../../types/category.js'
@@ -13,7 +12,7 @@ import {find} from '../../utils/index.js'
 export default class Convert extends BaseCommand {
   static args = {}
 
-  static description = 'Convert questions'
+  static description = '转换题目格式'
 
   static example = [
     `<%= config.bin %> <%= command.id %>
@@ -25,7 +24,7 @@ Convert questions (./src/commands/output/convert.ts)
     bank: Flags.string({char: 'b', default: '', description: '题库ID/名称/Key'}),
     category: Flags.string({char: 'c', default: '', description: '分类ID/名称'}),
     output: Flags.string({char: 'o', default: '', description: '接收方'}),
-    output_username: Flags.string({default: '', description: '接收方用户名'}),
+    'output-username': Flags.string({default: '', description: '接收方用户名'}),
     sheet: Flags.string({char: 's', default: '', description: '试卷ID/名称'}),
   }
 
@@ -38,7 +37,7 @@ Convert questions (./src/commands/output/convert.ts)
     const vendor = new (VendorManager.getClass(flags.vendor))(flags.username)
 
     // output.
-    const output = new vendor.allowedOutputs[flags.output](flags.username, flags.output_username)
+    const output = new vendor.allowedOutputs[flags.output](flags.username, flags['output-username'])
 
     // bank.
     const banks = await vendor.banks()
@@ -70,10 +69,6 @@ Convert questions (./src/commands/output/convert.ts)
       return
     }
 
-    if (flags.clean) {
-      await vendor.invalidate(HashKeyScope.QUESTIONS, {bank, category, output, questionId: '*', sheet})
-    }
-
     for (const _sheet of await vendor.sheets({bank, category}, {excludeTtl: true})) {
       this.log('\n---')
 
@@ -90,8 +85,8 @@ Convert questions (./src/commands/output/convert.ts)
         _sheet.name,
         '--output',
         flags.output,
-        '--output_username',
-        flags.output_username,
+        '--output-username',
+        flags['output-username'],
       ]
 
       if (flags.clean) {

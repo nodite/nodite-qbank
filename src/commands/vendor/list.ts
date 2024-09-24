@@ -6,7 +6,7 @@ import VendorManager from '../../components/vendor/index.js'
 export default class List extends Command {
   static args = {}
 
-  static description = 'List vendors'
+  static description = '题库供应商列表'
 
   static example = [
     `<%= config.bin %> <%= command.id %>

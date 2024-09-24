@@ -37,11 +37,12 @@ USAGE
 * [`qbank output upload`](#qbank-output-upload)
 * [`qbank question fetch`](#qbank-question-fetch)
 * [`qbank sheet list`](#qbank-sheet-list)
+* [`qbank vendor list`](#qbank-vendor-list)
 * [`qbank vendor login`](#qbank-vendor-login)
 
 ## `qbank bank list`
 
-List banks
+题库列表
 
 ```
 USAGE
@@ -53,7 +54,7 @@ FLAGS
   -v, --vendor=<value>    题库供应商
 
 DESCRIPTION
-  List banks
+  题库列表
 
 EXAMPLES
   $ qbank bank list
@@ -64,7 +65,7 @@ _See code: [src/commands/bank/list.ts](https://github.com/oscaner/qbank/blob/v0.
 
 ## `qbank category list`
 
-List categories
+类别列表
 
 ```
 USAGE
@@ -78,7 +79,7 @@ FLAGS
       --rich              详细信息
 
 DESCRIPTION
-  List categories
+  类别列表
 
 EXAMPLES
   $ qbank category list
@@ -89,13 +90,13 @@ _See code: [src/commands/category/list.ts](https://github.com/oscaner/qbank/blob
 
 ## `qbank chain`
 
-Chain to qbank
+链式调用 qbank 命令
 
 ```
 USAGE
   $ qbank chain [-r *|bank.list|category.list|sheet.list|question.fetch|output.convert|output.upload...]
-    [-u <value>] [-v <value>] [--bank_list <value>...] [--category_list <value>...] [--delay <value>] [--output <value>]
-    [--output_username <value>] [--sheet_list <value>...]
+    [-u <value>] [-v <value>] [--bank-list <value>...] [--category-list <value>...] [--delay <value>] [--output <value>]
+    [--output-username <value>] [--sheet-list <value>...]
 
 FLAGS
   -r, --clean=<option>...         [default: ] 清除缓存/重新转换
@@ -103,15 +104,15 @@ FLAGS
                                   *|bank.list|category.list|sheet.list|question.fetch|output.convert|output.upload>
   -u, --username=<value>          用户名/邮箱/手机号
   -v, --vendor=<value>            题库供应商
-      --bank_list=<value>...      [default: *] 题库
-      --category_list=<value>...  [default: *] 分类
+      --bank-list=<value>...      [default: *] 题库
+      --category-list=<value>...  [default: *] 分类
       --delay=<value>             延迟(ms)
       --output=<value>            接收方
-      --output_username=<value>   接收方用户名
-      --sheet_list=<value>...     [default: *] 试卷
+      --output-username=<value>   接收方用户名
+      --sheet-list=<value>...     [default: *] 试卷
 
 DESCRIPTION
-  Chain to qbank
+  链式调用 qbank 命令
 
 EXAMPLES
   $ qbank chain
@@ -138,15 +139,15 @@ DESCRIPTION
   Display help for qbank.
 ```
 
-_See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v6.2.10/src/commands/help.ts)_
+_See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v6.2.12/src/commands/help.ts)_
 
 ## `qbank output convert`
 
-Convert questions
+转换题目格式
 
 ```
 USAGE
-  $ qbank output convert [-r] [-u <value>] [-v <value>] [-b <value>] [-c <value>] [-o <value>] [--output_username
+  $ qbank output convert [-r] [-u <value>] [-v <value>] [-b <value>] [-c <value>] [-o <value>] [--output-username
     <value>] [-s <value>]
 
 FLAGS
@@ -157,10 +158,10 @@ FLAGS
   -s, --sheet=<value>            试卷ID/名称
   -u, --username=<value>         用户名/邮箱/手机号
   -v, --vendor=<value>           题库供应商
-      --output_username=<value>  接收方用户名
+      --output-username=<value>  接收方用户名
 
 DESCRIPTION
-  Convert questions
+  转换题目格式
 
 EXAMPLES
   $ qbank output convert
@@ -171,11 +172,11 @@ _See code: [src/commands/output/convert.ts](https://github.com/oscaner/qbank/blo
 
 ## `qbank output upload`
 
-Upload questions
+上传题目到接收方
 
 ```
 USAGE
-  $ qbank output upload [-r] [-u <value>] [-v <value>] [-b <value>] [-c <value>] [-o <value>] [--output_username
+  $ qbank output upload [-r] [-u <value>] [-v <value>] [-b <value>] [-c <value>] [-o <value>] [--output-username
     <value>] [-s <value>]
 
 FLAGS
@@ -186,10 +187,10 @@ FLAGS
   -s, --sheet=<value>            试卷ID/名称
   -u, --username=<value>         用户名/邮箱/手机号
   -v, --vendor=<value>           题库供应商
-      --output_username=<value>  接收方用户名
+      --output-username=<value>  接收方用户名
 
 DESCRIPTION
-  Upload questions
+  上传题目到接收方
 
 EXAMPLES
   $ qbank output upload
@@ -200,7 +201,7 @@ _See code: [src/commands/output/upload.ts](https://github.com/oscaner/qbank/blob
 
 ## `qbank question fetch`
 
-Fetch questions
+爬取题目
 
 ```
 USAGE
@@ -215,7 +216,7 @@ FLAGS
   -v, --vendor=<value>    题库供应商
 
 DESCRIPTION
-  Fetch questions
+  爬取题目
 
 EXAMPLES
   $ qbank question fetch
@@ -226,7 +227,7 @@ _See code: [src/commands/question/fetch.ts](https://github.com/oscaner/qbank/blo
 
 ## `qbank sheet list`
 
-List sheets
+章节/篇章/试卷列表
 
 ```
 USAGE
@@ -240,7 +241,7 @@ FLAGS
   -v, --vendor=<value>    题库供应商
 
 DESCRIPTION
-  List sheets
+  章节/篇章/试卷列表
 
 EXAMPLES
   $ qbank sheet list
@@ -249,9 +250,27 @@ EXAMPLES
 
 _See code: [src/commands/sheet/list.ts](https://github.com/oscaner/qbank/blob/v0.0.0/src/commands/sheet/list.ts)_
 
+## `qbank vendor list`
+
+题库供应商列表
+
+```
+USAGE
+  $ qbank vendor list
+
+DESCRIPTION
+  题库供应商列表
+
+EXAMPLES
+  $ qbank vendor list
+  List vendors (./src/commands/vendor/list.ts)
+```
+
+_See code: [src/commands/vendor/list.ts](https://github.com/oscaner/qbank/blob/v0.0.0/src/commands/vendor/list.ts)_
+
 ## `qbank vendor login`
 
-Login to vendor
+登录供应商
 
 ```
 USAGE
@@ -264,7 +283,7 @@ FLAGS
   -v, --vendor=<value>    题库供应商
 
 DESCRIPTION
-  Login to vendor
+  登录供应商
 
 EXAMPLES
   $ qbank vendor login

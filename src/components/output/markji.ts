@@ -78,6 +78,10 @@ export default class Markji extends Output {
       // _output.
       const output = await this._output(_originQuestion, params)
 
+      if (output.text.length > 2500) {
+        throwError('Output text is too long.', {output: output.text, question: _originQuestion})
+      }
+
       // ===========================
       await cacheClient.set(lodash.template(CACHE_KEY_QUESTION_ITEM)(_questionParam), output)
 

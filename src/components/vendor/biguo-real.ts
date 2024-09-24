@@ -152,7 +152,7 @@ export default class BiguoReal extends Vendor {
   ): Promise<void> {
     // prepare.
     const cacheClient = this.getCacheClient()
-    const requestConfig = this.login()
+    const config = await this.login()
 
     // cache key.
     const cacheKeyParams = {
@@ -177,7 +177,7 @@ export default class BiguoReal extends Vendor {
     if (originQuestionKeys.length < params.sheet.count) {
       const questionBankResponse = await axios.get(
         'https://www.biguotk.com/api/v5/exams/getQuestionBank',
-        lodash.merge({}, requestConfig, {
+        lodash.merge({}, config, {
           params: this._biguoQuestionBankParam({
             bank: params.bank,
             category: params.category,

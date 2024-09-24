@@ -12,7 +12,7 @@ import {find} from '../../utils/index.js'
 export default class Upload extends BaseCommand {
   static args = {}
 
-  static description = 'Upload questions'
+  static description = '上传题目到接收方'
 
   static example = [
     `<%= config.bin %> <%= command.id %>
@@ -24,7 +24,7 @@ Upload questions (./src/commands/output/upload.ts)
     bank: Flags.string({char: 'b', default: '', description: '题库ID/名称/Key'}),
     category: Flags.string({char: 'c', default: '', description: '分类ID/名称'}),
     output: Flags.string({char: 'o', default: '', description: '接收方'}),
-    output_username: Flags.string({default: '', description: '接收方用户名'}),
+    'output-username': Flags.string({default: '', description: '接收方用户名'}),
     sheet: Flags.string({char: 's', default: '', description: '试卷ID/名称'}),
   }
 
@@ -37,7 +37,7 @@ Upload questions (./src/commands/output/upload.ts)
     const vendor = new (VendorManager.getClass(flags.vendor))(flags.username)
 
     // output.
-    const output = new vendor.allowedOutputs[flags.output](flags.username, flags.output_username)
+    const output = new vendor.allowedOutputs[flags.output](flags.username, flags['output-username'])
 
     // bank.
     const banks = await vendor.banks()
@@ -85,8 +85,8 @@ Upload questions (./src/commands/output/upload.ts)
         _sheet.name,
         '--output',
         flags.output,
-        '--output_username',
-        flags.output_username,
+        '--output-username',
+        flags['output-username'],
       ]
 
       if (flags.clean) {
