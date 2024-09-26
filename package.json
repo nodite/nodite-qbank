@@ -51,7 +51,7 @@
     "@types/ansi-colors": "^3",
     "@types/async-stream-emitter": "^7",
     "@types/better-sqlite3": "^7",
-    "@types/chai": "^4",
+    "@types/chai": "^5",
     "@types/chunk": "^0",
     "@types/cli-progress": "^3",
     "@types/form-data": "^2",
