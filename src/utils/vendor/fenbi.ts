@@ -92,6 +92,23 @@ const parseDoc = async (str: string): Promise<string> => {
       break
     }
 
+    case 'u': {
+      elements.push('<u>')
+
+      if (!lodash.isEmpty(data.value)) {
+        elements.push(data.value)
+      }
+
+      if (!lodash.isEmpty(data.children)) {
+        const children = await Promise.all(lodash.map(data.children, async (child) => parseDoc(JSON.stringify(child))))
+        elements.push(...children)
+      }
+
+      elements.push('</u>')
+
+      break
+    }
+
     default: {
       throwError(`Not implemented yet of data name (${data.name})`, data)
     }
