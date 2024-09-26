@@ -28,7 +28,7 @@
     "form-data": "^4",
     "fs-extra": "^11",
     "html-to-text": "^9",
-    "inquirer": "^10",
+    "inquirer": "^11",
     "lodash": "^4",
     "md5": "^2",
     "node-html-parser": "^6",
