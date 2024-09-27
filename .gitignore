@@ -10,4 +10,5 @@ oclif.manifest.json
 yarn.lock
 pnpm-lock.yaml
 
-cache.sqlite3*
+.env
+/assets

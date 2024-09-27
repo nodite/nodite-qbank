@@ -4,18 +4,20 @@ import inquirer from 'inquirer'
 import lodash from 'lodash'
 
 export type FindOptions<T = object> = {
-  excludeKey?: (keyof T)[]
+  excludeKey?: ('meta' | keyof T)[]
   fuzzy?: boolean
 }
 
-export function find<T>(items: T[], substring: string, options?: FindOptions<T>): T | undefined {
+export function find<T>(items: T[], substring: string, options: FindOptions<T> = {}): T | undefined {
+  options.excludeKey = [...(options.excludeKey ?? []), 'meta']
+
   return lodash.find(items, (item) => {
     if (lodash.isArray(item)) {
       return !lodash.isEmpty(find(item, substring, options))
     }
 
     if (lodash.isObject(item) && !lodash.isArray(item)) {
-      const subItems: never[] = Object.values(options?.excludeKey ? lodash.omit(item, options.excludeKey) : item)
+      const subItems: any[] = Object.values(options?.excludeKey ? lodash.omit(item, options.excludeKey) : item)
       return !lodash.isEmpty(find(subItems, substring, options))
     }
 
@@ -33,14 +35,16 @@ export function fiind<T>(items: T[], substring: string, options?: FindOptions<T>
   return item
 }
 
-export function findAll<T>(items: T[], substring: string, options?: FindOptions<T>): T[] {
+export function findAll<T>(items: T[], substring: string, options: FindOptions<T> = {}): T[] {
+  options.excludeKey = [...(options.excludeKey ?? []), 'meta']
+
   return lodash.filter(items, (item) => {
     if (lodash.isArray(item)) {
       return !lodash.isEmpty(findAll(item, substring, options))
     }
 
     if (lodash.isObject(item) && !lodash.isArray(item)) {
-      const subItems: never[] = Object.values(options?.excludeKey ? lodash.omit(item, options.excludeKey) : item)
+      const subItems: any[] = Object.values(options?.excludeKey ? lodash.omit(item, options.excludeKey) : item)
       return !lodash.isEmpty(findAll(subItems, substring, options))
     }
 

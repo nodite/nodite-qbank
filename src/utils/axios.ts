@@ -12,7 +12,7 @@ const axiosInstance = setupCache(Axios, {
 axiosRetry(axiosInstance, {
   retries: 3,
   retryCondition(error) {
-    if (error.response?.status === 502) {
+    if (lodash.isNumber(error.response?.status) && error.response.status >= 500 && error.response.status <= 599) {
       return true
     }
 
@@ -22,7 +22,7 @@ axiosRetry(axiosInstance, {
 
     return false
   },
-  retryDelay: axiosRetry.linearDelay(),
+  retryDelay: axiosRetry.exponentialDelay,
 })
 
 axiosInstance.interceptors.response.use(

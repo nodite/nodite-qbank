@@ -348,7 +348,11 @@ const bulkUpload = async (options: BulkUploadOptions): Promise<void> => {
   const doneQuestionIdx = doneQuestionCount - 1
 
   // delete
-  // await bulkDelete(markjiInfo, markjiInfo.chapter.cardIds.slice(allQuestionKeys.length))
+  if (markjiInfo.chapter.cardIds.length > 0 && allQuestionKeys.length === 0) {
+    throwError('Dangerous', {params})
+  }
+
+  await bulkDelete(markjiInfo, markjiInfo.chapter.cardIds.slice(allQuestionKeys.length))
 
   // upload.
   if (uploadOptions?.totalEmit) uploadOptions?.totalEmit(allQuestionKeys.length)

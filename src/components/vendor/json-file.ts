@@ -1,9 +1,9 @@
 import {CacheRequestConfig} from 'axios-cache-interceptor'
 import fs from 'fs-extra'
 import lodash from 'lodash'
-import {packageDirectory} from 'pkg-dir'
 import sleep from 'sleep-promise'
 
+import {PKG_ROOT_DIR} from '../../env.js'
 import {Bank} from '../../types/bank.js'
 import {Category} from '../../types/category.js'
 import {FetchOptions} from '../../types/common.js'
@@ -41,7 +41,7 @@ export default class JsonFile extends Vendor {
    * Fetch categories.
    */
   protected async fetchCategories(params: {bank: Bank}): Promise<Category[]> {
-    const data = await this._getData(params.bank)
+    const data = await this.getData(params.bank)
 
     const categories = [] as Category[]
 
@@ -84,7 +84,7 @@ export default class JsonFile extends Vendor {
       originQuestionKeys.length = 0
     }
 
-    const data = await this._getData(params.bank)
+    const data = await this.getData(params.bank)
     const questions = lodash.filter(data.questions, {category: params.category.id})
     const answers = lodash.filter(data.answers, {category: params.category.id})
     const explains = lodash.filter(data.explains, {category: params.category.id})
@@ -122,21 +122,12 @@ export default class JsonFile extends Vendor {
   }
 
   /**
-   * To login.
-   */
-  protected async toLogin(_password: string): Promise<CacheRequestConfig<any, any>> {
-    return {}
-  }
-
-  /**
    * Get data.
    */
-  protected async _getData(bank: Bank): Promise<any> {
-    const root = await packageDirectory()
-
+  protected async getData(bank: Bank): Promise<any> {
     if (!bank.id.endsWith('.json')) throw new Error(`Invalid bank ID: ${bank.id}`)
 
-    const path = `${root}/src/${bank.id}`
+    const path = `${PKG_ROOT_DIR}/src/${bank.id}`
 
     const data = await fs.readJSON(path)
 
@@ -146,5 +137,12 @@ export default class JsonFile extends Vendor {
     )
 
     return data
+  }
+
+  /**
+   * To login.
+   */
+  protected async toLogin(_password: string): Promise<CacheRequestConfig<any, any>> {
+    return {}
   }
 }

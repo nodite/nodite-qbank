@@ -1,17 +1,25 @@
 import type {CacheRequestConfig} from 'axios-cache-interceptor'
 
+import {Document} from '@langchain/core/documents'
 import {Cacheable} from '@type-cacheable/core'
+import fs from 'fs-extra'
 import lodash from 'lodash'
+import path from 'node:path'
+import sleep from 'sleep-promise'
 
+import Service, {service as embeddingService} from '../../embedding/service.js'
+import {PKG_ASSETS_DIR} from '../../env.js'
 import {Bank} from '../../types/bank.js'
 import {Category} from '../../types/category.js'
 import {FetchOptions} from '../../types/common.js'
 import {Sheet} from '../../types/sheet.js'
 import axios from '../../utils/axios.js'
-import {safeName} from '../../utils/index.js'
+import {emitter} from '../../utils/event.js'
+import {safeName, throwError} from '../../utils/index.js'
 import puppeteer from '../../utils/puppeteer.js'
+import {CACHE_KEY_ORIGIN_QUESTION_ITEM} from '../cache-pattern.js'
+import Markji from '../output/chaoxing/markji.js'
 import {OutputClass} from '../output/common.js'
-import Skip from '../output/skip.js'
 import {HashKeyScope, Vendor, cacheKeyBuilder} from './common.js'
 
 export default class ChaoXing extends Vendor {
@@ -19,7 +27,7 @@ export default class ChaoXing extends Vendor {
 
   public get allowedOutputs(): Record<string, OutputClass> {
     return {
-      [Skip.META.key]: Skip,
+      [Markji.META.key]: Markji,
     }
   }
 
@@ -47,21 +55,21 @@ export default class ChaoXing extends Vendor {
           }),
         )
 
-        const count = await axios.get(
-          'https://mooc1-api.chaoxing.com/mooc-ans/mooc2/exam/exam-question-count',
-          lodash.merge({}, requestConfig, {
-            params: {
-              classId: channel.content.id,
-              courseId: course.id,
-              cpi: person.data.data[0].personid,
-              createType: 0,
-              doNoRepeat: false,
-            },
-          }),
-        )
+        // const count = await axios.get(
+        //   'https://mooc1-api.chaoxing.com/mooc-ans/mooc2/exam/exam-question-count',
+        //   lodash.merge({}, requestConfig, {
+        //     params: {
+        //       classId: channel.content.id,
+        //       courseId: course.id,
+        //       cpi: person.data.data[0].personid,
+        //       createType: 0,
+        //       doNoRepeat: false,
+        //     },
+        //   }),
+        // )
 
         banks.push({
-          count: count.data.count || 0,
+          // count: count.data.count || 0,
           id: [person.data.data[0].personid, channel.content.id, course.id].join('|'),
           key: [person.data.data[0].personid, channel.content.id, course.id].join('|'),
           name: [course.teacherfactor, course.name].join(' > '),
@@ -77,6 +85,46 @@ export default class ChaoXing extends Vendor {
    */
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.CATEGORIES)})
   protected async fetchCategories(params: {bank: Bank}): Promise<Category[]> {
+    // prepare embedding.
+    const collectionName = `chaoxing:${params.bank.id}:categories`
+    const data = await this.getData(params)
+    const _factory = await embeddingService.factory()
+
+    const queries = lodash
+      .chain(data)
+      .map('目录ID')
+      .uniq()
+      .map((id): Document[] => {
+        const _items = lodash.filter(data, {目录ID: id})
+
+        return lodash
+          .chain([
+            ..._factory.split2Segments(_items[0]['一级目录']),
+            ..._factory.split2Segments(_items[0]['二级目录']),
+            ..._factory.split2Segments(_items[0]['三级目录']),
+          ])
+          .flatten()
+          .uniq()
+          .map((_segment) => ({
+            metadata: {
+              [Service.QUERY_ID]: `${_segment} (${id})`,
+              dirId: id,
+              dirname: [_items[0]['一级目录'], _items[0]['二级目录'], _items[0]['三级目录']],
+              exerIds: lodash.map(_items, '练习ID'),
+            },
+            pageContent: _segment,
+          }))
+          .filter((doc) => doc.pageContent.length > 0)
+          .uniqBy(`metadata.${Service.QUERY_ID}`)
+          .value()
+      })
+      .flatten()
+      .chunk(100)
+      .value()
+
+    await Promise.all(lodash.map(queries, (_chk) => embeddingService.addQuery(collectionName, _chk)))
+
+    // fetch categories.
     const requestConfig = await this.login()
 
     const [personId, clazzId] = params.bank.id.split('|')
@@ -107,10 +155,44 @@ export default class ChaoXing extends Vendor {
       const _store = [] as Category[]
 
       for (const [idx, knowledge] of lodash.filter(knowledges, {parentnodeid}).entries()) {
+        const children = await _tree(knowledges, knowledge.id)
+
+        const childrenExerIds = lodash.chain(children).map('meta.exerIds').flatten().uniq().value()
+
+        // search extra exerIds.
+        const _segments = _factory.split2Segments(knowledge.name)
+        const searches = (
+          await Promise.all(
+            lodash.map(_segments, (segment) => _factory.search(collectionName, segment, {k: 10, scoreThreshold: 0.9})),
+          )
+        ).flat()
+
+        const extraExerIds = lodash
+          .chain(searches)
+          .map(([doc]) => doc.metadata.exerIds)
+          .flatten()
+          .difference(childrenExerIds)
+          .uniq()
+          .value()
+
+        if (!lodash.isEmpty(children) && !lodash.isEmpty(extraExerIds)) {
+          children.push({
+            children: [],
+            count: extraExerIds.length,
+            id: 'others',
+            meta: {exerIds: extraExerIds},
+            name: '其他',
+            order: children.length,
+          })
+        }
+
+        const totalExerIds = [...childrenExerIds, ...extraExerIds]
+
         _store.push({
-          children: await _tree(knowledges, knowledge.id),
-          count: 0,
+          children,
+          count: totalExerIds.length,
           id: String(knowledge.id),
+          meta: {exerIds: totalExerIds, searches: lodash.map(searches, ([doc]) => doc.pageContent)},
           name: await safeName(knowledge.name),
           order: idx,
         })
@@ -126,31 +208,114 @@ export default class ChaoXing extends Vendor {
       }
     }
 
+    // others.
+    const extraExerIds = lodash
+      .chain(data)
+      .map('练习ID')
+      .difference(...lodash.map(categories, 'meta.exerIds'))
+      .uniq()
+      .value()
+
+    if (!lodash.isEmpty(extraExerIds)) {
+      categories.push({
+        children: [],
+        count: extraExerIds.length,
+        id: 'others',
+        meta: {exerIds: extraExerIds},
+        name: '其他',
+        order: categories.length,
+      })
+    }
+
     return categories
   }
 
+  /**
+   * Fetch questions.
+   */
   public async fetchQuestions(
-    _params: {bank: Bank; category: Category; sheet: Sheet},
-    _options?: FetchOptions,
+    params: {bank: Bank; category: Category; sheet: Sheet},
+    options?: FetchOptions,
   ): Promise<void> {
-    throw new Error('Method not implemented.')
+    const cacheClient = this.getCacheClient()
+
+    // cache key.
+    const cacheKeyParams = {
+      bankId: params.bank.id,
+      categoryId: params.category.id,
+      sheetId: params.sheet.id,
+      vendorKey: (this.constructor as typeof Vendor).META.key,
+    }
+
+    const originQuestionKeys = await cacheClient.keys(
+      lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)({...cacheKeyParams, questionId: '*'}),
+    )
+
+    // refetch.
+    if (options?.refetch) {
+      await cacheClient.delHash(lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)({...cacheKeyParams, questionId: '*'}))
+      originQuestionKeys.length = 0
+    }
+
+    emitter.emit('questions.fetch.count', originQuestionKeys.length)
+
+    const data = await this.getData({bank: params.bank})
+
+    for (const id of params.sheet.meta?.exerIds ?? []) {
+      const _questionId = String(id)
+
+      const _questionCacheKey = lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)({
+        ...cacheKeyParams,
+        questionId: _questionId,
+      })
+
+      if (originQuestionKeys.includes(_questionCacheKey)) continue
+
+      const _question = lodash.find(data, {练习ID: id})
+
+      if (!_question) {
+        throwError('Question not found.', {id})
+      }
+
+      await cacheClient.set(_questionCacheKey, lodash.find(data, {练习ID: id}))
+      originQuestionKeys.push(_questionCacheKey)
+      emitter.emit('questions.fetch.count', originQuestionKeys.length)
+    }
+
+    emitter.emit('questions.fetch.count', originQuestionKeys.length)
+    await sleep(1000)
+    emitter.closeListener('questions.fetch.count')
   }
 
   /**
    * Sheet.
    */
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.SHEETS)})
-  public async fetchSheet(params: {bank: Bank; category: Category}, _options?: FetchOptions): Promise<Sheet[]> {
+  protected async fetchSheet(params: {bank: Bank; category: Category}, _options?: FetchOptions): Promise<Sheet[]> {
     if (lodash.isEmpty(params.category.children)) {
-      return [{count: params.category.count, id: '0', name: '默认'}]
+      return [{count: params.category.count, id: '0', meta: params.category.meta, name: '默认'}]
     }
 
     return lodash.map(params.category.children, (category) => ({
       count: category.count,
       id: category.id,
+      meta: category.meta,
       name: category.name,
       order: category.order,
     }))
+  }
+
+  protected async getData(params: {bank: Bank}): Promise<Record<string, any>> {
+    const filedir = path.join(PKG_ASSETS_DIR, 'chaoxing', params.bank.name)
+
+    const data = {} as Record<string, any>
+
+    for (const file of await fs.readdir(filedir)) {
+      if (!file.endsWith('.json')) continue
+      lodash.merge(data, await fs.readJson(path.join(filedir, file)))
+    }
+
+    return data
   }
 
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN)})

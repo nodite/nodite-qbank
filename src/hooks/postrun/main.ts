@@ -1,10 +1,14 @@
 import {Hook} from '@oclif/core'
 
+import {service as embeddingService} from '../../embedding/service.js'
 import puppeteer from '../../utils/puppeteer.js'
 
 const hook: Hook.Postrun = async () => {
-  // This hook is run after a command
+  // Close the browser
   await puppeteer.close()
+
+  // Close the embedding service
+  await embeddingService.close()
 
   // Run garbage collection
   if (global.gc) global.gc()

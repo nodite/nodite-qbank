@@ -8,6 +8,10 @@
   },
   "bugs": "https://github.com/oscaner/qbank/issues",
   "dependencies": {
+    "@huggingface/inference": "^2.8.0",
+    "@langchain/community": "^0.3.3",
+    "@langchain/core": "^0.3.3",
+    "@langchain/ollama": "^0.1.0",
     "@lesjoursfr/html-to-image": "^1",
     "@oclif/core": "^4",
     "@oclif/plugin-help": "^6",
@@ -15,7 +19,9 @@
     "@resolid/cache-manager-sqlite": "^5",
     "@type-cacheable/cache-manager-adapter": "^17",
     "@type-cacheable/core": "^14",
+    "@xenova/transformers": "^2.17.2",
     "ansi-colors": "^4",
+    "async-mutex": "^0.5.0",
     "async-stream-emitter": "^7",
     "axios": "^1",
     "axios-cache-interceptor": "^1",
@@ -25,6 +31,8 @@
     "chunk": "^0",
     "cli-progress": "^3",
     "data-uri-to-buffer": "^6",
+    "dotenv": "^16.4.5",
+    "faiss-node": "^0.5.1",
     "form-data": "^4",
     "fs-extra": "^11",
     "html-to-text": "^9",
@@ -40,7 +48,8 @@
     "streamifier": "^0",
     "tmp": "^0",
     "tty-table": "^4",
-    "user-agents": "^1"
+    "user-agents": "^1",
+    "uuid": "^10.0.0"
   },
   "devDependencies": {
     "@commitlint/cli": "^19",

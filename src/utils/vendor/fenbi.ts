@@ -55,7 +55,7 @@ const parseDoc = async (str: string): Promise<string> => {
       elements.push('<p>')
 
       if (!lodash.isEmpty(data.value)) {
-        throwError('Not implemented yet', data)
+        elements.push(data.value)
       }
 
       if (!lodash.isEmpty(data.children)) {
@@ -64,6 +64,19 @@ const parseDoc = async (str: string): Promise<string> => {
       }
 
       elements.push('</p>')
+
+      break
+    }
+
+    case 'color': {
+      elements.push(`<span style="color: ${data.value}">`)
+
+      if (!lodash.isEmpty(data.children)) {
+        const children = await Promise.all(lodash.map(data.children, async (child) => parseDoc(JSON.stringify(child))))
+        elements.push(...children)
+      }
+
+      elements.push('</span>')
 
       break
     }
