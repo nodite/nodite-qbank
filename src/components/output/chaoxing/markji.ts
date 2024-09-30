@@ -32,7 +32,10 @@ export default class Markji extends MarkjiBase {
       case '论述题':
       case '写作题':
       case '词汇题':
-      case '补全对话题': {
+      case '补全对话题':
+      case '补全对话':
+      case '音节题':
+      case '句型转换题': {
         output = await this._processTranslate(question, params)
         break
       }
