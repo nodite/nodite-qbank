@@ -41,6 +41,7 @@
     "md5": "^2",
     "node-html-parser": "^6",
     "object-treeify": "^4",
+    "pickleparser": "^0.2.1",
     "pkg-dir": "^8",
     "puppeteer": "^23",
     "random-number": "^0",
