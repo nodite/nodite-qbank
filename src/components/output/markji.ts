@@ -13,9 +13,12 @@ import {Output} from './common.js'
 export default class Markji extends Output {
   public static META = {key: 'markji', name: 'Markji'}
 
-  HTML_STYLE = ['<style type="text/css">', 'html { font-size: 42px; }', `img { min-height: 42px; }`, '</style>'].join(
-    ' ',
-  )
+  HTML_STYLE = [
+    '<style type="text/css">',
+    'html { font-size: 42px; }',
+    `img { min-height: 42px; max-width: 90% }`,
+    '</style>',
+  ].join(' ')
 
   /**
    * Convert.

@@ -13,7 +13,7 @@ const browser = async (create: boolean = true) => {
   let _browser = await memory.cache.get<puppeteer.Browser>(cacheKey)
 
   if ((!_browser || !_browser.connected) && create) {
-    _browser = await puppeteer.launch({headless: true})
+    _browser = await puppeteer.launch({headless: true, protocolTimeout: 10 * 60 * 1000})
     await memory.cache.set(cacheKey, _browser)
   }
 
