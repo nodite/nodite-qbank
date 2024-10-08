@@ -28,6 +28,7 @@ export default class Markji extends MarkjiBase {
       }
 
       // 4. 问答题
+      // 7. 阅读理解
       // 8. 名词解释
       // 9. 单词练习
       // 10. 简答题
@@ -35,14 +36,17 @@ export default class Markji extends MarkjiBase {
       // 13. 案例分析题
       // 21. 英译汉
       // 22. 汉译英
+      // 27. 分析说明题
       case 4:
+      case 7:
       case 8:
       case 9:
       case 10:
       case 12:
       case 13:
       case 21:
-      case 22: {
+      case 22:
+      case 27: {
         output = await this._processTranslate(question, params)
         break
       }
@@ -54,7 +58,7 @@ export default class Markji extends MarkjiBase {
       }
 
       default: {
-        throwError('Unsupported question type', question)
+        throwError('Unsupported question type', {params, question})
       }
     }
 

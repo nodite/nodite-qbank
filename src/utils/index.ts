@@ -3,6 +3,8 @@ import fs from 'fs-extra'
 import inquirer from 'inquirer'
 import lodash from 'lodash'
 
+import {Vendor} from '../components/vendor/common.js'
+
 export type FindOptions<T = object> = {
   excludeKey?: ('meta' | keyof T)[]
   fuzzy?: boolean
@@ -71,7 +73,15 @@ export function fiindAll<T>(items: T[], substrings: string[], options?: FindOpti
 }
 
 export function throwError(message: string | unknown, data: unknown): never {
-  fs.writeJsonSync('tmp/error.json', {data, message}, {spaces: 2})
+  let errFile = 'tmp/error.json'
+
+  if (lodash.has(data, 'params')) {
+    const _params = data.params as Record<string, any>
+    const _vendor = _params.vendor as Vendor
+    errFile = `tmp/error-${(_vendor.constructor as typeof Vendor).META.key}.json`
+  }
+
+  fs.writeJsonSync(errFile, {data, message}, {spaces: 2})
   if (typeof message === 'string') throw new Error(message)
   throw message
 }

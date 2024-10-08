@@ -129,7 +129,13 @@ export default class Markji extends MarkjiBase {
 
     // ===========================
     // _explain.
-    _meta.explain = await markji.parseHtml(question.QuestionsAnswerEntity.FormatContent || '', {style: this.HTML_STYLE})
+    let _explain = question.QuestionsAnswerEntity.FormatContent || ''
+
+    for (const [_idx, _img] of (question.QuestionsAnswerEntity.FormatImages || []).entries()) {
+      _explain += `<br>图${_idx + 1}: <img src="${_img}">`
+    }
+
+    _meta.explain = await markji.parseHtml(_explain, {style: this.HTML_STYLE})
 
     // ===========================
     // points.
