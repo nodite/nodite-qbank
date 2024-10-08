@@ -8,7 +8,7 @@
   },
   "bugs": "https://github.com/oscaner/qbank/issues",
   "dependencies": {
-    "@huggingface/inference": "^2.8.0",
+    "@huggingface/inference": "^2.8.1",
     "@langchain/community": "^0.3.3",
     "@langchain/core": "^0.3.7",
     "@langchain/ollama": "^0.1.0",
