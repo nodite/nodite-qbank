@@ -51,9 +51,11 @@ export default class BiguoReal extends Vendor {
 
     // provinces.
     for (const province of provinces) {
+      const provinceId = province.province_id
+
       const schoolResponse = await axios.post(
         'https://www.biguotk.com//api/schoolList',
-        {province_id: province.province_id},
+        {province_id: provinceId},
         requestConfig,
       )
 
@@ -64,14 +66,18 @@ export default class BiguoReal extends Vendor {
 
       // schools.
       for (const school of schools) {
+        const schoolId = school.id
+
         const professionResponse = await axios.post(
           'https://www.biguotk.com//api/v2/professions',
-          {province_id: province.province_id, school_id: school.id, schoolName: school.name},
+          {province_id: provinceId, school_id: schoolId, schoolName: school.name},
           requestConfig,
         )
 
         // professions.
         for (const profession of professionResponse.data.data) {
+          const professionId = profession.id
+
           const _limit_pnames = lodash
             .chain(LIMIT)
             .filter((item) => item.school_name === school.name)
@@ -83,11 +89,44 @@ export default class BiguoReal extends Vendor {
             continue
           }
 
-          banks.push({
-            id: [province.province_id, school.id, profession.id].join('|'),
-            key: [province.province_id, school.id, profession.id].join('|'),
-            name: await safeName([school.name, `${profession.name}(${profession.code})`].join(' > ')),
-          })
+          const courseResponse = await axios.get(
+            'https://www.biguotk.com/api/v4/study/user_courses',
+            lodash.merge({}, requestConfig, {
+              params: {professions_id: professionId, province_id: provinceId, school_id: schoolId},
+            }),
+          )
+
+          // courses.
+          const courses = lodash.merge(
+            [],
+            courseResponse.data.data.courses_joined,
+            courseResponse.data.data.courses_not_joined,
+            courseResponse.data.data.courses_passed,
+          )
+
+          for (const course of courses) {
+            const homeResponse = await axios.get(
+              'https://www.biguotk.com/api/v4/study/home',
+              lodash.merge({}, requestConfig, {
+                params: {
+                  courses_id: course.courses_id,
+                  professions_id: professionId,
+                  province_id: provinceId,
+                  school_id: schoolId,
+                },
+              }),
+            )
+
+            banks.push({
+              count:
+                lodash.find(homeResponse.data.data.tikus, {type: this._biguoQuestionBankParam().mainType}).total || 0,
+              id: [provinceId, schoolId, professionId, course.courses_id, course.code].join('|'),
+              key: [provinceId, schoolId, professionId, course.courses_id, course.code].join('|'),
+              name: await safeName(
+                [school.name, `${profession.name}(${profession.code})`, `${course.name}(${course.code})`].join(' > '),
+              ),
+            })
+          }
         }
       }
     }
@@ -101,42 +140,31 @@ export default class BiguoReal extends Vendor {
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.CATEGORIES)})
   protected async fetchCategories(params: {bank: Bank}): Promise<Category[]> {
     const requestConfig = this.login()
-    const [provinceId, schoolId, professionId] = params.bank.id.split('|')
+    const [provinceId, schoolId, professionId, courseId] = params.bank.id.split('|')
 
-    const courseResponse = await axios.get(
-      'https://www.biguotk.com/api/v4/study/user_courses',
+    const realResponse = await axios.get(
+      'https://www.biguotk.com/api/v4/exams/real_paper_list',
       lodash.merge({}, requestConfig, {
-        params: {professions_id: professionId, province_id: provinceId, school_id: schoolId},
+        params: {
+          courses_id: courseId,
+          limit: 100,
+          page: 1,
+          professions_id: professionId,
+          province_id: provinceId,
+          school_id: schoolId,
+        },
       }),
-    )
-
-    const courses = lodash.merge(
-      [],
-      courseResponse.data.data.courses_joined,
-      courseResponse.data.data.courses_not_joined,
-      courseResponse.data.data.courses_passed,
     )
 
     const categories = [] as Category[]
 
-    for (const course of courses) {
-      const homeResponse = await axios.get(
-        'https://www.biguotk.com/api/v4/study/home',
-        lodash.merge({}, requestConfig, {
-          params: {
-            courses_id: course.courses_id,
-            professions_id: professionId,
-            province_id: provinceId,
-            school_id: schoolId,
-          },
-        }),
-      )
-
+    for (const [idx, category] of (realResponse.data.data || []).entries()) {
       categories.push({
         children: [],
-        count: lodash.find(homeResponse.data.data.tikus, {type: this._biguoQuestionBankParam().mainType}).total || 0,
-        id: [course.courses_id, course.code].join('|'),
-        name: await safeName(`${course.name}(${course.code})`),
+        count: category.total_nums,
+        id: category.id,
+        name: await safeName(category.name),
+        order: idx,
       })
     }
 
@@ -234,35 +262,7 @@ export default class BiguoReal extends Vendor {
    */
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.SHEETS)})
   protected async fetchSheet(params: {bank: Bank; category: Category}): Promise<Sheet[]> {
-    const requestConfig = this.login()
-    const [provinceId, schoolId, professionId] = params.bank.id.split('|')
-    const [courseId] = params.category.id.split('|')
-
-    const realResponse = await axios.get(
-      'https://www.biguotk.com/api/v4/exams/real_paper_list',
-      lodash.merge({}, requestConfig, {
-        params: {
-          courses_id: courseId,
-          limit: 100,
-          page: 1,
-          professions_id: professionId,
-          province_id: provinceId,
-          school_id: schoolId,
-        },
-      }),
-    )
-
-    const sheets = [] as Sheet[]
-
-    for (const sheet of realResponse.data.data) {
-      sheets.push({
-        count: sheet.total_nums,
-        id: sheet.id,
-        name: await safeName(sheet.name),
-      })
-    }
-
-    return sheets
+    return [{count: params.category.count, id: '0', name: '默认'}]
   }
 
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN)})
@@ -306,7 +306,7 @@ export default class BiguoReal extends Vendor {
     const [provinceId, schoolId, professionId] = params ? params.bank.id.split('|') : [undefined, undefined, undefined]
 
     return {
-      code: params?.sheet?.id,
+      code: params?.category?.id,
       mainType: 2,
       professions_id: professionId,
       province_id: provinceId,
