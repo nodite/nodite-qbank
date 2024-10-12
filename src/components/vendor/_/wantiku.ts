@@ -1,22 +1,24 @@
 import {Cacheable} from '@type-cacheable/core'
 import {CacheRequestConfig} from 'axios-cache-interceptor'
 import lodash from 'lodash'
+import path from 'node:path'
 import sleep from 'sleep-promise'
 
-import {Bank} from '../../types/bank.js'
-import {Category} from '../../types/category.js'
-import {FetchOptions} from '../../types/common.js'
-import {Sheet} from '../../types/sheet.js'
-import axios from '../../utils/axios.js'
-import {emitter} from '../../utils/event.js'
-import {fiindAll, safeName} from '../../utils/index.js'
-import {CACHE_KEY_ORIGIN_QUESTION_ITEM} from '../cache-pattern.js'
-import {OutputClass} from '../output/common.js'
-import Markji from '../output/wantiku/markji.js'
-import {HashKeyScope, Vendor, cacheKeyBuilder} from './common.js'
+import sqliteCache from '../../../cache/sqlite.manager.js'
+import {Bank} from '../../../types/bank.js'
+import {Category} from '../../../types/category.js'
+import {FetchOptions} from '../../../types/common.js'
+import {Sheet} from '../../../types/sheet.js'
+import axios from '../../../utils/axios.js'
+import {emitter} from '../../../utils/event.js'
+import {fiindAll, safeName} from '../../../utils/index.js'
+import {CACHE_KEY_ORIGIN_QUESTION_ITEM} from '../../cache-pattern.js'
+import {OutputClass} from '../../output/common.js'
+import Markji from '../../output/wantiku/markji.js'
+import {HashKeyScope, Vendor, cacheKeyBuilder} from '../common.js'
 
 export default class Wantiku extends Vendor {
-  public static META = {key: 'wantiku', name: '万题库·真题'}
+  public static META = {key: path.parse(import.meta.url).name, name: '万题库·真题'}
 
   URL_CATEGORY = 'https://api.wantiku.com/api/BrushQuestion/RealCustomAutoSpecTree'
 
@@ -218,7 +220,10 @@ export default class Wantiku extends Vendor {
     return [{count: params.category.count, id: '0', name: '默认'}]
   }
 
-  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN)})
+  /**
+   * Login.
+   */
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN), client: sqliteCache.CommonClient})
   protected async toLogin(password: string): Promise<CacheRequestConfig> {
     const response = await axios.get('https://api.wantiku.com/api/Login/LoginV2', {
       cache: false,

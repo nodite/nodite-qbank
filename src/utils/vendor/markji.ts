@@ -72,11 +72,17 @@ const _folder = async (
 ): Promise<MarkjiFolder> => {
   const vendorMeta = (params.vendor.constructor as typeof Vendor).META
 
-  await markji.invalidate(HashKeyScope.BANKS)
-
   let folders = await markji.banks()
   let folder = find<MarkjiFolder>(folders, vendorMeta.name)
 
+  // check.
+  if (!folder) {
+    await markji.invalidate(HashKeyScope.BANKS)
+    folders = await markji.banks()
+    folder = find<MarkjiFolder>(folders, vendorMeta.name)
+  }
+
+  // create.
   if (!folder) {
     await axios.post(
       'https://www.markji.com/api/v1/decks/folders',
@@ -85,10 +91,9 @@ const _folder = async (
     )
 
     await markji.invalidate(HashKeyScope.BANKS)
+    folders = await markji.banks()
+    folder = find<MarkjiFolder>(folders, vendorMeta.name) as Bank
   }
-
-  folders = await markji.banks()
-  folder = find<MarkjiFolder>(folders, vendorMeta.name) as Bank
 
   return folder
 }
@@ -102,13 +107,17 @@ const _deck = async (
   params: {bank: Bank},
   requestConfig: CacheRequestConfig,
 ): Promise<Category> => {
-  await markji.invalidate(HashKeyScope.CATEGORIES, {bank: info.folder})
-
   let decks = await markji.categories({bank: info.folder})
-
   let deck = find<Category>(decks, params.bank.name)
 
-  // create
+  // check.
+  if (!deck) {
+    await markji.invalidate(HashKeyScope.CATEGORIES, {bank: info.folder})
+    decks = await markji.categories({bank: info.folder})
+    deck = find<Category>(decks, params.bank.name)
+  }
+
+  // create.
   if (!deck) {
     await axios.post(
       'https://www.markji.com/api/v1/decks',
@@ -117,13 +126,11 @@ const _deck = async (
     )
 
     await markji.invalidate(HashKeyScope.CATEGORIES, {bank: info.folder})
-
     decks = await markji.categories({bank: info.folder})
+    deck = find<Category>(decks, params.bank.name) as Category
   }
 
-  deck = find<Category>(decks, params.bank.name) as Category
-
-  // sort
+  // sort.
   if (deck.order !== params.bank.order) {
     info.folder = lodash.find(await markji.banks(), {id: info.folder.id}) as MarkjiFolder
 
@@ -150,11 +157,9 @@ const _deck = async (
     )
 
     await markji.invalidate(HashKeyScope.CATEGORIES, {bank: info.folder})
-
     decks = await markji.categories({bank: info.folder})
+    deck = find<Category>(decks, params.bank.name) as Category
   }
-
-  deck = find<Category>(decks, params.bank.name) as Category
 
   return deck
 }
@@ -168,15 +173,19 @@ const _chapter = async (
   params: {bank: Bank; category: Category; sheet: Sheet; vendor: Vendor},
   requestConfig: CacheRequestConfig,
 ): Promise<MarkjiChapter> => {
-  await markji.invalidate(HashKeyScope.SHEETS, {bank: info.folder, category: info.deck})
-
   const chapterName = await safeName(
     params.sheet.id === '0' ? params.category.name : `${params.category.name} / ${params.sheet.name}`,
   )
 
   let chapters = (await markji.sheets({bank: info.folder, category: info.deck})) as MarkjiChapter[]
-
   let chapter = find<MarkjiChapter>(chapters, chapterName)
+
+  // check.
+  if (!chapter) {
+    await markji.invalidate(HashKeyScope.SHEETS, {bank: info.folder, category: info.deck})
+    chapters = (await markji.sheets({bank: info.folder, category: info.deck})) as MarkjiChapter[]
+    chapter = find<MarkjiChapter>(chapters, chapterName)
+  }
 
   // create.
   if (!chapter) {
@@ -187,13 +196,11 @@ const _chapter = async (
     )
 
     await markji.invalidate(HashKeyScope.SHEETS, {bank: info.folder, category: info.deck})
-
     chapters = (await markji.sheets({bank: info.folder, category: info.deck})) as MarkjiChapter[]
+    chapter = find<MarkjiChapter>(chapters, chapterName) as MarkjiChapter
   }
 
-  chapter = find<MarkjiChapter>(chapters, chapterName) as MarkjiChapter
-
-  // sort
+  // sort.
   let _paramSheetOrder = 1
 
   for (const _category of await params.vendor.categories(params, {excludeTtl: true})) {
@@ -230,11 +237,9 @@ const _chapter = async (
     )
 
     await markji.invalidate(HashKeyScope.SHEETS, {bank: info.folder, category: info.deck})
-
     chapters = (await markji.sheets({bank: info.folder, category: info.deck})) as MarkjiChapter[]
+    chapter = find<MarkjiChapter>(chapters, chapterName) as MarkjiChapter
   }
-
-  chapter = find<MarkjiChapter>(chapters, chapterName) as MarkjiChapter
 
   return chapter
 }
@@ -359,16 +364,23 @@ const bulkUpload = async (options: BulkUploadOptions): Promise<void> => {
 
   emitter.emit('output.upload.count', doneQuestionCount || 0)
 
-  for (const [_questionIdx, _questionKey] of allQuestionKeys.entries()) {
-    if (_questionIdx <= doneQuestionIdx) continue
+  if (allQuestionKeys.length > doneQuestionCount) {
+    // upload.
+    for (const [_questionIdx, _questionKey] of allQuestionKeys.entries()) {
+      // skip.
+      if (_questionIdx <= doneQuestionIdx) {
+        emitter.emit('output.upload.count', _questionIdx + 1)
+        continue
+      }
 
-    const _question: AssetString = await cacheClient.get(_questionKey)
+      const _question: AssetString = await cacheClient.get(_questionKey)
 
-    await upload(markjiInfo, _questionIdx, _question)
+      await upload(markjiInfo, _questionIdx, _question)
 
-    // emit.
-    emitter.emit('output.upload.count', _questionIdx + 1)
-    await sleep(500)
+      // emit.
+      emitter.emit('output.upload.count', _questionIdx + 1)
+      await sleep(500)
+    }
   }
 
   emitter.emit('output.upload.count', allQuestionKeys.length)

@@ -1,13 +1,14 @@
 import type {CacheRequestConfig} from 'axios-cache-interceptor'
 
 import lodash from 'lodash'
+import path from 'node:path'
 
-import {OutputClass} from '../output/common.js'
-import Markji from '../output/fenbi/markji.js'
+import {OutputClass} from '../../output/common.js'
+import Markji from '../../output/fenbi/markji.js'
 import FenbiKaoyan from './fenbi-kaoyan.js'
 
 export class Fenbi extends FenbiKaoyan {
-  public static META = {key: 'fenbi', name: '粉笔教育'}
+  public static META = {key: path.parse(import.meta.url).name, name: '粉笔教育'}
 
   /**
    * Allowed outputs.

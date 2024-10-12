@@ -1,20 +1,22 @@
 // import BiguoFree from './biguo-free.js'
-import BiguoReal from './biguo-real.js'
-import BiguoVip from './biguo-vip.js'
-import ChaoXing from './chaoxing.js'
-import Demo from './demo.js'
-import {Fenbi} from './fenbi.js'
-import FenbiKaoyan from './fenbi-kaoyan.js'
-import JsonFile from './json-file.js'
-import Markji from './markji.js'
-import MyTodoAws from './mytodo-aws.js'
-import Wantiku from './wantiku.js'
-import WantikuChapter from './wantiku-chapter.js'
-import Wx233 from './wx233.js'
+import BiguoFree from './_/biguo-free.js'
+import BiguoReal from './_/biguo-real.js'
+import BiguoVip from './_/biguo-vip.js'
+import ChaoXing from './_/chaoxing.js'
+import Demo from './_/demo.js'
+import {Fenbi} from './_/fenbi.js'
+import FenbiKaoyan from './_/fenbi-kaoyan.js'
+import _ from './_/index.js'
+import JsonFile from './_/json-file.js'
+import Markji from './_/markji.js'
+import MyTodoAws from './_/mytodo-aws.js'
+import Wantiku from './_/wantiku.js'
+import WantikuChapter from './_/wantiku-chapter.js'
+import Wx233 from './_/wx233.js'
 
 export default class VendorManager {
   protected static components = {
-    // [BiguoFree.META.key]: BiguoFree,
+    [BiguoFree.META.key]: BiguoFree,
     [BiguoReal.META.key]: BiguoReal,
     [BiguoVip.META.key]: BiguoVip,
     [ChaoXing.META.key]: ChaoXing,
@@ -38,6 +40,6 @@ export default class VendorManager {
   }
 
   public static getNames() {
-    return Object.keys(this.components)
+    return _.list()
   }
 }

@@ -2,21 +2,23 @@ import type {CacheRequestConfig} from 'axios-cache-interceptor'
 
 import {Cacheable} from '@type-cacheable/core'
 import lodash from 'lodash'
+import path from 'node:path'
 import sleep from 'sleep-promise'
 
-import {Bank} from '../../types/bank.js'
-import {Category} from '../../types/category.js'
-import {FetchOptions} from '../../types/common.js'
-import {Sheet} from '../../types/sheet.js'
-import {emitter} from '../../utils/event.js'
-import puppeteer from '../../utils/puppeteer.js'
-import {CACHE_KEY_ORIGIN_QUESTION_ITEM} from '../cache-pattern.js'
-import {OutputClass} from '../output/common.js'
-import Markji from '../output/mytodo/markji.js'
-import {HashKeyScope, Vendor, cacheKeyBuilder} from './common.js'
+import sqliteCache from '../../../cache/sqlite.manager.js'
+import {Bank} from '../../../types/bank.js'
+import {Category} from '../../../types/category.js'
+import {FetchOptions} from '../../../types/common.js'
+import {Sheet} from '../../../types/sheet.js'
+import {emitter} from '../../../utils/event.js'
+import puppeteer from '../../../utils/puppeteer.js'
+import {CACHE_KEY_ORIGIN_QUESTION_ITEM} from '../../cache-pattern.js'
+import {OutputClass} from '../../output/common.js'
+import Markji from '../../output/mytodo/markji.js'
+import {HashKeyScope, Vendor, cacheKeyBuilder} from '../common.js'
 
 export default class MyTodoAws extends Vendor {
-  public static META = {key: 'mytodo-aws', name: 'AWS'}
+  public static META = {key: path.parse(import.meta.url).name, name: 'AWS'}
 
   public get allowedOutputs(): Record<string, OutputClass> {
     return {
@@ -157,7 +159,7 @@ export default class MyTodoAws extends Vendor {
   /**
    * Login.
    */
-  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN)})
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN), client: sqliteCache.CommonClient})
   protected async toLogin(password: string): Promise<CacheRequestConfig> {
     const page = await puppeteer.page('mytodo', 'https://mytodo.vip/login')
 

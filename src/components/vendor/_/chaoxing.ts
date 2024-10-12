@@ -7,23 +7,24 @@ import lodash from 'lodash'
 import path from 'node:path'
 import sleep from 'sleep-promise'
 
-import Service, {service as embeddingService} from '../../embedding/service.js'
-import {PKG_ASSETS_DIR} from '../../env.js'
-import {Bank} from '../../types/bank.js'
-import {Category} from '../../types/category.js'
-import {FetchOptions} from '../../types/common.js'
-import {Sheet} from '../../types/sheet.js'
-import axios from '../../utils/axios.js'
-import {emitter} from '../../utils/event.js'
-import {safeName, throwError} from '../../utils/index.js'
-import puppeteer from '../../utils/puppeteer.js'
-import {CACHE_KEY_ORIGIN_QUESTION_ITEM} from '../cache-pattern.js'
-import Markji from '../output/chaoxing/markji.js'
-import {OutputClass} from '../output/common.js'
-import {HashKeyScope, Vendor, cacheKeyBuilder} from './common.js'
+import sqliteCache from '../../../cache/sqlite.manager.js'
+import Service, {service as embeddingService} from '../../../embedding/service.js'
+import {PKG_ASSETS_DIR} from '../../../env.js'
+import {Bank} from '../../../types/bank.js'
+import {Category} from '../../../types/category.js'
+import {FetchOptions} from '../../../types/common.js'
+import {Sheet} from '../../../types/sheet.js'
+import axios from '../../../utils/axios.js'
+import {emitter} from '../../../utils/event.js'
+import {safeName, throwError} from '../../../utils/index.js'
+import puppeteer from '../../../utils/puppeteer.js'
+import {CACHE_KEY_ORIGIN_QUESTION_ITEM} from '../../cache-pattern.js'
+import Markji from '../../output/chaoxing/markji.js'
+import {OutputClass} from '../../output/common.js'
+import {HashKeyScope, Vendor, cacheKeyBuilder} from '../common.js'
 
 export default class ChaoXing extends Vendor {
-  public static META = {key: 'chaoxing', name: '超星'}
+  public static META = {key: path.parse(import.meta.url).name, name: '超星'}
 
   public get allowedOutputs(): Record<string, OutputClass> {
     return {
@@ -318,7 +319,10 @@ export default class ChaoXing extends Vendor {
     return data
   }
 
-  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN)})
+  /**
+   * Login.
+   */
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN), client: sqliteCache.CommonClient})
   protected async toLogin(password: string): Promise<CacheRequestConfig> {
     const page = await puppeteer.page('chaoxing', 'https://passport2.chaoxing.com/login')
 

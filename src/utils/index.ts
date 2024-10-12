@@ -1,8 +1,8 @@
-import cacheManager from '@type-cacheable/core'
 import fs from 'fs-extra'
 import inquirer from 'inquirer'
 import lodash from 'lodash'
 
+import sqliteCache from '../cache/sqlite.manager.js'
 import {Vendor} from '../components/vendor/common.js'
 
 export type FindOptions<T = object> = {
@@ -104,7 +104,7 @@ export function reverseTemplate(template: string, result: string): Record<string
 export async function safeName(name: string): Promise<string> {
   if (name.length <= 48) return name
 
-  const cacheClient = (cacheManager.default.client ?? cacheManager.default.fallbackClient) as cacheManager.CacheClient
+  const cacheClient = sqliteCache.CommonClient
 
   let _safeName = await cacheClient.get(`safe-name:${name}`)
 

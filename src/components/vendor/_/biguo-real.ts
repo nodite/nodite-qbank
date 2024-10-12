@@ -1,23 +1,25 @@
 import {Cacheable} from '@type-cacheable/core'
 import {CacheRequestConfig} from 'axios-cache-interceptor'
 import lodash from 'lodash'
+import path from 'node:path'
 import sleep from 'sleep-promise'
 
-import {Bank} from '../../types/bank.js'
-import {Category} from '../../types/category.js'
-import {FetchOptions, Params} from '../../types/common.js'
-import {Sheet} from '../../types/sheet.js'
-import axios from '../../utils/axios.js'
-import {emitter} from '../../utils/event.js'
-import {safeName} from '../../utils/index.js'
-import biguo from '../../utils/vendor/biguo.js'
-import {CACHE_KEY_ORIGIN_QUESTION_ITEM} from '../cache-pattern.js'
-import Markji from '../output/biguo/markji.js'
-import {OutputClass} from '../output/common.js'
-import {HashKeyScope, Vendor, cacheKeyBuilder} from './common.js'
+import sqliteCache from '../../../cache/sqlite.manager.js'
+import {Bank} from '../../../types/bank.js'
+import {Category} from '../../../types/category.js'
+import {FetchOptions, Params} from '../../../types/common.js'
+import {Sheet} from '../../../types/sheet.js'
+import axios from '../../../utils/axios.js'
+import {emitter} from '../../../utils/event.js'
+import {safeName} from '../../../utils/index.js'
+import biguo from '../../../utils/vendor/biguo.js'
+import {CACHE_KEY_ORIGIN_QUESTION_ITEM} from '../../cache-pattern.js'
+import Markji from '../../output/biguo/markji.js'
+import {OutputClass} from '../../output/common.js'
+import {HashKeyScope, Vendor, cacheKeyBuilder} from '../common.js'
 
 export default class BiguoReal extends Vendor {
-  public static META = {key: 'biguo-real', name: '笔果真题'}
+  public static META = {key: path.parse(import.meta.url).name, name: '笔果真题'}
 
   public get allowedOutputs(): Record<string, OutputClass> {
     return {
@@ -265,7 +267,10 @@ export default class BiguoReal extends Vendor {
     return [{count: params.category.count, id: '0', name: '默认'}]
   }
 
-  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN)})
+  /**
+   * Login.
+   */
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN), client: sqliteCache.CommonClient})
   protected async toLogin(password: string): Promise<CacheRequestConfig<any, any>> {
     const userAgent = 'Biguo_Pro/6.9.1 (com.depeng.biguo; build:2; iOS 17.5.1) Alamofire/5.9.1'
 

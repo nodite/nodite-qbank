@@ -5,11 +5,15 @@ import {ComponentMeta} from '../types/common.js'
 abstract class Component {
   public static META: ComponentMeta
 
-  public getCacheClient = () => this.cacheClient
+  public getCacheClient = () => {
+    if (!cacheManager.default.client) {
+      throw new Error('Cache client not found')
+    }
+
+    return cacheManager.default.client
+  }
 
   public getUsername = () => this.username
-
-  private cacheClient = (cacheManager.default.client ?? cacheManager.default.fallbackClient) as cacheManager.CacheClient
 
   private username: string
 

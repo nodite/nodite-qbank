@@ -2,25 +2,27 @@ import type {CacheRequestConfig} from 'axios-cache-interceptor'
 
 import {Cacheable} from '@type-cacheable/core'
 import lodash from 'lodash'
+import path from 'node:path'
 import random from 'random-number'
 import sleep from 'sleep-promise'
 import UserAgent from 'user-agents'
 
-import {Bank} from '../../types/bank.js'
-import {Category} from '../../types/category.js'
-import {FetchOptions} from '../../types/common.js'
-import {Sheet} from '../../types/sheet.js'
-import axios from '../../utils/axios.js'
-import {emitter} from '../../utils/event.js'
-import {safeName, throwError} from '../../utils/index.js'
-import fenbi from '../../utils/vendor/fenbi.js'
-import {CACHE_KEY_ORIGIN_QUESTION_ITEM, CACHE_KEY_ORIGIN_QUESTION_PROCESSING} from '../cache-pattern.js'
-import {OutputClass} from '../output/common.js'
-import Markji from '../output/fenbi/markji.js'
-import {HashKeyScope, Vendor, cacheKeyBuilder} from './common.js'
+import sqliteCache from '../../../cache/sqlite.manager.js'
+import {Bank} from '../../../types/bank.js'
+import {Category} from '../../../types/category.js'
+import {FetchOptions} from '../../../types/common.js'
+import {Sheet} from '../../../types/sheet.js'
+import axios from '../../../utils/axios.js'
+import {emitter} from '../../../utils/event.js'
+import {safeName, throwError} from '../../../utils/index.js'
+import fenbi from '../../../utils/vendor/fenbi.js'
+import {CACHE_KEY_ORIGIN_QUESTION_ITEM, CACHE_KEY_ORIGIN_QUESTION_PROCESSING} from '../../cache-pattern.js'
+import {OutputClass} from '../../output/common.js'
+import Markji from '../../output/fenbi/markji.js'
+import {HashKeyScope, Vendor, cacheKeyBuilder} from '../common.js'
 
 export default class FenbiKaoyan extends Vendor {
-  public static META = {key: 'fenbi-kaoyan', name: '粉笔考研'}
+  public static META = {key: path.parse(import.meta.url).name, name: '粉笔考研'}
 
   /**
    * Allowed outputs.
@@ -399,7 +401,7 @@ export default class FenbiKaoyan extends Vendor {
   /**
    * Login.
    */
-  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN)})
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN), client: sqliteCache.CommonClient})
   protected async toLogin(password: string): Promise<CacheRequestConfig> {
     const userAgent = new UserAgent({
       deviceCategory: 'mobile',

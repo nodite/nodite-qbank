@@ -3,6 +3,7 @@ import colors from 'ansi-colors'
 import inquirer from 'inquirer'
 import lodash from 'lodash'
 
+import sqliteCache from './cache/sqlite.manager.js'
 import OutputManager from './components/output/index.js'
 import VendorManager from './components/vendor/index.js'
 import {Bank} from './types/bank.js'
@@ -37,6 +38,9 @@ export default abstract class BaseCommand extends Command {
 
       Object.assign(flags, answers)
     }
+
+    // switch cache client
+    sqliteCache.switchClient(flags.vendor)
 
     if (flags.username) {
       console.log(`${colors.green('✔')} ${colors.bold('供应商账号')}: ${colors.cyan(flags.username)}`)

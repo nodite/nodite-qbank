@@ -1,17 +1,19 @@
 import type {CacheRequestConfig} from 'axios-cache-interceptor'
 
 import {Cacheable} from '@type-cacheable/core'
+import path from 'node:path'
 
-import {Bank} from '../../types/bank.js'
-import {Category} from '../../types/category.js'
-import {FetchOptions} from '../../types/common.js'
-import {Sheet} from '../../types/sheet.js'
-import {OutputClass} from '../output/common.js'
-import File from '../output/file.js'
-import {HashKeyScope, Vendor, cacheKeyBuilder} from './common.js'
+import sqliteCache from '../../../cache/sqlite.manager.js'
+import {Bank} from '../../../types/bank.js'
+import {Category} from '../../../types/category.js'
+import {FetchOptions} from '../../../types/common.js'
+import {Sheet} from '../../../types/sheet.js'
+import {OutputClass} from '../../output/common.js'
+import File from '../../output/file.js'
+import {HashKeyScope, Vendor, cacheKeyBuilder} from '../common.js'
 
 export default class Demo extends Vendor {
-  public static META = {key: 'demo', name: 'Demo'}
+  public static META = {key: path.parse(import.meta.url).name, name: 'Demo'}
 
   public get allowedOutputs(): Record<string, OutputClass> {
     return {
@@ -38,7 +40,10 @@ export default class Demo extends Vendor {
     return [{count: params.category.count, id: '0', name: '默认'}]
   }
 
-  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN)})
+  /**
+   * Login.
+   */
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN), client: sqliteCache.CommonClient})
   protected async toLogin(password: string): Promise<CacheRequestConfig> {
     return {
       headers: {password},

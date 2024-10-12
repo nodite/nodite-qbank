@@ -1,16 +1,18 @@
 import {Cacheable} from '@type-cacheable/core'
 import {CacheRequestConfig} from 'axios-cache-interceptor'
 import lodash from 'lodash'
+import path from 'node:path'
 
-import {Bank, MarkjiFolder} from '../../types/bank.js'
-import {Category} from '../../types/category.js'
-import {MarkjiChapter} from '../../types/sheet.js'
-import axios from '../../utils/axios.js'
-import {OutputClass} from '../output/common.js'
-import {HashKeyScope, Vendor, cacheKeyBuilder} from './common.js'
+import sqliteCache from '../../../cache/sqlite.manager.js'
+import {Bank, MarkjiFolder} from '../../../types/bank.js'
+import {Category} from '../../../types/category.js'
+import {MarkjiChapter} from '../../../types/sheet.js'
+import axios from '../../../utils/axios.js'
+import {OutputClass} from '../../output/common.js'
+import {HashKeyScope, Vendor, cacheKeyBuilder} from '../common.js'
 
 export default class Markji extends Vendor {
-  public static META = {key: 'markji', name: 'Markji'}
+  public static META = {key: path.parse(import.meta.url).name, name: 'Markji'}
 
   public get allowedOutputs(): Record<string, OutputClass> {
     return {}
@@ -108,7 +110,10 @@ export default class Markji extends Vendor {
     }))
   }
 
-  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN)})
+  /**
+   * Login.
+   */
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN), client: sqliteCache.CommonClient})
   protected async toLogin(password: string): Promise<CacheRequestConfig> {
     const userAgent =
       'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) ' +

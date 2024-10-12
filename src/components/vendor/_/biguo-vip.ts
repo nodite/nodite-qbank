@@ -1,14 +1,15 @@
 import {Cacheable} from '@type-cacheable/core'
 import {CacheRequestConfig} from 'axios-cache-interceptor'
+import path from 'node:path'
 
-import {Bank} from '../../types/bank.js'
-import {Category} from '../../types/category.js'
-import {Params} from '../../types/common.js'
+import {Bank} from '../../../types/bank.js'
+import {Category} from '../../../types/category.js'
+import {Params} from '../../../types/common.js'
+import {HashKeyScope, cacheKeyBuilder} from '../common.js'
 import BiguoReal from './biguo-real.js'
-import {HashKeyScope, cacheKeyBuilder} from './common.js'
 
 export default class BiguoVip extends BiguoReal {
-  public static META = {key: 'biguo-vip', name: '笔果💯'}
+  public static META = {key: path.parse(import.meta.url).name, name: '笔果💯'}
 
   /**
    * Categories.

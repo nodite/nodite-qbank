@@ -1,22 +1,25 @@
+import {Cacheable} from '@type-cacheable/core'
 import {CacheRequestConfig} from 'axios-cache-interceptor'
 import fs from 'fs-extra'
 import lodash from 'lodash'
+import path from 'node:path'
 import sleep from 'sleep-promise'
 
-import {PKG_ROOT_DIR} from '../../env.js'
-import {Bank} from '../../types/bank.js'
-import {Category} from '../../types/category.js'
-import {FetchOptions} from '../../types/common.js'
-import {Sheet} from '../../types/sheet.js'
-import {emitter} from '../../utils/event.js'
-import {safeName} from '../../utils/index.js'
-import {CACHE_KEY_ORIGIN_QUESTION_ITEM} from '../cache-pattern.js'
-import {OutputClass} from '../output/common.js'
-import Markji from '../output/json/markji.js'
-import {Vendor} from './common.js'
+import sqliteCache from '../../../cache/sqlite.manager.js'
+import {PKG_ROOT_DIR} from '../../../env.js'
+import {Bank} from '../../../types/bank.js'
+import {Category} from '../../../types/category.js'
+import {FetchOptions} from '../../../types/common.js'
+import {Sheet} from '../../../types/sheet.js'
+import {emitter} from '../../../utils/event.js'
+import {safeName} from '../../../utils/index.js'
+import {CACHE_KEY_ORIGIN_QUESTION_ITEM, HashKeyScope} from '../../cache-pattern.js'
+import {OutputClass} from '../../output/common.js'
+import Markji from '../../output/json/markji.js'
+import {Vendor, cacheKeyBuilder} from '../common.js'
 
 export default class JsonFile extends Vendor {
-  public static META = {key: 'json-file', name: 'JSON 文件'}
+  public static META = {key: path.parse(import.meta.url).name, name: 'JSON 文件'}
 
   public get allowedOutputs(): Record<string, OutputClass> {
     return {
@@ -140,8 +143,9 @@ export default class JsonFile extends Vendor {
   }
 
   /**
-   * To login.
+   * Login.
    */
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN), client: sqliteCache.CommonClient})
   protected async toLogin(_password: string): Promise<CacheRequestConfig<any, any>> {
     return {}
   }
