@@ -35,15 +35,22 @@ export default class Markji extends MarkjiBase {
       // 10. 简答题
       // 12. 论述题
       // 13. 案例分析题
+      // 18. 词语解释题
+      // 19. 应用题
+      // 20. 综合题
       // 21. 英译汉
       // 22. 汉译英
+      // 23. 作文题
       // 25. 分析题
+      // 26. 材料分析题
       // 27. 分析说明题
+      // 28. 简析题
       // 31. 古文背诵题
       // 32. 释词题
       // 33. 古文翻译题
       // 34. 古文标点题
       // 35. 古文阅读题
+      // 70. 算法设计题
       case 4:
       case 7:
       case 8:
@@ -51,15 +58,22 @@ export default class Markji extends MarkjiBase {
       case 10:
       case 12:
       case 13:
+      case 18:
+      case 19:
+      case 20:
       case 21:
       case 22:
+      case 23:
       case 25:
+      case 26:
       case 27:
+      case 28:
       case 31:
       case 32:
       case 33:
       case 34:
-      case 35: {
+      case 35:
+      case 70: {
         output = await this._processTranslate(question, params)
         break
       }
