@@ -133,7 +133,14 @@ export default class BiguoReal extends Vendor {
       }
     }
 
-    return banks
+    return lodash
+      .chain(banks)
+      .sortBy('name')
+      .map((b, idx) => ({
+        ...b,
+        order: idx,
+      }))
+      .value()
   }
 
   /**

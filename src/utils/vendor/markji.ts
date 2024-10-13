@@ -23,6 +23,7 @@ const ensureContact = async (
   params: {deck: Category; folder: Bank; markji: Vendor},
   requestConfig: CacheRequestConfig,
 ) => {
+  await params.markji.invalidate(HashKeyScope.SHEETS, {bank: params.folder, category: params.deck})
   const chapters = (await params.markji.sheets({bank: params.folder, category: params.deck})) as MarkjiChapter[]
   const defaultChapter = find<MarkjiChapter>(chapters, '默认章节') as MarkjiChapter
   const cardId = defaultChapter.cardIds[0]
@@ -121,7 +122,7 @@ const _deck = async (
   if (!deck) {
     await axios.post(
       'https://www.markji.com/api/v1/decks',
-      {folder_id: info.folder.id, is_private: false, name: params.bank.name},
+      {folder_id: info.folder.id, is_private: false, name: params.bank.name, order: decks.length},
       lodash.merge({}, requestConfig, {cache: false}),
     )
 
@@ -173,19 +174,14 @@ const _chapter = async (
   params: {bank: Bank; category: Category; sheet: Sheet; vendor: Vendor},
   requestConfig: CacheRequestConfig,
 ): Promise<MarkjiChapter> => {
+  await markji.invalidate(HashKeyScope.SHEETS, {bank: info.folder, category: info.deck})
+
   const chapterName = await safeName(
     params.sheet.id === '0' ? params.category.name : `${params.category.name} / ${params.sheet.name}`,
   )
 
   let chapters = (await markji.sheets({bank: info.folder, category: info.deck})) as MarkjiChapter[]
   let chapter = find<MarkjiChapter>(chapters, chapterName)
-
-  // check.
-  if (!chapter) {
-    await markji.invalidate(HashKeyScope.SHEETS, {bank: info.folder, category: info.deck})
-    chapters = (await markji.sheets({bank: info.folder, category: info.deck})) as MarkjiChapter[]
-    chapter = find<MarkjiChapter>(chapters, chapterName)
-  }
 
   // create.
   if (!chapter) {
