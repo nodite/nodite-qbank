@@ -4,7 +4,6 @@ import lodash from 'lodash'
 import path from 'node:path'
 import sleep from 'sleep-promise'
 
-import sqliteCache from '../../../cache/sqlite.manager.js'
 import {Bank} from '../../../types/bank.js'
 import {Category} from '../../../types/category.js'
 import {FetchOptions, Params} from '../../../types/common.js'
@@ -32,10 +31,7 @@ export default class BiguoReal extends Vendor {
    */
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.BANKS)})
   protected async fetchBanks(): Promise<Bank[]> {
-    const LIMIT = [
-      {profession_names: ['汉语言文学', '应用心理学'], school_name: '福州大学'},
-      {profession_names: ['计算机'], school_name: '上海交通大学'},
-    ]
+    const LIMIT = [{profession_names: ['应用心理学（新）'], school_name: '福州大学'}]
 
     const requestConfig = await this.login()
 
@@ -277,7 +273,7 @@ export default class BiguoReal extends Vendor {
   /**
    * Login.
    */
-  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN), client: sqliteCache.CommonClient})
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN)})
   protected async toLogin(password: string): Promise<CacheRequestConfig<any, any>> {
     const userAgent = 'Biguo_Pro/6.9.1 (com.depeng.biguo; build:2; iOS 17.5.1) Alamofire/5.9.1'
 
