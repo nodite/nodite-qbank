@@ -1,5 +1,5 @@
+import {password} from '@inquirer/prompts'
 import {Flags} from '@oclif/core'
-import inquirer from 'inquirer'
 
 import BaseCommand from '../../base.js'
 import {HashKeyScope} from '../../components/vendor/common.js'
@@ -25,8 +25,9 @@ Login to vendor (./src/commands/vendor/login.ts)
 
     // Ensure password are provided
     if (!flags.password) {
-      const answers = await inquirer.prompt([{message: '密码:', name: 'password', type: 'password'}] as never)
-      Object.assign(flags, answers)
+      Object.assign(flags, {
+        password: await password({message: '密码:'}),
+      })
     }
 
     // Login to vendor

@@ -9,6 +9,7 @@
   "bugs": "https://github.com/oscaner/qbank/issues",
   "dependencies": {
     "@huggingface/inference": "^2.8.1",
+    "@inquirer/prompts": "^7",
     "@langchain/community": "^0.3.4",
     "@langchain/core": "^0.3.9",
     "@langchain/ollama": "^0.1.0",
@@ -36,7 +37,6 @@
     "form-data": "^4",
     "fs-extra": "^11",
     "html-to-text": "^9",
-    "inquirer": "^12",
     "lodash": "^4",
     "md5": "^2",
     "node-html-parser": "^6",
@@ -90,7 +90,7 @@
     "prettier": "^3",
     "shx": "^0",
     "ts-node": "^10",
-    "typescript": "<5.6.0"
+    "typescript": "<5.7.0"
   },
   "overrides": {
     "got": "^14"

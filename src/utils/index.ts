@@ -1,5 +1,5 @@
+import {input} from '@inquirer/prompts'
 import fs from 'fs-extra'
-import inquirer from 'inquirer'
 import lodash from 'lodash'
 
 import sqliteCache from '../cache/sqlite.manager.js'
@@ -113,15 +113,10 @@ export async function safeName(name: string): Promise<string> {
   _safeName = name
 
   while (_safeName.length > 48) {
-    const answers = await inquirer.prompt([
-      {
-        default: _safeName,
-        message: `Safe name (max 48 chars):\n`,
-        name: 'safeName',
-        type: 'input',
-      },
-    ])
-    _safeName = answers.safeName
+    _safeName = await input({
+      default: _safeName,
+      message: `Safe name (max 48 chars):\n`,
+    })
   }
 
   await cacheClient.set(`safe-name:${name}`, _safeName)

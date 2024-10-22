@@ -1,6 +1,6 @@
+import {input, select} from '@inquirer/prompts'
 import {Command, Flags} from '@oclif/core'
 import colors from 'ansi-colors'
-import inquirer from 'inquirer'
 import lodash from 'lodash'
 
 import sqliteCache from './cache/sqlite.manager.js'
@@ -24,19 +24,15 @@ export default abstract class BaseCommand extends Command {
     if (flags.vendor) {
       console.log(`${colors.green('✔')} ${colors.bold('题库供应商')}: ${colors.cyan(flags.vendor)}`)
     } else {
-      const answers = await inquirer.prompt([
-        {
+      Object.assign(flags, {
+        vendor: await select({
           choices: lodash.map(VendorManager.getMetas(), (meta) => ({
             name: `${meta.name} (${meta.key})`,
             value: meta.key,
           })),
           message: '题库供应商:',
-          name: 'vendor',
-          type: 'list',
-        },
-      ])
-
-      Object.assign(flags, answers)
+        }),
+      })
     }
 
     // switch cache client
@@ -45,8 +41,7 @@ export default abstract class BaseCommand extends Command {
     if (flags.username) {
       console.log(`${colors.green('✔')} ${colors.bold('供应商账号')}: ${colors.cyan(flags.username)}`)
     } else {
-      const answers = await inquirer.prompt([{message: '供应商账号:', name: 'username', type: 'input'}])
-      Object.assign(flags, answers)
+      Object.assign(flags, {username: await input({message: '供应商账号:'})})
     }
 
     // bank
@@ -88,16 +83,12 @@ export default abstract class BaseCommand extends Command {
       return
     }
 
-    const answers = await inquirer.prompt([
-      {
+    Object.assign(flags, {
+      bank: await select({
         choices: lodash.map(_banks, (bank) => ({name: bank.name, value: bank.name})),
         message: '题库:',
-        name: 'bank',
-        type: 'list',
-      },
-    ] as never)
-
-    Object.assign(flags, answers)
+      }),
+    })
   }
 
   /**
@@ -125,16 +116,12 @@ export default abstract class BaseCommand extends Command {
       return
     }
 
-    const answers = await inquirer.prompt([
-      {
+    Object.assign(flags, {
+      category: await select({
         choices: lodash.map(_categories, (ct) => ({name: ct.name, value: ct.name})),
         message: '分类:',
-        name: 'category',
-        type: 'list',
-      },
-    ] as never)
-
-    Object.assign(flags, answers)
+      }),
+    })
   }
 
   /**
@@ -156,16 +143,12 @@ export default abstract class BaseCommand extends Command {
     }
     // multiple outputs.
     else {
-      const answers = await inquirer.prompt([
-        {
+      Object.assign(flags, {
+        output: await select({
           choices: lodash.map(_outputs, (output) => ({name: output.name, value: output.key})),
           message: '接收方:',
-          name: 'output',
-          type: 'list',
-        },
-      ] as never)
-
-      Object.assign(flags, answers)
+        }),
+      })
     }
 
     // output username
@@ -175,16 +158,9 @@ export default abstract class BaseCommand extends Command {
     }
     // input output username.
     else {
-      const answers = await inquirer.prompt([
-        {
-          default: flags.username,
-          message: '接收方账号:',
-          name: 'output-username',
-          type: 'input',
-        },
-      ] as never)
-
-      Object.assign(flags, answers)
+      Object.assign(flags, {
+        'output-username': await input({default: flags.username, message: '接收方账号:'}),
+      })
     }
   }
 
@@ -215,15 +191,11 @@ export default abstract class BaseCommand extends Command {
       return
     }
 
-    const answers = await inquirer.prompt([
-      {
+    Object.assign(flags, {
+      sheet: await select({
         choices: lodash.map(_sheets, (sheet) => ({name: sheet.name, value: sheet.name})),
         message: '试卷:',
-        name: 'sheet',
-        type: 'list',
-      },
-    ] as never)
-
-    Object.assign(flags, answers)
+      }),
+    })
   }
 }
