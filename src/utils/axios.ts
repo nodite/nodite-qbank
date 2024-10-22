@@ -9,9 +9,10 @@ const axiosInstance = setupCache(Axios, {
   ttl: 1000 * 60 * 5, // 5min
 })
 
+// @ts-ignore
 axiosRetry(axiosInstance, {
   retries: 3,
-  retryCondition(error) {
+  retryCondition(error: any) {
     if (lodash.isNumber(error.response?.status) && error.response.status >= 500 && error.response.status <= 599) {
       return true
     }
