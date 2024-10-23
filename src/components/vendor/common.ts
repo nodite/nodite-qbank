@@ -153,7 +153,9 @@ abstract class Vendor extends Component {
     params?: {bank?: Bank; category?: Category; output?: Output; questionId?: string; sheet?: Sheet},
   ): Promise<void> {
     const cacheKey = cacheKeyBuilder(scope)([params], this)
-    await this.getCacheClient().delHash(cacheKey)
+    let cacheClient = this.getCacheClient()
+    if (scope === HashKeyScope.LOGIN) cacheClient = sqliteCache.CommonClient
+    await cacheClient.delHash(cacheKey)
   }
 
   /**
