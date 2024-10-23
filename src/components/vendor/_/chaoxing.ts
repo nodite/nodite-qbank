@@ -89,50 +89,37 @@ export default class ChaoXing extends Vendor {
     // prepare embedding.
     const collectionName = `chaoxing:${params.bank.id}:categories`
     const data = await this.getData(params)
-    const _factory = await embeddingService.factory()
+    // const _factory = await embeddingService.factory()
 
-    const queries = lodash
+    const docChunks = lodash
       .chain(data)
       .map('目录ID')
       .uniq()
-      .map((id): Document[] => {
-        const _items = lodash.filter(data, {目录ID: id})
-
-        return lodash
-          .chain([
-            ..._factory.split2Segments(_items[0]['一级目录']),
-            ..._factory.split2Segments(_items[0]['二级目录']),
-            ..._factory.split2Segments(_items[0]['三级目录']),
-          ])
-          .flatten()
-          .uniq()
-          .map((_segment) => ({
-            metadata: {
-              [Service.QUERY_ID]: `${_segment} (${id})`,
-              dirId: id,
-              dirname: [_items[0]['一级目录'], _items[0]['二级目录'], _items[0]['三级目录']],
-              exerIds: lodash.map(_items, '练习ID'),
-            },
-            pageContent: _segment,
-          }))
-          .filter((doc) => doc.pageContent.length > 0)
-          .uniqBy(`metadata.${Service.QUERY_ID}`)
-          .value()
+      .map((id): Document => {
+        const item = lodash.find(data, {目录ID: id})
+        return {
+          metadata: {
+            [Service.QUERY_ID]: id,
+            dirId: item['目录ID'],
+            dirname: [item['一级目录'], item['二级目录'], item['三级目录']],
+            exerIds: lodash.chain(data).filter({目录ID: id}).map('练习ID').value(),
+          },
+          pageContent: [item['一级目录'], item['二级目录'], item['三级目录']].join(' > '),
+        }
       })
-      .flatten()
       .chunk(100)
       .value()
 
-    await Promise.all(lodash.map(queries, (_chk) => embeddingService.addQuery(collectionName, _chk)))
+    await Promise.all(lodash.map(docChunks, (_chk) => embeddingService.addQuery(collectionName, _chk)))
 
     // fetch categories.
-    const requestConfig = await this.login()
+    const config = await this.login()
 
     const [personId, clazzId] = params.bank.id.split('|')
 
     const clazz = await axios.get(
       'https://mooc1-api.chaoxing.com/gas/clazz',
-      lodash.merge({}, requestConfig, {
+      lodash.merge({}, config, {
         params: {
           fields:
             'id,bbsid,hideclazz,classscore,isstart,' +
@@ -161,12 +148,19 @@ export default class ChaoXing extends Vendor {
         const childrenExerIds = lodash.chain(children).map('meta.exerIds').flatten().uniq().value()
 
         // search extra exerIds.
-        const _segments = _factory.split2Segments(knowledge.name)
-        const searches = (
-          await Promise.all(
-            lodash.map(_segments, (segment) => _factory.search(collectionName, segment, {k: 10, scoreThreshold: 0.9})),
-          )
-        ).flat()
+        // const _segments = _factory.split2Segments(knowledge.name, 10, 20)
+
+        // TODO.
+        // const searches = lodash
+        //   .chain(
+        //     await Promise.all(
+        //       lodash.map(_segments, (segment) => _factory.search(collectionName, segment, {scoreThreshold: 0.5})),
+        //     ),
+        //   )
+        //   .flatten()
+        //   .groupBy(([_doc, _score]) => _doc.metadata.dirId)
+        //   .value()
+        const searches = [] as [Document, number][]
 
         const extraExerIds = lodash
           .chain(searches)

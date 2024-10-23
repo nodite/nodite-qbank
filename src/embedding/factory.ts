@@ -81,10 +81,7 @@ export default abstract class BaseFactory {
   /**
    * Split query into segments.
    */
-  public split2Segments(query: string): string[] {
-    const embeddingTextStep = 5
-    const embeddingTextSize = 6
-
+  public split2Segments(query: string, embeddingTextStep: number = 5, embeddingTextSize: number = 6): string[] {
     const segments = []
 
     for (let startIndex = 0; startIndex < query.length; startIndex += embeddingTextStep) {
