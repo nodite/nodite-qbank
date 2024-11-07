@@ -23,7 +23,7 @@ axiosRetry(axiosInstance, {
 
     return false
   },
-  retryDelay: axiosRetry.exponentialDelay,
+  retryDelay: axiosRetry.linearDelay(2000),
 })
 
 axiosInstance.interceptors.response.use(
