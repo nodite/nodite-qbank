@@ -93,7 +93,8 @@
     "typescript": "<5.7.0"
   },
   "overrides": {
-    "got": "^14"
+    "got": "^14",
+    "lru-cache": "^11"
   },
   "engines": {
     "node": ">=18.0.0"
