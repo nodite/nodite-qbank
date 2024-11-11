@@ -50,7 +50,7 @@
     "tmp": "^0",
     "tty-table": "^4",
     "user-agents": "^1",
-    "uuid": "^11.0.2"
+    "uuid": "^11.0.3"
   },
   "devDependencies": {
     "@commitlint/cli": "^19",
