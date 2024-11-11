@@ -8,7 +8,8 @@
     "target": "es2022",
     "moduleResolution": "node16",
     "emitDecoratorMetadata": true,
-    "experimentalDecorators": true
+    "experimentalDecorators": true,
+    "skipLibCheck": true
   },
   "include": ["./src/**/*"],
   "exclude": ["./node_modules/**/*"],
