@@ -4,6 +4,7 @@ import lodash from 'lodash'
 import path from 'node:path'
 import sleep from 'sleep-promise'
 
+import sqliteCache from '../../../cache/sqlite.manager.js'
 import {Bank} from '../../../types/bank.js'
 import {Category} from '../../../types/category.js'
 import {FetchOptions, Params} from '../../../types/common.js'
@@ -273,7 +274,7 @@ export default class BiguoReal extends Vendor {
   /**
    * Login.
    */
-  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN)})
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN), client: sqliteCache.CommonClient})
   protected async toLogin(password: string): Promise<CacheRequestConfig<any, any>> {
     const userAgent = 'Biguo_Pro/6.9.1 (com.depeng.biguo; build:2; iOS 17.5.1) Alamofire/5.9.1'
 
