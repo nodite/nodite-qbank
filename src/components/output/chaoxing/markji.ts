@@ -35,7 +35,8 @@ export default class Markji extends MarkjiBase {
       case '补全对话题':
       case '补全对话':
       case '音节题':
-      case '句型转换题': {
+      case '句型转换题':
+      case '解答题': {
         output = await this._processTranslate(question, params)
         break
       }
@@ -80,8 +81,7 @@ export default class Markji extends MarkjiBase {
 
     // unknown to process.
     if (_inputs.length === 0 || _blanks.length === 0 || _inputs.length !== _blanks.length) {
-      // return this._processTranslate(question, params)
-      throwError('Unsupported blank filling question', question)
+      return this._processTranslate(question, _params)
     }
 
     for (const [idx, assertKey] of _inputs.entries()) {

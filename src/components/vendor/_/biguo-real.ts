@@ -22,11 +22,6 @@ import {HashKeyScope, Vendor, cacheKeyBuilder} from '../common.js'
 export default class BiguoReal extends Vendor {
   public static META = {key: path.parse(import.meta.url).name, name: '笔果真题'}
 
-  public static TOPIC_TYPES = {
-    1: '单选题',
-    4: '简答题',
-  }
-
   public get allowedOutputs(): Record<string, OutputClass> {
     return {
       [Markji.META.key]: Markji,

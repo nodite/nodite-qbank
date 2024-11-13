@@ -6,7 +6,7 @@ import {v5 as uuid} from 'uuid'
 
 import {throwError} from '../utils/index.js'
 import BaseFactory from './factory.js'
-import Factory from './inmemory/factory.js'
+import Factory from './libsql/factory.js'
 
 export default class Service {
   public static QUERY_ID = 'queryId'
@@ -41,6 +41,7 @@ export default class Service {
   protected async cache(): Promise<MemoryCache> {
     if (!this._cache) {
       const _create = async (service: Service) => {
+        // Thread-safe
         return service._mutex.runExclusive(async () => {
           if (!service._cache) {
             service._cache = await caching('memory', {shouldCloneBeforeSet: false, ttl: 1000 * 60 * 60 * 10})
@@ -80,6 +81,7 @@ export default class Service {
   public async factory(): Promise<BaseFactory> {
     if (!this._factory) {
       const _create = async (service: Service) => {
+        // Thread-safe
         return service._mutex.runExclusive(async () => {
           if (!service._factory) service._factory = new Factory()
           return service._factory
@@ -131,7 +133,7 @@ export default class Service {
 
     if (searched.length === 0) return false
 
-    const docId = lodash.map(searched, ([doc]) => this._uuidByQuery(doc)).pop() as string
+    const docId = lodash.map(searched, ([doc]) => doc.id || this._uuidByQuery(doc)).pop() as string
 
     await _cache.set(queryId, docId)
 
@@ -145,7 +147,7 @@ export default class Service {
       throw new Error('Query id is not set')
     }
 
-    return uuid(queryId, uuid.DNS)
+    return uuid(String(queryId), uuid.DNS)
   }
 }
 

@@ -90,9 +90,8 @@ export default class ChaoXing extends Vendor {
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.CATEGORIES)})
   protected async fetchCategories(params: {bank: Bank}): Promise<Category[]> {
     // prepare embedding.
-    const collectionName = `chaoxing:${params.bank.id}:categories`
+    const collectionName = `chaoxing_${params.bank.id.slice(0, 8)}_categories`
     const data = await this.getData(params)
-    // const _factory = await embeddingService.factory()
 
     const docChunks = lodash
       .chain(data)
@@ -149,19 +148,20 @@ export default class ChaoXing extends Vendor {
         const childrenExerIds = lodash.chain(children).map('meta.exerIds').flatten().uniq().value()
 
         // search extra exerIds.
-        // const _segments = _factory.split2Segments(knowledge.name, 10, 20)
+        const _factory = await embeddingService.factory()
+        const _segments = _factory.split2Segments(knowledge.name, 10, 20)
 
-        // TODO.
-        // const searches = lodash
-        //   .chain(
-        //     await Promise.all(
-        //       lodash.map(_segments, (segment) => _factory.search(collectionName, segment, {scoreThreshold: 0.5})),
-        //     ),
-        //   )
-        //   .flatten()
-        //   .groupBy(([_doc, _score]) => _doc.metadata.dirId)
-        //   .value()
-        const searches = [] as [Document, number][]
+        const searches = lodash
+          .chain(
+            await Promise.all(
+              lodash.map(_segments, (segment) =>
+                _factory.search(collectionName, segment, {k: 100, scoreThreshold: 0.65}),
+              ),
+            ),
+          )
+          .flatten()
+          // .groupBy(([_doc, _score]) => _doc.metadata.dirId)
+          .value()
 
         const extraExerIds = lodash
           .chain(searches)
@@ -182,7 +182,7 @@ export default class ChaoXing extends Vendor {
           })
         }
 
-        const totalExerIds = [...childrenExerIds, ...extraExerIds]
+        const totalExerIds = lodash.uniq([...childrenExerIds, ...extraExerIds])
 
         _store.push({
           children,

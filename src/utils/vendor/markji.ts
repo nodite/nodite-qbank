@@ -45,9 +45,7 @@ const ensureContact = async (
 
   const content = `
 [P#H1,center#[T#!36b59d#感谢大家的使用]]
-由于 app 没有回复反馈的功能，关于牌组的使用问题，可以添加我的微信，请备注来自 Markji。
-
-[P#L#[T#B#微信：]oscaner1997]
+由于 app 没有回复反馈的功能，关于牌组的使用问题，请评论留下你的联系方式，我会尽快回复。
 `
 
   await (cardId
@@ -100,11 +98,12 @@ const _folder = async (
 const _deck = async (
   markji: Vendor,
   info: {folder: MarkjiFolder},
-  params: {bank: Bank},
+  params: {bank: Bank; vendor: Vendor},
   requestConfig: CacheRequestConfig,
 ): Promise<Category> => {
   await markji.invalidate(HashKeyScope.CATEGORIES, {bank: info.folder})
 
+  const vendorMeta = (params.vendor.constructor as typeof Vendor).META
   let decks = await markji.categories({bank: info.folder})
   let deck = find<Category>(decks, params.bank.name)
 
@@ -112,8 +111,27 @@ const _deck = async (
   if (!deck) {
     await axios.post(
       'https://www.markji.com/api/v1/decks',
-      {folder_id: info.folder.id, is_private: false, name: params.bank.name, order: decks.length},
+      {
+        description: info.folder.name,
+        folder_id: info.folder.id,
+        is_private: false,
+        name: params.bank.name,
+        order: decks.length,
+      },
       lodash.merge({}, requestConfig, {cache: false}),
+    )
+
+    await markji.invalidate(HashKeyScope.CATEGORIES, {bank: info.folder})
+    decks = await markji.categories({bank: info.folder})
+    deck = find<Category>(decks, params.bank.name) as Category
+  }
+
+  // update description.
+  if (deck.meta?.description !== vendorMeta.key) {
+    await axios.post(
+      `https://www.markji.com/api/v1/decks/${deck.id}`,
+      {description: vendorMeta.key, is_private: deck.meta?.is_private, name: deck.name},
+      requestConfig,
     )
 
     await markji.invalidate(HashKeyScope.CATEGORIES, {bank: info.folder})
@@ -246,7 +264,7 @@ const getInfo = async (params: Params, username: string): Promise<MarkjiInfo> =>
 
   // ==========================
   // markji decks.
-  const deck = await _deck(markji, {folder}, {bank: params.bank}, requestConfig)
+  const deck = await _deck(markji, {folder}, {bank: params.bank, vendor: params.vendor}, requestConfig)
 
   // ==========================
   // markji chapters.

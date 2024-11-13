@@ -35,6 +35,7 @@ export default abstract class BaseFactory {
   public async create(collectionName: string): Promise<VectorStore> {
     if (!this._collectionNameToStore[collectionName]) {
       const _create = async (factory: BaseFactory) => {
+        // Thread-safe
         return factory._mutex.runExclusive(async () => {
           if (!factory._collectionNameToStore[collectionName]) {
             factory._collectionNameToStore[collectionName] = await factory.createVectorStore(collectionName)
