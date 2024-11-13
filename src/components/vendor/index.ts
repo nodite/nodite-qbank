@@ -1,4 +1,4 @@
-// import BiguoFree from './biguo-free.js'
+import BiguoChapter from './_/biguo-chapter.js'
 import BiguoFree from './_/biguo-free.js'
 import BiguoReal from './_/biguo-real.js'
 import BiguoVip from './_/biguo-vip.js'
@@ -16,6 +16,7 @@ import Wx233 from './_/wx233.js'
 
 export default class VendorManager {
   protected static components = {
+    [BiguoChapter.META.key]: BiguoChapter,
     [BiguoFree.META.key]: BiguoFree,
     [BiguoReal.META.key]: BiguoReal,
     [BiguoVip.META.key]: BiguoVip,

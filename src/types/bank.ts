@@ -1,7 +1,7 @@
 export type Bank = {
   count?: number
   id: string
-  key: string
+  meta?: Record<string, any>
   name: string
   order?: number
 }

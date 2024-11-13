@@ -94,7 +94,7 @@ abstract class Vendor extends Component {
     const banks = await this.fetchBanks()
 
     if (!options?.excludeTtl) {
-      banks.unshift({count: lodash.sumBy(banks, 'count'), id: '*', key: '*', name: '全部', order: -999})
+      banks.unshift({count: lodash.sumBy(banks, 'count'), id: '*', name: '全部', order: -999})
     }
 
     return lodash

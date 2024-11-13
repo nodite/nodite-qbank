@@ -40,7 +40,6 @@ export default class Markji extends Vendor {
       .map((item) => ({
         id: item.id,
         items: item.items,
-        key: item.id,
         name: item.name,
         updated_time: item.updated_time,
       }))

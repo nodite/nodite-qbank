@@ -30,15 +30,11 @@ export default class BiguoFree extends BiguoReal {
    * _biguoQuestionBankParam.
    */
   protected _biguoQuestionBankParam(params?: Params): Record<string, any> {
-    const [provinceId, schoolId, professionId, , courseCode] = params
-      ? params.bank.id.split('|')
-      : [undefined, undefined, undefined]
-
     return {
-      code: courseCode,
+      code: params?.bank.meta?.courseCode,
       mainType: 1,
-      professions_id: professionId,
-      province_id: provinceId,
+      professions_id: params?.bank.meta?.professionId,
+      province_id: params?.bank.meta?.provinceId,
       public_key:
         'LS0tLS1CRUdJTiBSU0EgUFVCTElDIEtFWS0' +
         'tLS0tCk1JR0pBb0dCQUxjNmR2MkFVaWRTR3' +
@@ -50,7 +46,7 @@ export default class BiguoFree extends BiguoReal {
         'CswRVBlZ2JkNTB3dEpqc2pnZzVZenU4WURP' +
         'ZXg1QWdNQkFBRT0KLS0tLS1FTkQgUlNBIFB' +
         'VQkxJQyBLRVktLS0tLQ==',
-      school_id: schoolId,
+      school_id: params?.bank.meta?.schoolId,
     }
   }
 }

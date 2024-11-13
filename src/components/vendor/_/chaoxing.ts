@@ -4,6 +4,7 @@ import {Document} from '@langchain/core/documents'
 import {Cacheable} from '@type-cacheable/core'
 import fs from 'fs-extra'
 import lodash from 'lodash'
+import md5 from 'md5'
 import path from 'node:path'
 import sleep from 'sleep-promise'
 
@@ -69,10 +70,12 @@ export default class ChaoXing extends Vendor {
         //   }),
         // )
 
+        const _id = md5(JSON.stringify([person.data.data[0].personid, channel.content.id, course.id]))
+
         banks.push({
           // count: count.data.count || 0,
-          id: [person.data.data[0].personid, channel.content.id, course.id].join('|'),
-          key: [person.data.data[0].personid, channel.content.id, course.id].join('|'),
+          id: _id,
+          meta: {clazzId: channel.content.id, courseId: course.id, personId: person.data.data[0].personid},
           name: [course.teacherfactor, course.name].join(' > '),
         })
       }
@@ -115,8 +118,6 @@ export default class ChaoXing extends Vendor {
     // fetch categories.
     const config = await this.login()
 
-    const [personId, clazzId] = params.bank.id.split('|')
-
     const clazz = await axios.get(
       'https://mooc1-api.chaoxing.com/gas/clazz',
       lodash.merge({}, config, {
@@ -131,8 +132,8 @@ export default class ChaoXing extends Vendor {
             'knowledge.fields(id,name,indexOrder,parentnodeid,status,' +
             'layer,label,jobcount,isReview,begintime,endtime,' +
             'attachment.fields(id,type,objectid,extension).type(video)))',
-          id: clazzId,
-          personid: personId,
+          id: params.bank.meta?.clazzId,
+          personid: params.bank.meta?.personId,
         },
       }),
     )
