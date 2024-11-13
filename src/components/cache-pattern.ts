@@ -3,6 +3,7 @@
 export enum HashKeyScope {
   BANKS = 'banks',
   CATEGORIES = 'categories',
+  CUSTOM = 'custom',
   LOGIN = 'login',
   ORIGIN_QUESTIONS = 'origin-questions',
   QUESTIONS = 'questions',
@@ -46,3 +47,10 @@ export const CACHE_KEY_ORIGIN_QUESTION_ITEM = `${CACHE_KEY_ORIGIN_QUESTION_PREFI
 export const CACHE_KEY_QUESTION_PREFIX = `{{vendorKey}}:${HashKeyScope.QUESTIONS}:{{bankId}}:{{categoryId}}:{{sheetId}}:{{outputKey}}`
 
 export const CACHE_KEY_QUESTION_ITEM = `${CACHE_KEY_QUESTION_PREFIX}:item:{{questionId}}`
+
+//
+// custom.
+//
+export const CACHE_KEY_CUSTOM_PREFIX = `{{vendorKey}}:${HashKeyScope.CUSTOM}:{{key}}`
+
+export const CACHE_KEY_CUSTOM_ITEM = `${CACHE_KEY_CUSTOM_PREFIX}:item:{{itemId}}`

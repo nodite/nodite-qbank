@@ -34,7 +34,6 @@ export default class JsonFile extends Vendor {
     return [
       {
         id: 'assets/心理咨询原理与技术(课程代码 07049).json',
-        key: 'assets/心理咨询原理与技术(课程代码 07049).json',
         name: '自考 > 心理咨询原理与技术 (07049)',
       },
     ]

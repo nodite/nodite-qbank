@@ -1,6 +1,7 @@
 import {Cacheable} from '@type-cacheable/core'
 import {CacheRequestConfig} from 'axios-cache-interceptor'
 import lodash from 'lodash'
+import md5 from 'md5'
 import path from 'node:path'
 import sleep from 'sleep-promise'
 
@@ -68,9 +69,17 @@ export default class Wantiku extends Vendor {
         }
 
         for (const subject of subjects) {
+          const _id = md5(
+            JSON.stringify([parentSubject.SubjectParentId, parentSubject.SubjectLevel, subject.SubjectId]),
+          )
+
           banks.push({
-            id: [parentSubject.SubjectParentId, parentSubject.SubjectLevel, subject.SubjectId].join('|'),
-            key: [parentSubject.SubjectParentId, parentSubject.SubjectLevel, subject.SubjectId].join('|'),
+            id: _id,
+            meta: {
+              parentSubjectId: parentSubject.SubjectParentId,
+              subjectId: subject.SubjectId,
+              subjectLevel: parentSubject.SubjectLevel,
+            },
             name: await safeName([group.GroupName, parentSubject.SubjectName, subject.SubjectName].join(' > ')),
           })
         }
@@ -87,13 +96,11 @@ export default class Wantiku extends Vendor {
   protected async fetchCategories(params: {bank: Bank}): Promise<Category[]> {
     const requestConfig = await this.login()
 
-    const [parentSubjectId, subjectLevel, subjectId] = params.bank.id.split('|')
-
     const response = await axios.get(
       this.URL_CATEGORY,
       lodash.merge({}, requestConfig, {
-        headers: {SubjectLevel: subjectLevel, SubjectParentID: parentSubjectId},
-        params: {SubjectId: subjectId, time: Date.now()},
+        headers: {SubjectLevel: params.bank.meta?.subjectLevel, SubjectParentID: params.bank.meta?.parentSubjectId},
+        params: {SubjectId: params.bank.meta?.subjectId, time: Date.now()},
       }),
     )
 
@@ -121,8 +128,6 @@ export default class Wantiku extends Vendor {
     // prepare.
     const cacheClient = this.getCacheClient()
     const requestConfig = await this.login()
-
-    const [parentSubjectId, subjectLevel, subjectId] = params.bank.id.split('|')
 
     // cache key.
     const cacheKeyParams = {
@@ -155,13 +160,13 @@ export default class Wantiku extends Vendor {
         this.URL_QUESTION,
         lodash.merge({}, requestConfig, {
           headers: {
-            SubjectId: subjectId,
-            SubjectLevel: subjectLevel,
-            SubjectParentID: parentSubjectId,
+            SubjectId: params.bank.meta?.subjectId,
+            SubjectLevel: params.bank.meta?.subjectLevel,
+            SubjectParentID: params.bank.meta?.parentSubjectId,
           },
           params: {
             ExamSiteId: params.category.id,
-            SubjectId: subjectId,
+            SubjectId: params.bank.meta?.subjectId,
             practiceTypeEnum: 0,
             questionNum: 100, // 一次请求的题目数量
             questionTypeEnum: 10,

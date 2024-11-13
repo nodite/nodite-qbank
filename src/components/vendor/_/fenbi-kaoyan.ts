@@ -2,6 +2,7 @@ import type {CacheRequestConfig} from 'axios-cache-interceptor'
 
 import {Cacheable} from '@type-cacheable/core'
 import lodash from 'lodash'
+import md5 from 'md5'
 import path from 'node:path'
 import random from 'random-number'
 import sleep from 'sleep-promise'
@@ -49,17 +50,31 @@ export default class FenbiKaoyan extends Vendor {
     const banks = [] as Bank[]
 
     for (const bank of lodash.get(response, this._fetchBankMeta.path, [])) {
-      banks.push({
-        id: [
+      const _id = md5(
+        JSON.stringify([
           lodash.get(bank, 'courseSet.id', ''),
           lodash.get(bank, 'course.id', ''),
           lodash.get(bank, 'quiz.id', ''),
-        ].join('|'),
-        key: [
-          lodash.get(bank, 'courseSet.prefix', ''),
-          lodash.get(bank, 'course.prefix', ''),
-          lodash.get(bank, 'quiz.prefix', ''),
-        ].join('|'),
+        ]),
+      )
+
+      banks.push({
+        id: _id,
+        meta: {
+          bankPrefix: lodash
+            .filter([
+              lodash.get(bank, 'courseSet.prefix', ''),
+              lodash.get(bank, 'course.prefix', ''),
+              lodash.get(bank, 'quiz.prefix', ''),
+            ])
+            .pop(),
+          courseId: lodash.get(bank, 'course.id', ''),
+          coursePrefix: lodash.get(bank, 'course.prefix', ''),
+          courseSetId: lodash.get(bank, 'courseSet.id', ''),
+          courseSetPrefix: lodash.get(bank, 'courseSet.prefix', ''),
+          quizId: lodash.get(bank, 'quiz.id', ''),
+          quizPrefix: lodash.get(bank, 'quiz.prefix', ''),
+        },
         name: await safeName(
           lodash
             .filter([
@@ -86,7 +101,7 @@ export default class FenbiKaoyan extends Vendor {
   protected async fetchCategories(params: {bank: Bank}): Promise<Category[]> {
     const reqConfig = await this.login()
 
-    let bankPrefix = lodash.filter(params.bank.key.split('|')).pop() as string
+    let bankPrefix = params.bank.meta?.bankPrefix
     const getParams = this._fetchCategoryMeta.params
 
     switch (bankPrefix) {
@@ -153,7 +168,7 @@ export default class FenbiKaoyan extends Vendor {
     // prepare.
     const cacheClient = this.getCacheClient()
     const requestConfig = await this.login()
-    const bankPrefix = lodash.filter(params.bank.key.split('|')).pop() as string
+    const bankPrefix = params.bank.meta?.bankPrefix
 
     // cache key.
     const cacheKeyParams = {

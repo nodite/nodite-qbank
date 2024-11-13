@@ -1,6 +1,7 @@
 import {Cacheable} from '@type-cacheable/core'
 import {CacheRequestConfig} from 'axios-cache-interceptor'
 import lodash from 'lodash'
+import md5 from 'md5'
 import path from 'node:path'
 import sleep from 'sleep-promise'
 
@@ -11,15 +12,20 @@ import {FetchOptions, Params} from '../../../types/common.js'
 import {Sheet} from '../../../types/sheet.js'
 import axios from '../../../utils/axios.js'
 import {emitter} from '../../../utils/event.js'
-import {safeName} from '../../../utils/index.js'
+import {safeName, throwError} from '../../../utils/index.js'
 import biguo from '../../../utils/vendor/biguo.js'
-import {CACHE_KEY_ORIGIN_QUESTION_ITEM} from '../../cache-pattern.js'
+import {CACHE_KEY_CUSTOM_ITEM, CACHE_KEY_ORIGIN_QUESTION_ITEM} from '../../cache-pattern.js'
 import Markji from '../../output/biguo/markji.js'
 import {OutputClass} from '../../output/common.js'
 import {HashKeyScope, Vendor, cacheKeyBuilder} from '../common.js'
 
 export default class BiguoReal extends Vendor {
   public static META = {key: path.parse(import.meta.url).name, name: '笔果真题'}
+
+  public static TOPIC_TYPES = {
+    1: '单选题',
+    4: '简答题',
+  }
 
   public get allowedOutputs(): Record<string, OutputClass> {
     return {
@@ -116,11 +122,21 @@ export default class BiguoReal extends Vendor {
               }),
             )
 
+            const _tikuHome = lodash.find(homeResponse.data.data.tikus, {type: this._biguoQuestionBankParam().mainType})
+
+            const _id = md5(JSON.stringify([provinceId, schoolId, professionId, course.courses_id, course.code]))
+
             banks.push({
-              count:
-                lodash.find(homeResponse.data.data.tikus, {type: this._biguoQuestionBankParam().mainType}).total || 0,
-              id: [provinceId, schoolId, professionId, course.courses_id, course.code].join('|'),
-              key: [provinceId, schoolId, professionId, course.courses_id, course.code].join('|'),
+              count: _tikuHome.total || 0,
+              id: _id,
+              meta: {
+                courseCode: course.code,
+                courseId: course.courses_id,
+                professionId,
+                provinceId,
+                schoolId,
+                version: _tikuHome.version,
+              },
               name: await safeName(
                 [school.name, `${profession.name}(${profession.code})`, `${course.name}(${course.code})`].join(' > '),
               ),
@@ -145,19 +161,18 @@ export default class BiguoReal extends Vendor {
    */
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.CATEGORIES)})
   protected async fetchCategories(params: {bank: Bank}): Promise<Category[]> {
-    const requestConfig = this.login()
-    const [provinceId, schoolId, professionId, courseId] = params.bank.id.split('|')
+    const config = this.login()
 
     const realResponse = await axios.get(
       'https://www.biguotk.com/api/v4/exams/real_paper_list',
-      lodash.merge({}, requestConfig, {
+      lodash.merge({}, config, {
         params: {
-          courses_id: courseId,
+          courses_id: params.bank.meta?.courseId,
           limit: 100,
           page: 1,
-          professions_id: professionId,
-          province_id: provinceId,
-          school_id: schoolId,
+          professions_id: params.bank.meta?.professionId,
+          province_id: params.bank.meta?.provinceId,
+          school_id: params.bank.meta?.schoolId,
         },
       }),
     )
@@ -169,6 +184,9 @@ export default class BiguoReal extends Vendor {
         children: [],
         count: category.total_nums,
         id: category.id,
+        meta: {
+          version: category.version,
+        },
         name: await safeName(category.name),
         order: idx,
       })
@@ -184,6 +202,8 @@ export default class BiguoReal extends Vendor {
     params: {bank: Bank; category: Category; sheet: Sheet},
     options?: FetchOptions | undefined,
   ): Promise<void> {
+    lodash.set(params, 'vendor', this)
+
     // prepare.
     const cacheClient = this.getCacheClient()
     const config = await this.login()
@@ -209,19 +229,64 @@ export default class BiguoReal extends Vendor {
     emitter.emit('questions.fetch.count', originQuestionKeys.length)
 
     if (originQuestionKeys.length < params.sheet.count) {
+      const _qbankParam = this._biguoQuestionBankParam({
+        bank: params.bank,
+        category: params.category,
+        sheet: params.sheet,
+        vendor: this,
+      })
+
       const questionBankResponse = await axios.get(
         'https://www.biguotk.com/api/v5/exams/getQuestionBank',
-        lodash.merge({}, config, {
-          params: this._biguoQuestionBankParam({
-            bank: params.bank,
-            category: params.category,
-            sheet: params.sheet,
-            vendor: this,
-          }),
-        }),
+        lodash.merge({}, config, {params: _qbankParam}),
       )
 
-      const fileUrls = lodash.get(questionBankResponse.data, 'data.fileUrls')
+      const fileUrls = lodash.get(questionBankResponse.data, 'data.fileUrls', [])
+
+      // buyer denied.
+      if (lodash.isEmpty(questionBankResponse.data.data.fileUrls)) {
+        const _topicCacheKey = lodash.template(CACHE_KEY_CUSTOM_ITEM)({
+          ...cacheKeyParams,
+          itemId: md5(JSON.stringify([_qbankParam.mainType, _qbankParam.code])),
+          key: 'topic-types',
+        })
+
+        const _topicTypes: number[] = (await cacheClient.get(_topicCacheKey)) || []
+
+        if (lodash.isEmpty(_topicTypes)) {
+          _topicTypes.push(...lodash.shuffle(lodash.range(1, 31)))
+        }
+
+        const _version = params.sheet.meta?.version || params.category.meta?.version || params.bank.meta?.version
+
+        if (!_version) {
+          throwError('version is empty.', {params})
+        }
+
+        for (const _topicType of lodash.clone(_topicTypes)) {
+          const _fileUrl = lodash.join(
+            [
+              'masterTopicList/topicList',
+              `mainType_${_qbankParam.mainType}`,
+              `code_${_qbankParam.code}`,
+              `topicType_${_topicType}`,
+              `version_${_version}.json`,
+            ],
+            '-',
+          )
+
+          try {
+            await axios.get(`https://cdn.biguotk.com/${_fileUrl}`, {cache: {ttl: 1000 * 60 * 60 * 24}})
+            fileUrls.push(_fileUrl)
+          } catch {
+            lodash.remove(_topicTypes, (item) => item === _topicType)
+          }
+
+          await sleep(lodash.random(100, 1000))
+        }
+
+        await cacheClient.set(_topicCacheKey, _topicTypes)
+      }
 
       const questions = (
         await Promise.all(
@@ -312,13 +377,11 @@ export default class BiguoReal extends Vendor {
    * _biguoQuestionBankParam.
    */
   protected _biguoQuestionBankParam(params?: Params): Record<string, any> {
-    const [provinceId, schoolId, professionId] = params ? params.bank.id.split('|') : [undefined, undefined, undefined]
-
     return {
       code: params?.category?.id,
       mainType: 2,
-      professions_id: professionId,
-      province_id: provinceId,
+      professions_id: params?.bank.meta?.professionId,
+      province_id: params?.bank.meta?.provinceId,
       public_key:
         'LS0tLS1CRUdJTiBSU0EgUFVCTElDIEtFWS0' +
         'tLS0tCk1JR0pBb0dCQUxjNmR2MkFVaWRTR3' +
@@ -330,7 +393,7 @@ export default class BiguoReal extends Vendor {
         'CswRVBlZ2JkNTB3dEpqc2pnZzVZenU4WURP' +
         'ZXg1QWdNQkFBRT0KLS0tLS1FTkQgUlNBIFB' +
         'VQkxJQyBLRVktLS0tLQ==',
-      school_id: schoolId,
+      school_id: params?.bank.meta?.schoolId,
     }
   }
 }

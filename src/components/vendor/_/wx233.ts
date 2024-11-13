@@ -1,6 +1,7 @@
 import {Cacheable} from '@type-cacheable/core'
 import {CacheRequestConfig} from 'axios-cache-interceptor'
 import lodash from 'lodash'
+import md5 from 'md5'
 import path from 'node:path'
 import sleep from 'sleep-promise'
 
@@ -57,9 +58,14 @@ export default class Wx233 extends Vendor {
 
       for (const subject of subjects.data?.data?.subjectList ?? []) {
         for (const child of subject.childList) {
+          const _id = md5(JSON.stringify([domain.id, subject.id, child.id]))
+
           banks.push({
-            id: [domain.id, subject.id, child.id].join('|'),
-            key: [domain.domain, subject.id, child.id].join('|'),
+            id: _id,
+            meta: {
+              domainKey: domain.domain,
+              subjectId: subject.id,
+            },
             name: await safeName([domain.cname, subject.cname, child.cname].join(' > ')),
           })
         }
@@ -75,10 +81,9 @@ export default class Wx233 extends Vendor {
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.CATEGORIES)})
   protected async fetchCategories(params: {bank: Bank}): Promise<Category[]> {
     const requestConfig = await this.login()
-    const subjectId = params.bank.id.split('|')[2]
 
     const sid = await wx233.sid()
-    const reqParams = {chapterType: 1, isApplet: 0, subjectId}
+    const reqParams = {chapterType: 1, isApplet: 0, subjectId: params.bank.meta?.subjectId}
 
     const chapters = await axios.get(
       'https://japi.233.com/ess-tiku-api/front/chapter/do/init',
@@ -125,9 +130,7 @@ export default class Wx233 extends Vendor {
     // prepare.
     const cacheClient = this.getCacheClient()
     const requestConfig = await this.login()
-    const domainKey = params.bank.key.split('|')[0]
     const objectId = params.sheet.id === '0' ? params.category.id : params.sheet.id
-    const subjectId = params.bank.id.split('|')[2]
     let sid
 
     // cache key.
@@ -181,10 +184,10 @@ export default class Wx233 extends Vendor {
         const exerciseBody = {
           attachType: 1,
           client: 1,
-          domain: domainKey,
+          domain: params.bank.meta?.domainKey,
           mode: 1,
           objectId,
-          subjectId,
+          subjectId: params.bank.meta?.subjectId,
           type: 3,
         }
 

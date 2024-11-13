@@ -67,7 +67,6 @@ axiosInstance.interceptors.response.use(
     console.log('\n')
     console.log('request:', error?.request?.path)
     console.log('response:', error?.response?.data)
-    // console.log('error:', error)
     return Promise.reject(error)
   },
 )
