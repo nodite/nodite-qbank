@@ -64,7 +64,7 @@ export default class Wx233 extends Vendor {
             id: _id,
             meta: {
               domainKey: domain.domain,
-              subjectId: subject.id,
+              subjectId: lodash.filter([domain.id, subject.id, child.id]).pop(),
             },
             name: await safeName([domain.cname, subject.cname, child.cname].join(' > ')),
           })
@@ -129,7 +129,7 @@ export default class Wx233 extends Vendor {
   ): Promise<void> {
     // prepare.
     const cacheClient = this.getCacheClient()
-    const requestConfig = await this.login()
+    const config = await this.login()
     const objectId = params.sheet.id === '0' ? params.category.id : params.sheet.id
     let sid
 
@@ -194,7 +194,7 @@ export default class Wx233 extends Vendor {
         const exerciseResponse = await axios.post(
           'https://japi.233.com/ess-tiku-api/front/extract/questions',
           exerciseBody,
-          lodash.merge({}, requestConfig, {
+          lodash.merge({}, config, {
             headers: {sid, sign: await wx233.sign(exerciseBody, sid, 'post')},
           }),
         )
@@ -224,7 +224,7 @@ export default class Wx233 extends Vendor {
       const questionsResponse = await axios.post(
         'https://japi.233.com/ess-tiku-api/front/extract/page',
         questionsBody,
-        lodash.merge({}, requestConfig, {headers: {sid, sign: await wx233.sign(questionsBody, sid, 'POST')}}),
+        lodash.merge({}, config, {headers: {sid, sign: await wx233.sign(questionsBody, sid, 'POST')}}),
       )
 
       const _questions: any[] = lodash.get(questionsResponse.data, 'data.extractQuestionDataRspList', [])
