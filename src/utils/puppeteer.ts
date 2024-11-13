@@ -32,13 +32,15 @@ const page = async (name: string, url: string, params?: {cookies?: puppeteer.Coo
       'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) ' +
       'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36 Edg/128.0.0.0'
 
-    _page = await (await browser())?.newPage()
+    const _browser = (await browser()) as puppeteer.Browser
 
-    _page?.setUserAgent(userAgent)
+    _page = await _browser.newPage()
 
-    _page?.setCacheEnabled(true)
+    await _page?.setUserAgent(userAgent)
 
-    _page?.setCookie(...(params?.cookies || []))
+    await _page?.setCacheEnabled(true)
+
+    await _page?.setCookie(...(params?.cookies || []))
 
     await _page?.goto(url, {timeout: 0, waitUntil: 'load'})
 

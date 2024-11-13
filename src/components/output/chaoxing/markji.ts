@@ -6,6 +6,14 @@ import {find, throwError} from '../../../utils/index.js'
 import markji from '../../../utils/vendor/markji.js'
 import MarkjiBase from '../markji.js'
 
+const imgSrcHandler = (src: string): string => {
+  if (src.startsWith('/')) {
+    src = 'http://ppt.beegoedu.com' + src
+  }
+
+  return src
+}
+
 export default class Markji extends MarkjiBase {
   /**
    * _output.
@@ -35,7 +43,10 @@ export default class Markji extends MarkjiBase {
       case '补全对话题':
       case '补全对话':
       case '音节题':
-      case '句型转换题': {
+      case '句型转换题':
+      case '解答题':
+      case '作文题':
+      case '句型判断题': {
         output = await this._processTranslate(question, params)
         break
       }
@@ -46,7 +57,7 @@ export default class Markji extends MarkjiBase {
       }
 
       default: {
-        throwError('Unsupported question type', question)
+        throwError('Unsupported question type', {params, question})
       }
     }
 
@@ -64,7 +75,7 @@ export default class Markji extends MarkjiBase {
 
     // ====================
     // _content.
-    _meta.content = await markji.parseHtml(question.Title || '', {style: this.HTML_STYLE})
+    _meta.content = await markji.parseHtml(question.Title || '', {imgSrcHandler, style: this.HTML_STYLE})
 
     // ====================
     // _blanks.
@@ -80,8 +91,7 @@ export default class Markji extends MarkjiBase {
 
     // unknown to process.
     if (_inputs.length === 0 || _blanks.length === 0 || _inputs.length !== _blanks.length) {
-      // return this._processTranslate(question, params)
-      throwError('Unsupported blank filling question', question)
+      return this._processTranslate(question, _params)
     }
 
     for (const [idx, assertKey] of _inputs.entries()) {
@@ -92,7 +102,7 @@ export default class Markji extends MarkjiBase {
 
     // ====================
     // _explain.
-    _meta.explain = await markji.parseHtml('', {style: this.HTML_STYLE})
+    _meta.explain = await markji.parseHtml('', {imgSrcHandler, style: this.HTML_STYLE})
 
     // ====================
     // _points.
@@ -129,7 +139,7 @@ export default class Markji extends MarkjiBase {
 
     // ===========================
     // _context.
-    _meta.content = await markji.parseHtml(question.Title || '', {style: this.HTML_STYLE})
+    _meta.content = await markji.parseHtml(question.Title || '', {imgSrcHandler, style: this.HTML_STYLE})
 
     // ===========================
     // _options.
@@ -141,7 +151,7 @@ export default class Markji extends MarkjiBase {
     _meta.options = await Promise.all(
       lodash
         .chain(_options)
-        .map((value, key) => markji.parseHtml(`${key}. ${value}`, {style: this.HTML_STYLE}))
+        .map((value, key) => markji.parseHtml(`${key}. ${value}`, {imgSrcHandler, style: this.HTML_STYLE}))
         .value(),
     )
 
@@ -158,7 +168,10 @@ export default class Markji extends MarkjiBase {
         _meta.options.push({assets: [] as never, text: key})
       }
 
-      const _optionsContent = await html.toImage(_options.join('<br>'), {style: `${this.HTML_STYLE}${_htmlStyle}`})
+      const _optionsContent = await html.toImage(_options.join('<br>'), {
+        imgSrcHandler,
+        style: `${this.HTML_STYLE}${_htmlStyle}`,
+      })
 
       _meta.content.text += `\n${_optionsContent.text}`
       _meta.content.assets = lodash.merge({}, _meta.content.assets, _optionsContent.assets)
@@ -178,7 +191,7 @@ export default class Markji extends MarkjiBase {
 
     // ====================
     // _explain.
-    _meta.explain = await markji.parseHtml(question.Analyze || '', {style: this.HTML_STYLE})
+    _meta.explain = await markji.parseHtml(question.Analyze || '', {imgSrcHandler, style: this.HTML_STYLE})
 
     // ====================
     // _points.
@@ -228,15 +241,15 @@ export default class Markji extends MarkjiBase {
 
     // ===========================
     // _content.
-    _meta.content = await markji.parseHtml(question.Title || '', {style: this.HTML_STYLE})
+    _meta.content = await markji.parseHtml(question.Title || '', {imgSrcHandler, style: this.HTML_STYLE})
 
     // ===========================
     // _translation.
-    _meta.translation = await markji.parseHtml(question.Analyze || '', {style: this.HTML_STYLE})
+    _meta.translation = await markji.parseHtml(question.Analyze || '', {imgSrcHandler, style: this.HTML_STYLE})
 
     // ===========================
     // _explain.
-    _meta.explain = await markji.parseHtml('', {style: this.HTML_STYLE})
+    _meta.explain = await markji.parseHtml('', {imgSrcHandler, style: this.HTML_STYLE})
 
     // ===========================
     // _points.

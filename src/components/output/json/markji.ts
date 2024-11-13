@@ -9,7 +9,7 @@ export default class Markji extends MarkjiBase {
   /**
    * _output.
    */
-  protected async _output(question: any, _params: Params): Promise<AssetString> {
+  protected async _output(question: any, params: Params): Promise<AssetString> {
     const _questionType = question.type
 
     let output = {} as AssetString
@@ -41,7 +41,7 @@ export default class Markji extends MarkjiBase {
     }
     // unknown.
     else {
-      throwError('Unsupported question type.', question)
+      throwError('Unsupported question type.', {params, question})
     }
 
     return output

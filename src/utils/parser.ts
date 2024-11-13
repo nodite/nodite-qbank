@@ -14,7 +14,7 @@ const image = async (text: string, options?: ParseOptions): Promise<AssetString>
   for (const [idx, image] of images.entries()) {
     let src = image.getAttribute('src')
 
-    if (!src) continue
+    if (!src || src === '</documentfragmentcontainer') continue
 
     if (options?.imgSrcHandler) src = options.imgSrcHandler(src)
 

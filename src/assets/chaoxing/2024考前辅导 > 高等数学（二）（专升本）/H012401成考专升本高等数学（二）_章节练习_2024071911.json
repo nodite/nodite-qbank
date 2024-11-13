@@ -6908,10 +6908,10 @@
     "二级目录": "课程内容",
     "三级目录": "48-一维随机变量及其数字特性（一）",
     "选项数": 4,
-    "A": "<img src=",
-    "B": "<img src=",
-    "C": "<img src=",
-    "D": "<img src=",
+    "A": "<img src='http://ppt.beegoedu.com/CourseIMG/H012401/TKZT/Q70.png' />",
+    "B": "<img src='http://ppt.beegoedu.com/CourseIMG/H012401/TKZT/Q70-1.png' />",
+    "C": "<img src='http://ppt.beegoedu.com/CourseIMG/H012401/TKZT/Q70-2.png' />",
+    "D": "<img src='http://ppt.beegoedu.com/CourseIMG/H012401/TKZT/Q70-3.png' />",
     "E": "",
     "F": "",
     "G": "",
@@ -27639,15 +27639,9 @@
     "三级目录": "极限与连续（六）",
     "选项数": 4,
     "A": "[0,1)∪(1,3]",
-    "B": [
-      1,
-      3
-    ],
+    "B": [1, 3],
     "C": "[0,1)",
-    "D": [
-      0,
-      3
-    ],
+    "D": [0, 3],
     "E": "",
     "F": "",
     "G": "",

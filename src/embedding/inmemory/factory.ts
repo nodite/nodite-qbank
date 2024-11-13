@@ -13,7 +13,7 @@ import BaseFactory, {SearchOptions} from '../factory.js'
 
 export default class Factory extends BaseFactory {
   protected _model = new OllamaEmbeddings({
-    model: 'nomic-embed-text',
+    model: 'paraphrase-multilingual',
   })
 
   public get model(): Embeddings {

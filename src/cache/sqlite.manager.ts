@@ -20,7 +20,7 @@ const stories = {} as Record<string, {cache: cacheManager.Cache; store: SqliteSt
 for (const vendorName of [...vendor.list(), '_common']) {
   // On disk cache on caches table sync version
   const store = sqliteStore({
-    cacheTableName: vendorName.replaceAll('-', '_'),
+    cacheTableName: 'qbank_' + vendorName.replaceAll('-', '_'),
     enableWALMode: true,
     sqliteFile: path.join(CLI_ASSETS_DIR, 'cache.sqlite3'),
   })

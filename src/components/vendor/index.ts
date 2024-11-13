@@ -16,20 +16,20 @@ import Wx233 from './_/wx233.js'
 
 export default class VendorManager {
   protected static components = {
-    [BiguoChapter.META.key]: BiguoChapter,
-    [BiguoFree.META.key]: BiguoFree,
-    [BiguoReal.META.key]: BiguoReal,
-    [BiguoVip.META.key]: BiguoVip,
-    [ChaoXing.META.key]: ChaoXing,
-    [Demo.META.key]: Demo,
-    [Fenbi.META.key]: Fenbi,
-    [FenbiKaoyan.META.key]: FenbiKaoyan,
-    [JsonFile.META.key]: JsonFile,
-    [Markji.META.key]: Markji,
-    [MyTodoAws.META.key]: MyTodoAws,
-    [Wantiku.META.key]: Wantiku,
-    [WantikuChapter.META.key]: WantikuChapter,
-    [Wx233.META.key]: Wx233,
+    [BiguoChapter.META.key]: BiguoChapter, // done
+    [BiguoFree.META.key]: BiguoFree, // done
+    [BiguoReal.META.key]: BiguoReal, // done
+    [BiguoVip.META.key]: BiguoVip, // done
+    [ChaoXing.META.key]: ChaoXing, // WIP
+    [Demo.META.key]: Demo, // skip
+    [Fenbi.META.key]: Fenbi, // WIP
+    [FenbiKaoyan.META.key]: FenbiKaoyan, // done
+    [JsonFile.META.key]: JsonFile, // done
+    [Markji.META.key]: Markji, // skip
+    [MyTodoAws.META.key]: MyTodoAws, // done
+    [Wantiku.META.key]: Wantiku, // done
+    [WantikuChapter.META.key]: WantikuChapter, // done
+    [Wx233.META.key]: Wx233, // done
   }
 
   public static getClass(name: string) {

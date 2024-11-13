@@ -76,6 +76,7 @@ export default class Markji extends Vendor {
         children: [],
         count: deck.card_count,
         id: deck.id,
+        meta: deck,
         name: deck.name,
         order: Number(idx),
       }

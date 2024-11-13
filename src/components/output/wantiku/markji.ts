@@ -41,7 +41,7 @@ export default class Markji extends MarkjiBase {
       }
 
       default: {
-        throwError('Unsupported question type.', question)
+        throwError('Unsupported question type.', {params, question})
       }
     }
 
