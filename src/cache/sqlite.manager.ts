@@ -29,6 +29,8 @@ for (const vendorName of [...vendor.list(), '_common']) {
   store.client.pragma('auto_vacuum = FULL')
   // ANALYZE the caches database
   store.client.pragma('analyze')
+  // Set synchronous to FULL
+  store.client.pragma('synchronous = FULL')
 
   const cache = cacheManager.createCache(store)
 

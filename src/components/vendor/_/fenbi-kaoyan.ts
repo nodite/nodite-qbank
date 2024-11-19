@@ -89,7 +89,7 @@ export default class FenbiKaoyan extends Vendor {
 
     return lodash
       .chain(banks)
-      .sortBy(['key', 'id'], ['asc', 'asc'])
+      .sortBy(['meta.courseSetPrefix', 'meta.coursePrefix', 'meta.quizPrefix'], ['asc', 'asc', 'asc'])
       .map((bank, idx) => ({...bank, order: idx}))
       .value()
   }
@@ -101,31 +101,23 @@ export default class FenbiKaoyan extends Vendor {
   protected async fetchCategories(params: {bank: Bank}): Promise<Category[]> {
     const reqConfig = await this.login()
 
-    let bankPrefix = params.bank.meta?.bankPrefix
+    const bankPrefix = params.bank.meta?.bankPrefix
     const getParams = this._fetchCategoryMeta.params
 
-    switch (bankPrefix) {
-      case 'shenlun': {
-        bankPrefix = 'shenlun/pdpg'
+    if (bankPrefix === 'sydwms') {
+      getParams.filter = 'giant'
+    }
 
-        break
-      }
+    let _endpoint = this._fetchCategoryMeta.endpoint
 
-      case 'zhyynl': {
-        bankPrefix = 'zhyynl/etRuleQuestion'
-
-        break
-      }
-
-      case 'sydwms': {
-        getParams.filter = 'giant'
-
-        break
-      }
+    if (bankPrefix === 'zhyynl') {
+      _endpoint = this._fetchCategoryMeta.etRuleEndpoint
+    } else if (bankPrefix === 'shenlun') {
+      _endpoint = this._fetchCategoryMeta.pdpgEndpoint
     }
 
     const response = await axios.get(
-      lodash.template(this._fetchCategoryMeta.endpoint)({bankPrefix}),
+      lodash.template(_endpoint)({bankPrefix}),
       lodash.merge({}, reqConfig, {params: getParams}),
     )
 
@@ -199,10 +191,16 @@ export default class FenbiKaoyan extends Vendor {
       questionIds.length = 0
     }
 
-    // customize exercises for giant questions.
-    if (questionIds.length < params.sheet.count && params.sheet.meta?.giantOnly) {
+    // ###########################################
+    // customize exercises.
+    //
+    if (
+      questionIds.length < params.sheet.count &&
+      // giant questions.
+      params.sheet.meta?.giantOnly
+    ) {
       const exerciseResponse = await axios.get(
-        lodash.template(this._fetchQuestionMeta.exercisesEndpoint)({bankPrefix, exerciseType: 'giants'}),
+        lodash.template(this._fetchQuestionMeta.giantsEndpoint)({bankPrefix}),
         lodash.merge({}, requestConfig, {
           params: {keypointId: params.sheet.id === '0' ? params.category.id : params.sheet.id},
         }),
@@ -221,6 +219,8 @@ export default class FenbiKaoyan extends Vendor {
 
       questionIds.length = 0
     }
+    //
+    // ###########################################
 
     // fetch.
     let _prevCount = questionIds.length
@@ -236,8 +236,28 @@ export default class FenbiKaoyan extends Vendor {
       let _exerciseId: string
       let _questionIds: string[]
 
+      // zhyynl.
+      if (bankPrefix === 'zhyynl') {
+        const zhyynl = (params.sheet.meta?.zhyynl || []).shift()
+
+        if (zhyynl.exerciseId) {
+          _exerciseId = String(zhyynl.exerciseId)
+          _questionIds = [String(zhyynl.questionId)]
+        } else if (zhyynl.sheetId) {
+          const exerciseResponse = await axios.post(
+            lodash.template(this._fetchQuestionMeta.exercisesEndpoint)({bankPrefix}),
+            undefined,
+            lodash.merge({}, requestConfig, {params: {sheetId: zhyynl.sheetId, type: 26}}),
+          )
+
+          _exerciseId = lodash.get(exerciseResponse.data, 'id', 0)
+          _questionIds = lodash.get(exerciseResponse.data, 'sheet.questionIds', [])
+        } else {
+          throwError('zhyynl error', {params, zhyynl})
+        }
+      }
       // existing exercise.
-      if (exerciseIds.length > 0) {
+      else if (exerciseIds.length > 0) {
         _exerciseId = exerciseIds.shift() as string
         _questionIds = await cacheClient.get(
           lodash.template(CACHE_KEY_ORIGIN_QUESTION_PROCESSING)({...exerciseCacheKeyParams, processId: _exerciseId}),
@@ -246,7 +266,7 @@ export default class FenbiKaoyan extends Vendor {
       // new exercise for default.
       else {
         const exerciseResponse = await axios.post(
-          lodash.template(this._fetchQuestionMeta.exercisesEndpoint)({bankPrefix, exerciseType: 'exercises'}),
+          lodash.template(this._fetchQuestionMeta.exercisesEndpoint)({bankPrefix}),
           {keypointId: params.sheet.id === '0' ? params.category.id : params.sheet.id, limit: 100, type: 151},
           lodash.merge({}, requestConfig, {headers: {'Content-Type': 'application/x-www-form-urlencoded'}}),
         )
@@ -276,7 +296,9 @@ export default class FenbiKaoyan extends Vendor {
       // giant
       if (params.sheet.meta?.giantOnly) {
         const solutionsResponse = await axios.get(
-          lodash.template(this._fetchQuestionMeta.solutionsEndpoint)({bankPrefix, solutionType: 'universal/auth'}),
+          lodash.template(this._fetchQuestionMeta.universalAuthSolutionsEndpoint)({
+            bankPrefix,
+          }),
           lodash.merge({}, requestConfig, {params: {questionIds: _questionIds.join(','), type: 9}}),
         )
 
@@ -292,7 +314,7 @@ export default class FenbiKaoyan extends Vendor {
         )
 
         const solutionsResponse = await axios.get(
-          lodash.template(this._fetchQuestionMeta.solutionsEndpoint)({bankPrefix, solutionType: 'pure'}),
+          lodash.template(this._fetchQuestionMeta.solutionsEndpoint)({bankPrefix}),
           lodash.merge({}, requestConfig, {params: {ids: _questionIds.join(',')}}),
         )
 
@@ -319,11 +341,7 @@ export default class FenbiKaoyan extends Vendor {
 
           let {correctAnswer, id: questionId} = _question
 
-          // 101: 翻译.
-          // 102: 英语大作文.
-          // 103: 英语小作文.
-          // 104: 公务员申论.
-          if ([101, 102, 103, 104].includes(Number(_question.type))) {
+          if (!correctAnswer) {
             correctAnswer = {
               answer: lodash.get(
                 lodash.find(lodash.get(_question, 'solution.solutionAccessories', []) as never, {
@@ -376,6 +394,8 @@ export default class FenbiKaoyan extends Vendor {
         lodash.template(CACHE_KEY_ORIGIN_QUESTION_PROCESSING)({...exerciseCacheKeyParams, processId: _exerciseId}),
       )
 
+      await this.invalidate(HashKeyScope.SHEETS, params)
+
       // repeat fetch.
       _times = questionIds.length === _prevCount ? _times + 1 : 0
       _prevCount = questionIds.length
@@ -390,6 +410,9 @@ export default class FenbiKaoyan extends Vendor {
   }
 
   /**
+   * Origin questions.
+   */
+  /**
    * Sheet.
    */
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.SHEETS)})
@@ -398,16 +421,55 @@ export default class FenbiKaoyan extends Vendor {
       return [{count: params.category.count, id: '0', name: '默认'}]
     }
 
+    const config = await this.login()
+
     const sheets = [] as Sheet[]
 
     for (const child of params.category.children) {
-      sheets.push({
+      const _meta = child.meta || {}
+
+      if (params.bank.meta?.bankPrefix === 'zhyynl') {
+        _meta.zhyynl = []
+
+        let _page = 0
+
+        do {
+          const _etResp = await axios.get(
+            lodash.template(this._fetchQuestionMeta.etRuleQuestionsEndpoint)({
+              bankPrefix: params.bank.meta.bankPrefix,
+              page: _page,
+              sheetId: child.id,
+            }),
+            lodash.merge({}, config),
+          )
+
+          for (const _etq of lodash.get(_etResp.data, 'list', [])) {
+            _meta.zhyynl.push({
+              exerciseId: lodash.get(_etq, 'exerciseId', 0),
+              questionId: lodash.get(_etq, 'questionId', 0),
+              sheetId: lodash.get(_etq, 'sheetId', 0),
+            })
+          }
+
+          const _pageInfo = lodash.get(_etResp.data, 'pageInfo', {})
+
+          if (_pageInfo.currentPage === _pageInfo.totalPage - 1) break
+
+          _page++
+
+          // eslint-disable-next-line no-constant-condition
+        } while (true)
+      }
+
+      const _sheet = {
         count: child.count,
         id: child.id,
-        meta: child.meta,
+        meta: _meta,
         name: await safeName(child.name),
         order: child.order,
-      })
+      }
+
+      sheets.push(_sheet)
     }
 
     return sheets

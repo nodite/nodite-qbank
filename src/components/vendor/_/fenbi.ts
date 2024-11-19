@@ -49,7 +49,9 @@ export class Fenbi extends FenbiKaoyan {
   protected get _fetchCategoryMeta(): Record<string, any> {
     return {
       endpoint: 'https://tiku.fenbi.com/api/{{bankPrefix}}/categories',
+      etRuleEndpoint: 'https://tiku.fenbi.com/api/{{bankPrefix}}/etRuleQuestion/categories',
       params: {filter: 'keypoint'},
+      pdpgEndpoint: 'https://tiku.fenbi.com/api/{{bankPrefix}}/pdpg/categories',
     }
   }
 
@@ -58,11 +60,17 @@ export class Fenbi extends FenbiKaoyan {
    */
   protected get _fetchQuestionMeta(): Record<string, any> {
     return {
-      exercisesEndpoint: 'https://tiku.fenbi.com/api/{{bankPrefix}}/{{exerciseType}}',
+      etRuleQuestionsEndpoint:
+        'https://tiku.fenbi.com/api/{{bankPrefix}}/etRuleQuestion/question-list' +
+        '?questionType={{sheetId}}&toPage={{page}}',
+      exercisesEndpoint: 'https://tiku.fenbi.com/api/{{bankPrefix}}/exercises',
+      giantsEndpoint: 'https://tiku.fenbi.com/api/{{bankPrefix}}/giants',
       incrEndpoint: 'https://tiku.fenbi.com/api/{{bankPrefix}}/async/exercises/{{exerciseId}}/incr',
       questionsEndpoint: 'https://tiku.fenbi.com/api/{{bankPrefix}}/universal/questions',
-      solutionsEndpoint: 'https://tiku.fenbi.com/api/{{bankPrefix}}/{{solutionType}}/solutions',
+      solutionsEndpoint: 'https://tiku.fenbi.com/api/{{bankPrefix}}/pure/solutions',
       submitEndpoint: 'https://tiku.fenbi.com/api/{{bankPrefix}}/async/exercises/{{exerciseId}}/submit',
+      universalAuthQuestionsEndpoint: 'https://tiku.fenbi.com/api/{{bankPrefix}}/universal/auth/questions',
+      universalAuthSolutionsEndpoint: 'https://tiku.fenbi.com/api/{{bankPrefix}}/universal/auth/solutions',
     }
   }
 }
