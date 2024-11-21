@@ -13,6 +13,7 @@ import MyTodoAws from './_/mytodo-aws.js'
 import Wantiku from './_/wantiku.js'
 import WantikuChapter from './_/wantiku-chapter.js'
 import Wx233 from './_/wx233.js'
+import Yiguo from './_/yiguo.js'
 
 export default class VendorManager {
   protected static components = {
@@ -20,7 +21,7 @@ export default class VendorManager {
     [BiguoFree.META.key]: BiguoFree, // done
     [BiguoReal.META.key]: BiguoReal, // done
     [BiguoVip.META.key]: BiguoVip, // done
-    [ChaoXing.META.key]: ChaoXing, // WIP
+    [ChaoXing.META.key]: ChaoXing, // done
     [Demo.META.key]: Demo, // skip
     [Fenbi.META.key]: Fenbi, // WIP
     [FenbiKaoyan.META.key]: FenbiKaoyan, // done
@@ -30,6 +31,7 @@ export default class VendorManager {
     [Wantiku.META.key]: Wantiku, // done
     [WantikuChapter.META.key]: WantikuChapter, // done
     [Wx233.META.key]: Wx233, // done
+    [Yiguo.META.key]: Yiguo,
   }
 
   public static getClass(name: string) {
