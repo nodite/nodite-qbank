@@ -61,6 +61,11 @@ axiosInstance.interceptors.response.use(
       }
     }
 
+    // shangfen
+    if (lodash.has(response, 'data.errno') && response.data.errno > 0) {
+      throw new Error(JSON.stringify(response.data))
+    }
+
     return response
   },
   (error) => {

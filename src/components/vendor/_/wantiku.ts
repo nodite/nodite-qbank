@@ -76,6 +76,7 @@ export default class Wantiku extends Vendor {
           banks.push({
             id: _id,
             meta: {
+              groupId: group.GroupId,
               parentSubjectId: parentSubject.SubjectParentId,
               subjectId: subject.SubjectId,
               subjectLevel: parentSubject.SubjectLevel,
@@ -86,7 +87,14 @@ export default class Wantiku extends Vendor {
       }
     }
 
-    return banks
+    return lodash
+      .chain(banks)
+      .sortBy(
+        ['meta.groupId', 'meta.parentSubjectId', 'meta.subjectLevel', 'meta.subjectId'],
+        ['asc', 'asc', 'asc', 'asc'],
+      )
+      .map((bank, idx) => ({...bank, order: idx}))
+      .value()
   }
 
   /**

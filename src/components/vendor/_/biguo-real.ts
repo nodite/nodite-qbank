@@ -97,12 +97,11 @@ export default class BiguoReal extends Vendor {
           )
 
           // courses.
-          const courses = lodash.merge(
-            [],
-            courseResponse.data.data.courses_joined,
-            courseResponse.data.data.courses_not_joined,
-            courseResponse.data.data.courses_passed,
-          )
+          const courses = [
+            ...(courseResponse.data.data.courses_joined || []),
+            ...(courseResponse.data.data.courses_not_joined || []),
+            ...(courseResponse.data.data.courses_passed || []),
+          ]
 
           for (const course of courses) {
             const homeResponse = await axios.get(
@@ -143,7 +142,7 @@ export default class BiguoReal extends Vendor {
 
     return lodash
       .chain(banks)
-      .sortBy('name')
+      .sortBy(['meta.schoolId', 'meta.professionId', 'meta.courseId'], ['asc', 'asc', 'asc'])
       .map((b, idx) => ({
         ...b,
         order: idx,

@@ -456,8 +456,6 @@ export default class FenbiKaoyan extends Vendor {
           if (_pageInfo.currentPage === _pageInfo.totalPage - 1) break
 
           _page++
-
-          // eslint-disable-next-line no-constant-condition
         } while (true)
       }
 

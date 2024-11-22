@@ -30,6 +30,7 @@
     "import/no-named-as-default-member": "off",
     "unicorn/no-array-for-each": "off",
     "unicorn/error-message": "off",
-    "@typescript-eslint/ban-ts-comment": "off"
+    "@typescript-eslint/ban-ts-comment": "off",
+    "no-constant-condition": "off"
   }
 }

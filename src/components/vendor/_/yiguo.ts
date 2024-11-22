@@ -63,7 +63,7 @@ export default class Yiguo extends Vendor {
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN), client: sqliteCache.CommonClient})
   protected async toLogin(password: string): Promise<CacheRequestConfig> {
     const _headers = {
-      'User-Agent': 'User-Agent: YiGuoEduApp/1.5.2 (iPhone; iOS 18.0.1; Scale/3.00)',
+      'User-Agent': 'YiGuoEduApp/1.5.2 (iPhone; iOS 18.0.1; Scale/3.00)',
       interfaceType: 'app',
     }
 
