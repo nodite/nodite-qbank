@@ -10,6 +10,7 @@ import _ from './_/index.js'
 import JsonFile from './_/json-file.js'
 import Markji from './_/markji.js'
 import MyTodoAws from './_/mytodo-aws.js'
+import Shangfen from './_/shangfen.js'
 import Wantiku from './_/wantiku.js'
 import WantikuChapter from './_/wantiku-chapter.js'
 import Wx233 from './_/wx233.js'
@@ -28,10 +29,11 @@ export default class VendorManager {
     [JsonFile.META.key]: JsonFile, // done
     [Markji.META.key]: Markji, // skip
     [MyTodoAws.META.key]: MyTodoAws, // done
+    [Shangfen.META.key]: Shangfen, // implement
     [Wantiku.META.key]: Wantiku, // done
     [WantikuChapter.META.key]: WantikuChapter, // done
     [Wx233.META.key]: Wx233, // done
-    [Yiguo.META.key]: Yiguo,
+    [Yiguo.META.key]: Yiguo, // implement
   }
 
   public static getClass(name: string) {

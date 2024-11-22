@@ -258,14 +258,14 @@ export default class ChaoXing extends Vendor {
     const data = await this.getData({bank: params.bank})
 
     for (const id of params.sheet.meta?.exerIds ?? []) {
-      const _questionId = String(id)
+      const _qId = String(id)
 
-      const _questionCacheKey = lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)({
+      const _qCacheKey = lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)({
         ...cacheKeyParams,
-        questionId: _questionId,
+        questionId: _qId,
       })
 
-      if (originQuestionKeys.includes(_questionCacheKey)) continue
+      if (originQuestionKeys.includes(_qCacheKey)) continue
 
       const _question = lodash.find(data, {练习ID: id})
 
@@ -273,8 +273,8 @@ export default class ChaoXing extends Vendor {
         throwError('Question not found.', {id})
       }
 
-      await cacheClient.set(_questionCacheKey, lodash.find(data, {练习ID: id}))
-      originQuestionKeys.push(_questionCacheKey)
+      await cacheClient.set(_qCacheKey, lodash.find(data, {练习ID: id}))
+      originQuestionKeys.push(_qCacheKey)
       emitter.emit('questions.fetch.count', originQuestionKeys.length)
     }
 
@@ -301,6 +301,9 @@ export default class ChaoXing extends Vendor {
     }))
   }
 
+  /**
+   * Get data.
+   */
   protected async getData(params: {bank: Bank}): Promise<Record<string, any>> {
     const filedir = path.join(PKG_ASSETS_DIR, 'chaoxing', params.bank.name)
 
