@@ -51,7 +51,7 @@ export default class Markji extends MarkjiBase {
   /**
    * _processChoice
    */
-  protected async _processChoice(question: any, _params: Params): Promise<AssetString> {
+  protected async _processChoice(question: any, params: Params): Promise<AssetString> {
     const _meta = {
       answers: [] as AssetString[],
       content: {assets: [] as never, text: ''} as AssetString,
@@ -117,7 +117,7 @@ export default class Markji extends MarkjiBase {
     )
 
     if (lodash.isEmpty(_meta.answers)) {
-      throwError('Empty answers.', question)
+      throwError('Empty answers.', {params, question})
     } else if (_meta.answers.length > 1) {
       _meta.optionsAttr = 'fixed,multi'
     }
@@ -215,7 +215,7 @@ export default class Markji extends MarkjiBase {
       }
 
       if (_question.QuestionsAnswerEntity.AnswerArray.length > 1) {
-        throwError('Empty answers.', {_question, question})
+        throwError('Empty answers.', {_question, params, question})
       }
 
       return this._processChoice(_question, params)

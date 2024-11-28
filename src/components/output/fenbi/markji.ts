@@ -177,7 +177,7 @@ export default class Markji extends MarkjiBase {
     }
     // unknown.
     else {
-      throwError('Unsupported correct answer type.', question)
+      throwError('Unsupported correct answer type.', {params, question})
     }
 
     // ===========================
@@ -330,7 +330,7 @@ export default class Markji extends MarkjiBase {
             }
 
             default: {
-              throwError('Unsupported accessory label.', {accessory, question})
+              throwError('Unsupported accessory label.', {accessory, params, question})
             }
           }
 
@@ -369,7 +369,7 @@ export default class Markji extends MarkjiBase {
         }
 
         default: {
-          throwError('Unsupported accessory type.', {accessory, question})
+          throwError('Unsupported accessory type.', {accessory, params, question})
         }
       }
     }
@@ -387,7 +387,7 @@ export default class Markji extends MarkjiBase {
         text: `${_meta.answers.includes(option) ? '*' : '-'} ${option.text}`,
       }))
     } else {
-      throwError('Unsupported correct answer type.', question)
+      throwError('Unsupported correct answer type.', {params, question})
     }
 
     // ===========================

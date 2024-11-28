@@ -82,7 +82,7 @@ export default class Markji extends Output {
       const output = await this._output(_originQuestion, params)
 
       if (output.text.length > 2500) {
-        throwError('Output text is too long.', {output: output.text, question: _originQuestion})
+        throwError('Output text is too long.', {output: output.text, params, question: _originQuestion})
       }
 
       // ===========================
@@ -120,7 +120,7 @@ export default class Markji extends Output {
   /**
    *
    */
-  protected async _output(question: any, _params: Params): Promise<AssetString> {
-    throwError('Not implemented.', question)
+  protected async _output(question: any, params: Params): Promise<AssetString> {
+    throwError('Not implemented.', {params, question})
   }
 }

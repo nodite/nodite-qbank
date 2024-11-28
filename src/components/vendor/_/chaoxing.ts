@@ -270,7 +270,7 @@ export default class ChaoXing extends Vendor {
       const _question = lodash.find(data, {练习ID: id})
 
       if (!_question) {
-        throwError('Question not found.', {id})
+        throwError('Question not found.', {id, params})
       }
 
       await cacheClient.set(_qCacheKey, lodash.find(data, {练习ID: id}))

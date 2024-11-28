@@ -55,7 +55,7 @@ export default class Markji extends MarkjiBase {
   /**
    * _processChoice.
    */
-  protected async _processChoice(question: any, _params: Params): Promise<AssetString> {
+  protected async _processChoice(question: any, params: Params): Promise<AssetString> {
     const _meta = {
       answers: [] as AssetString[],
       content: {assets: [] as never, text: ''} as AssetString,
@@ -68,7 +68,7 @@ export default class Markji extends MarkjiBase {
     // ===========================
     // _context.
     if (question.stemMediaId > 0) {
-      throwError('Not Implemented stemMediaId.', question)
+      throwError('Not Implemented stemMediaId.', {params, question})
     }
     // _meta.context = await markji.parseHtml(question.context || '', {imgSrcHandler, style: this.HTML_STYLE})
     // _meta.context.text += '\n'
@@ -117,7 +117,7 @@ export default class Markji extends MarkjiBase {
     }))
 
     if (lodash.isEmpty(_meta.answers)) {
-      throwError('Empty answers.', question)
+      throwError('Empty answers.', {params, question})
     } else if (_meta.answers.length > 1) {
       _meta.optionsAttr = 'fixed,multi'
     }
@@ -171,7 +171,7 @@ export default class Markji extends MarkjiBase {
   /**
    * _processTranslate.
    */
-  protected async _processTranslate(question: any, _params: Params): Promise<AssetString> {
+  protected async _processTranslate(question: any, params: Params): Promise<AssetString> {
     const _meta = {
       content: {assets: [] as never, text: ''} as AssetString,
       context: {assets: [] as never, text: ''} as AssetString,
@@ -182,7 +182,7 @@ export default class Markji extends MarkjiBase {
     // ===========================
     // _context.
     if (question.stemMediaId > 0) {
-      throwError('Not Implemented stemMediaId.', question)
+      throwError('Not Implemented stemMediaId.', {params, question})
     }
     // _meta.context = await markji.parseHtml(question.context || '', {imgSrcHandler, style: this.HTML_STYLE})
     // _meta.context.text += '\n'

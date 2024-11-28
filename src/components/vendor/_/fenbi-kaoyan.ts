@@ -314,10 +314,13 @@ export default class FenbiKaoyan extends Vendor {
 
       // check.
       if (lodash.isUndefined(_questionIds)) {
-        throwError(
-          'Fetch questions failed.',
-          lodash.template(CACHE_KEY_ORIGIN_QUESTION_PROCESSING)({...exerciseCacheKeyParams, processId: _exerciseId}),
-        )
+        throwError('Fetch questions failed.', {
+          exerciseCacheKey: lodash.template(CACHE_KEY_ORIGIN_QUESTION_PROCESSING)({
+            ...exerciseCacheKeyParams,
+            processId: _exerciseId,
+          }),
+          params,
+        })
       }
 
       // questions processing.
@@ -361,6 +364,10 @@ export default class FenbiKaoyan extends Vendor {
 
         _question.solution = lodash.find(_solutions, (solution) => String(solution.id) === _questionId)
         _question.materials = lodash.map(_question.materialIndexes || [], (materialIndex) => _materials[materialIndex])
+
+        if (lodash.some(_question.accessories as any, {label: 'relatedMaterialId'})) {
+          throwError('Unknown materials.', {params, question: _question})
+        }
 
         await cacheClient.set(
           lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)({...cacheKeyParams, questionId: _questionId}),
@@ -599,6 +606,7 @@ export default class FenbiKaoyan extends Vendor {
     return {
       exercisesEndpoint: 'https://schoolapi.fenbi.com/kaoyan/iphone/{{bankPrefix}}/exercises',
       incrEndpoint: 'https://schoolapi.fenbi.com/kaoyan/iphone/{{bankPrefix}}/async/exercises/{{exerciseId}}/incr',
+      materialsEndpoint: 'https://schoolapi.fenbi.com/kaoyan/iphone/{{bankPrefix}}/pure/materials',
       questionsEndpoint: 'https://schoolapi.fenbi.com/kaoyan/iphone/{{bankPrefix}}/universal/questions',
       solutionsEndpoint: 'https://schoolapi.fenbi.com/kaoyan/iphone/{{bankPrefix}}/pure/solutions',
       submitEndpoint: 'https://schoolapi.fenbi.com/kaoyan/iphone/{{bankPrefix}}/async/exercises/{{exerciseId}}/submit',

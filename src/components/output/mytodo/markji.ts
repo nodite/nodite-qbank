@@ -11,7 +11,7 @@ export default class Markji extends MarkjiBase {
   /**
    * _output.
    */
-  protected async _output(question: any, _params: Params): Promise<AssetString> {
+  protected async _output(question: any, params: Params): Promise<AssetString> {
     const _meta = {
       answers: [] as AssetString[],
       content: {assets: [] as never, text: ''} as AssetString,
@@ -77,7 +77,7 @@ export default class Markji extends MarkjiBase {
       .value()
 
     if (lodash.isEmpty(_meta.answers)) {
-      throwError('No answers found.', question)
+      throwError('No answers found.', {params, question})
     } else if (_meta.answers.length > 1) {
       _meta.optionsAttr = 'fixed,multi'
     }

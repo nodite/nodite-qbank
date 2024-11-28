@@ -210,7 +210,7 @@ export default class Wx233 extends Vendor {
 
       if (lodash.isUndefined(_exerciseId) || _exerciseId === '0') {
         await cacheClient.del(_exerciseKey)
-        throwError('Fetch exercise failed', params)
+        throwError('Fetch exercise failed', {params})
       }
 
       // questions processing.
