@@ -20,6 +20,7 @@ import fenbi from '../../../utils/vendor/fenbi.js'
 import {CACHE_KEY_ORIGIN_QUESTION_ITEM, CACHE_KEY_ORIGIN_QUESTION_PROCESSING} from '../../cache-pattern.js'
 import {OutputClass} from '../../output/common.js'
 import Markji from '../../output/fenbi/markji.js'
+import MarkjiUpload from '../../output/markji-upload.js'
 import {HashKeyScope, Vendor, cacheKeyBuilder} from '../common.js'
 
 export default class FenbiKaoyan extends Vendor {
@@ -31,6 +32,7 @@ export default class FenbiKaoyan extends Vendor {
   public get allowedOutputs(): Record<string, OutputClass> {
     return {
       [Markji.META.key]: Markji,
+      [MarkjiUpload.META.key]: MarkjiUpload,
     }
   }
 
@@ -47,9 +49,39 @@ export default class FenbiKaoyan extends Vendor {
       throw new Error(this._fetchBankMeta.emptyMessage)
     }
 
+    const _banks = lodash.get(response, this._fetchBankMeta.path, [])
+
+    // quiz change.
+    for (const _bank of lodash.cloneDeep(_banks)) {
+      if (!lodash.has(this._fetchBankMeta, 'quizChange')) continue
+
+      const _quizChange = await axios.put(
+        lodash.template(this._fetchBankMeta.quizChange)({bankPrefix: _bank.courseSet.prefix}),
+        undefined,
+        config,
+      )
+
+      if (lodash.isEmpty(lodash.get(_quizChange, 'data.data.easyCourseVOS'))) continue
+
+      lodash.remove(_banks, (_b) => lodash.isEqual(_b, _bank))
+
+      const _courses = lodash.get(_quizChange, 'data.data.easyCourseVOS', [])
+
+      for (const _course of _courses) {
+        if (_course.prefix === _bank.courseSet.prefix) {
+          _banks.push({..._bank})
+        } else {
+          _banks.push({..._bank, course: _course})
+        }
+      }
+
+      await sleep(500)
+    }
+
     const banks = [] as Bank[]
 
-    for (const bank of lodash.get(response, this._fetchBankMeta.path, [])) {
+    // convert.
+    for (const bank of _banks) {
       const _id = md5(
         JSON.stringify([
           lodash.get(bank, 'courseSet.id', ''),
@@ -484,14 +516,24 @@ export default class FenbiKaoyan extends Vendor {
     }).toString()
 
     const params = {
+      // apcid: 1,
       app: 'kaoyan',
       av: 104,
+      // av: 114,
+      // client_context_id: 'fd811ca1317b90ab736ecc80429d4f95',
+      // cquiz: 0,
       device_ua: userAgent,
       hav: 108,
       inhouse: 0,
       kav: 100,
+      // kav: 102,
+      // nt: 'WIFI',
       system: '17.5.1',
+      // system: '18.0.1',
+      // ua: 'iPhone13,2',
       version: '6.5.20',
+
+      // version: '6.17.43',
     }
 
     const response = await axios.post(

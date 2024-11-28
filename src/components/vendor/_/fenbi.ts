@@ -40,6 +40,8 @@ export class Fenbi extends FenbiKaoyan {
       emptyMessage: '请前往 <粉笔> App 加入题库: 练习 > 右上角+号',
       endpoint: 'https://tiku.fenbi.com/activity/userquiz/getFavoriteQuizList',
       path: 'data.data.favoriteQuizVO',
+      // quizChange: 'https://tiku.fenbi.com/activity/userquiz/courseSetChange?courseSetPrefix={{bankPrefix}}',
+      quizChange: 'https://tiku.fenbi.com/iphone/{{bankPrefix}}/users/quizChange/0',
     }
   }
 
