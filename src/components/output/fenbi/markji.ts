@@ -145,8 +145,8 @@ export default class Markji extends MarkjiBase {
   protected async _processBlankFilling(question: any, params: Params): Promise<AssetString> {
     const _meta = {
       content: {assets: [] as never, text: ''} as AssetString,
-      explain: {assets: [] as never, text: ''} as AssetString,
       options: [] as AssetString[],
+      points: {} as Record<string, AssetString>,
     }
 
     // ===========================
@@ -156,6 +156,7 @@ export default class Markji extends MarkjiBase {
     // ===========================
     // _options.
     const _optionAccessory = lodash.find(question.accessories, {type: 101})
+
     if (!lodash.isEmpty(_optionAccessory)) {
       _meta.content.text +=
         '\n\n' +
@@ -182,24 +183,32 @@ export default class Markji extends MarkjiBase {
 
     // ===========================
     // explain.
-    _meta.explain = await markji.parseHtml(question.solution.solution || '', {imgSrcHandler, style: this.HTML_STYLE})
+    _meta.points['[P#L#[T#B#题目解析]]'] = await html.toImage(question.solution.solution || '', {
+      imgSrcHandler,
+      style: this.HTML_STYLE,
+    })
 
     // ===========================
     // points.
-    const _points = [
-      '[P#L#[T#B#类别]]',
-      `${params.category.name} / ${params.sheet.name}`,
-      `[P#L#[T#B#来源]]`,
-      question.solution?.source || '',
-      `[P#L#[T#B#解析]]`,
-      lodash.trim(_meta.explain.text),
-    ]
+    _meta.points['[P#L#[T#B#题目来源]]'] = {assets: {}, text: question.solution.source || ''}
+    _meta.points['[P#L#[T#B#题目类别]]'] = {assets: {}, text: `${params.category.name} / ${params.sheet.name}`}
 
     // ===========================
     // _output.
     const _output = await html.toText(
       lodash
-        .filter([`[${question.typeName}]`, lodash.trim(_meta.content.text), `---`, ..._points])
+        .filter([
+          `[${question.typeName}]`,
+          lodash.trim(_meta.content.text),
+          `---`,
+          ...lodash
+            .chain(_meta.points)
+            .toPairs()
+            .sortBy(0)
+            .fromPairs()
+            .map((point, key) => `${key}\n${point.text}`)
+            .value(),
+        ])
         .join('\n')
         .trim()
         .replaceAll('\n', '<br>'),
@@ -208,8 +217,8 @@ export default class Markji extends MarkjiBase {
     _output.assets = lodash.merge(
       {},
       _meta.content.assets,
-      _meta.explain.assets,
       ...lodash.map(_meta.options, 'assets'),
+      ...lodash.map(_meta.points, 'assets'),
     )
 
     return _output
@@ -223,12 +232,10 @@ export default class Markji extends MarkjiBase {
     const _meta = {
       answers: [] as AssetString[],
       content: {assets: [] as never, text: ''} as AssetString,
-      contentTrans: {assets: [] as never, text: ''} as AssetString,
-      explain: {assets: [] as never, text: ''} as AssetString,
       materials: [] as AssetString[],
       options: [] as AssetString[],
       optionsAttr: question.optionsAttr || ([2, 3].includes(question.type) ? 'fixed,multi' : 'fixed'),
-      optionsTrans: {} as Record<string, string>,
+      points: {} as Record<string, AssetString>,
     }
 
     // ===========================
@@ -238,6 +245,60 @@ export default class Markji extends MarkjiBase {
 
       for (const [key, value] of Object.entries(_material.assets)) {
         _material.text = _material.text.replaceAll(key, value)
+      }
+
+      // 材料配件
+      if (!lodash.isEmpty(material.accessories)) {
+        // 音频文本
+        const _transcript = lodash.find(material.accessories, {label: 'transcript', type: 181})
+        const _translation = lodash.find(material.accessories, {type: 151})
+
+        lodash.remove(material.accessories, _transcript)
+        lodash.remove(material.accessories, _translation)
+
+        if (_transcript?.content || _translation?.translation) {
+          _meta.points['[P#L#[T#B#材料翻译]]'] = await html.toImage(
+            await fenbi.parseDoc(`${_transcript?.content}\n${_translation?.translation}`),
+            {imgSrcHandler, style: this.HTML_STYLE},
+          )
+        }
+
+        // 材料解析
+        const _materialExplain = lodash.find(material.accessories, {label: 'materialExplain', type: 181})
+
+        lodash.remove(material.accessories, _materialExplain)
+
+        if (_materialExplain?.content) {
+          _meta.points['[P#L#[T#B#材料解析]]'] = await html.toImage(await fenbi.parseDoc(_materialExplain?.content), {
+            imgSrcHandler,
+            style: this.HTML_STYLE,
+          })
+        }
+
+        // 重点词汇
+        const _zdch = lodash.find(material.accessories, {label: 'zdch', type: 181})
+
+        lodash.remove(material.accessories, _zdch)
+
+        if (_zdch?.content) {
+          _meta.points['[P#L#[T#B#重点词汇]]'] = await html.toImage(await fenbi.parseDoc(_zdch?.content), {
+            imgSrcHandler,
+            style: this.HTML_STYLE,
+          })
+        }
+
+        // 音频
+        const _audio = lodash.find(material.accessories, {type: 185})
+
+        lodash.remove(material.accessories, _audio)
+
+        if (_audio?.url) {
+          _meta.materials.push(await parser.audio(_audio?.url))
+        }
+
+        if (!lodash.isEmpty(material.accessories)) {
+          throwError('Unsupported material accessories.', {material, params})
+        }
       }
 
       _meta.materials.push(await html.toImage(_material.text, {style: this.HTML_STYLE}))
@@ -255,123 +316,131 @@ export default class Markji extends MarkjiBase {
     _meta.content = await markji.parseHtml(_meta.content.text, {imgSrcHandler, style: this.HTML_STYLE})
 
     // ===========================
-    // _options.
-    for (const accessory of question.accessories) {
+    // accessories.
+    for (const _accessory of question.accessories) {
       // 选项过长，转换为富文本选项
-      if (accessory.type === 101 && accessory.options.join('').length > 800) {
-        accessory.type = 102
+      if (_accessory.type === 101 && _accessory.options.join('').length > 800) {
+        _accessory.type = 102
+      }
+    }
+
+    // 101: 选项
+    const _options = lodash.find(question.accessories, {type: 101})
+
+    lodash.remove(question.accessories, _options)
+
+    if (!lodash.isEmpty(_options?.options)) {
+      _meta.options.push(...lodash.map(_options?.options, (option) => ({assets: [] as never, text: option})))
+    }
+
+    // 102: 富文本选项
+    const _optionsHtml = lodash.find(question.accessories, {type: 102})
+
+    lodash.remove(question.accessories, _optionsHtml)
+
+    if (!lodash.isEmpty(_optionsHtml?.options)) {
+      const _htmlStyle = ['<style type="text/css">', 'p { display: inline-block; }', '</style>'].join(' ')
+
+      // add A/B/C/D/... prefix for options
+      const _options: string[] = []
+
+      for (const _op of _optionsHtml.options) {
+        const point = String.fromCodePoint(65 + _options.length)
+        _options.push(`${point}. ${await fenbi.parseDoc(_op)}`)
+        _meta.options.push({assets: [] as never, text: point})
       }
 
-      switch (accessory.type) {
-        // 101: 选项
-        case 101: {
-          _meta.options.push(...lodash.map(accessory.options, (option) => ({assets: [] as never, text: option})))
+      const _optionsContent = await html.toImage(_options.join('<br>'), {
+        style: `${this.HTML_STYLE}${_htmlStyle}`,
+      })
 
-          break
-        }
+      _meta.content.text += `\n${_optionsContent.text}`
+      _meta.content.assets = lodash.merge({}, _meta.content.assets, _optionsContent.assets)
+    }
 
-        // 102: 富文本选项
-        case 102: {
-          const _htmlStyle = ['<style type="text/css">', 'p { display: inline-block; }', '</style>'].join(' ')
+    // 151: 题目翻译
+    const _contentTrans = lodash.find(question.accessories, {type: 151})
 
-          // add A/B/C/D/... prefix for options
-          const _options: string[] = []
+    lodash.remove(question.accessories, _contentTrans)
 
-          for (const option of accessory.options) {
-            const point = String.fromCodePoint(65 + _options.length)
-            _options.push(`${point}. ${await fenbi.parseDoc(option)}`)
-            _meta.options.push({assets: [] as never, text: point})
-          }
+    if (_contentTrans?.translation) {
+      _meta.points['[P#L#[T#B#题目翻译]]'] = await markji.parseHtml(await fenbi.parseDoc(_contentTrans?.translation))
+    }
 
-          const _optionsContent = await html.toImage(_options.join('<br>'), {
-            style: `${this.HTML_STYLE}${_htmlStyle}`,
-          })
+    // 181+null: 不知道
+    // TODO
+    lodash.remove(question.accessories, {label: 'null', type: 181})
 
-          _meta.content.text += `\n${_optionsContent.text}`
-          _meta.content.assets = lodash.merge({}, _meta.content.assets, _optionsContent.assets)
+    // 181+questionDesc: 题目描述
+    const _questionDesc = lodash.find(question.accessories, {label: 'questionDesc', type: 181})
 
-          break
-        }
+    lodash.remove(question.accessories, _questionDesc)
 
-        // 151: 题目翻译
-        case 151: {
-          _meta.contentTrans = await html.toText(await fenbi.parseDoc(accessory.translation))
+    if (_questionDesc?.content) {
+      const questionDesc = await markji.parseHtml(_questionDesc?.content, {imgSrcHandler, style: this.HTML_STYLE})
+      _meta.content.text = `${questionDesc.text}\n${_meta.content.text}`
+      _meta.content.assets = lodash.merge({}, questionDesc.assets, _meta.content.assets)
+    }
 
-          break
-        }
+    // 181+source: 题目来源
+    const _source = lodash.find(question.accessories, {label: 'source', type: 181})
 
-        // 181: 题目描述
-        case 181: {
-          switch (accessory.label) {
-            // 不知道
-            case null: {
-              break
-            }
+    lodash.remove(question.accessories, _source)
 
-            // 问题描述
-            case 'questionDesc': {
-              const questionDesc = await markji.parseHtml(accessory.content, {imgSrcHandler, style: this.HTML_STYLE})
-              _meta.content.text = `${questionDesc.text}\n${_meta.content.text}`
-              _meta.content.assets = lodash.merge({}, questionDesc.assets, _meta.content.assets)
+    _meta.points['[P#L#[T#B#题目来源]]'] = await html.toText(
+      await fenbi.parseDoc(question.solution.source || _source?.content || ''),
+    )
 
-              break
-            }
+    // 181+customTheme: 自定义主题
+    // TODO
+    lodash.remove(question.accessories, {label: 'customTheme', type: 181})
 
-            // 题目来源
-            case 'source': {
-              question.solution.source = question.solution.source || (await html.toText(accessory.content)).text
+    // 181+listenQuestionStem: 听力题干
+    const _listenQuestionStem = lodash.find(question.accessories, {label: 'listenQuestionStem', type: 181})
 
-              break
-            }
+    lodash.remove(question.accessories, _listenQuestionStem)
 
-            // 不知道是啥玩意儿
-            case 'customTheme': {
-              break
-            }
+    if (_listenQuestionStem?.content) {
+      _meta.points['[P#L#[T#B#听力题干]]'] = await html.toText(await fenbi.parseDoc(_listenQuestionStem?.content))
+    }
 
-            default: {
-              throwError('Unsupported accessory label.', {accessory, params, question})
-            }
-          }
+    // 182: 材料标题
+    // TODO
+    lodash.remove(question.accessories, {type: 182})
 
-          break
-        }
+    // 1001: 选项翻译
+    const _optionsTrans = lodash.find(question.accessories, {type: 1001})
 
-        // 182: 材料标题, e.g. 2023年 英语二 阅读理解 Text4
-        case 182: {
-          // accessory.title
+    lodash.remove(question.accessories, _optionsTrans)
 
-          break
-        }
+    if (!lodash.isEmpty(_optionsTrans?.choiceTranslations)) {
+      const choiceTrans = lodash.map(_optionsTrans?.choiceTranslations, (translation) => {
+        const trans = lodash.map(translation, (t) => {
+          if (t.translation === 'null') t.translation = ''
+          return t.translation || t.label
+        })
+        return trans.join('；')
+      })
 
-        // 1001: 选项翻译
-        case 1001: {
-          if (lodash.isEmpty(accessory.choiceTranslations)) break
-
-          const choiceTrans = lodash.map(accessory.choiceTranslations, (translation) => {
-            const trans = lodash.map(translation, (t) => {
-              if (t.translation === 'null') t.translation = ''
-              return t.translation || t.label
-            })
-            return trans.join('；')
-          })
-
-          _meta.optionsTrans = lodash.zipObject(lodash.map(_meta.options, 'text'), choiceTrans)
-
-          break
-        }
-
-        // 1006: module，不知道是啥玩意儿
-        case 1006: {
-          // accessory.module
-
-          break
-        }
-
-        default: {
-          throwError('Unsupported accessory type.', {accessory, params, question})
-        }
+      _meta.points['[P#L#[T#B#选项翻译]]'] = {
+        assets: {},
+        text: lodash
+          .chain(_meta.options)
+          .map('text')
+          .zipObject(choiceTrans)
+          .map((value, key) => `${key}: ${value}`)
+          .value()
+          .join('\n'),
       }
+    }
+
+    // 1006: module，不知道是啥玩意儿
+    // TODO
+    lodash.remove(question.accessories, {type: 1006})
+
+    // others.
+    if (!lodash.isEmpty(question.accessories)) {
+      throwError('Unsupported accessories.', {params, question})
     }
 
     // ===========================
@@ -392,23 +461,31 @@ export default class Markji extends MarkjiBase {
 
     // ===========================
     // _explain.
-    _meta.explain = await markji.parseHtml(question.solution.solution || '', {imgSrcHandler, style: this.HTML_STYLE})
+    // 题意指导
+    const _tyzd = lodash.find(question.solution.solutionAccessories, {label: 'tyzd', type: 181})
+
+    lodash.remove(question.solution.solutionAccessories, _tyzd)
+
+    // 干扰项分析
+    const _interferenceAnalysis = lodash.find(question.solution.solutionAccessories, {
+      label: 'interferenceAnalysis',
+      type: 181,
+    })
+
+    lodash.remove(question.solution.solutionAccessories, _interferenceAnalysis)
+
+    if (!lodash.isEmpty(question.solution.solutionAccessories)) {
+      throwError('Unsupported solution accessories.', {params, question})
+    }
+
+    _meta.points['[P#L#[T#B#题目解析]]'] = await markji.parseHtml(
+      lodash.filter([_tyzd?.content, _interferenceAnalysis?.content, question.solution.solution]).join('\n'),
+      {imgSrcHandler, style: this.HTML_STYLE},
+    )
 
     // ===========================
     // _points.
-    const _points = lodash.filter([
-      '[P#L#[T#B#类别]]',
-      `${params.category.name} / ${params.sheet.name}`,
-      '[P#L#[T#B#来源]]',
-      question.solution?.source || '',
-      _meta.contentTrans.text ? '[P#L#[T#B#题目翻译]]' : '',
-      _meta.contentTrans.text ? lodash.trim(_meta.content.text) : '',
-      _meta.contentTrans.text ? lodash.trim(_meta.contentTrans.text) : '',
-      lodash.isEmpty(_meta.optionsTrans) ? '' : '[P#L#[T#B#选项翻译]]',
-      ...lodash.map(_meta.optionsTrans || {}, (value, key) => `${lodash.trim(key)}: ${lodash.trim(value)}`),
-      '[P#L#[T#B#解析]]',
-      lodash.trim(_meta.explain.text),
-    ])
+    _meta.points['[P#L#[T#B#题目类别]]'] = {assets: {}, text: `${params.category.name} / ${params.sheet.name}`}
 
     // ===========================
     // _output.
@@ -420,7 +497,13 @@ export default class Markji extends MarkjiBase {
           lodash.trim(_meta.content.text),
           `[Choice#${_meta.optionsAttr}#\n${lodash.trim(lodash.map(_meta.options, 'text').join('\n'))}\n]\n`,
           '---\n',
-          ..._points,
+          ...lodash
+            .chain(_meta.points)
+            .toPairs()
+            .sortBy(0)
+            .fromPairs()
+            .map((point, key) => `${key}\n${point.text}`)
+            .value(),
         ])
         .join('\n')
         .trim()
@@ -431,10 +514,9 @@ export default class Markji extends MarkjiBase {
       {},
       ...lodash.map(_meta.answers, 'assets'),
       _meta.content.assets,
-      _meta.contentTrans.assets,
-      _meta.explain.assets,
       ...lodash.map(_meta.materials, 'assets'),
       ...lodash.map(_meta.options, 'assets'),
+      ...lodash.map(_meta.points, 'assets'),
     )
 
     return _output
@@ -446,9 +528,8 @@ export default class Markji extends MarkjiBase {
   protected async _processTranslate(question: any, params: Params): Promise<AssetString> {
     const _meta = {
       content: {assets: [] as never, text: ''} as AssetString,
-      demonstrate: {assets: [] as never, text: ''} as AssetString,
-      explain: {assets: [] as never, text: ''} as AssetString,
       materials: [] as AssetString[],
+      points: {} as Record<string, AssetString>,
       translation: {assets: [] as never, text: ''} as AssetString,
     }
 
@@ -464,42 +545,115 @@ export default class Markji extends MarkjiBase {
 
     // ===========================
     // _translation.
-    const _translation = lodash
-      .chain(question.solution.solutionAccessories)
-      .filter(({label}) => ['reference', 'sfdt'].includes(label))
-      .map('content')
-      .join('<br>')
-      .value()
+    const _reference = lodash.find(question.solution.solutionAccessories, {label: 'reference', type: 181})
 
-    _meta.translation = await markji.parseHtml(_translation, {imgSrcHandler, style: this.HTML_STYLE})
+    lodash.remove(question.solution.solutionAccessories, _reference)
 
-    // ===========================
-    // _explain.
-    _meta.explain = await markji.parseHtml(question.solution.solution || '', {imgSrcHandler, style: this.HTML_STYLE})
+    _meta.translation = await markji.parseHtml(await fenbi.parseDoc(_reference?.content || ''), {
+      imgSrcHandler,
+      style: this.HTML_STYLE,
+    })
 
     // ===========================
-    // _demonstrate.
-    const _demonstrate = lodash
-      .chain(question.solution.solutionAccessories)
-      .filter(({label}) => ['demonstrate', 'stzd'].includes(label))
-      .map('content')
-      .join('<br />')
-      .value()
+    // question.accessories
+    // 182: 材料标题
+    // TODO
+    lodash.remove(question.accessories, {type: 182})
 
-    _meta.demonstrate = await markji.parseHtml(_demonstrate, {imgSrcHandler, style: this.HTML_STYLE})
+    // 试题分析
+    const _stfx = lodash.find(question.accessories, {label: 'stfx', type: 181})
+
+    lodash.remove(question.accessories, _stfx)
+
+    if (_stfx?.content) {
+      _meta.points['[P#L#[T#B#试题分析]]'] = await html.toImage(await fenbi.parseDoc(_stfx.content), {
+        imgSrcHandler,
+        style: this.HTML_STYLE,
+      })
+    }
+
+    // 写作题干
+    const _xztg = lodash.find(question.accessories, {label: 'xztg', type: 181})
+
+    lodash.remove(question.accessories, _xztg)
+
+    if (_xztg?.content) {
+      _meta.points['[P#L#[T#B#写作题干]]'] = await html.toImage(await fenbi.parseDoc(_xztg.content), {
+        imgSrcHandler,
+        style: this.HTML_STYLE,
+      })
+    }
+
+    if (!lodash.isEmpty(question.accessories)) {
+      throwError('Unsupported accessories.', {params, question})
+    }
+
+    // ===========================
+    // question.solution.solutionAccessories
+    // 解题技巧
+    const _jcjs = lodash.find(question.solution.solutionAccessories, {label: 'jcjs', type: 181})
+
+    lodash.remove(question.solution.solutionAccessories, _jcjs)
+
+    if (_jcjs?.content) {
+      _meta.points['[P#L#[T#B#解题技巧]]'] = await html.toImage(await fenbi.parseDoc(_jcjs.content), {
+        imgSrcHandler,
+        style: this.HTML_STYLE,
+      })
+    }
+
+    // 仿写翻译
+    const _fwfy = lodash.find(question.solution.solutionAccessories, {label: 'fwfy', type: 181})
+
+    lodash.remove(question.solution.solutionAccessories, _fwfy)
+
+    if (_fwfy?.content) {
+      _meta.points['[P#L#[T#B#仿写翻译]]'] = await html.toImage(await fenbi.parseDoc(_fwfy.content), {
+        imgSrcHandler,
+        style: this.HTML_STYLE,
+      })
+    }
+
+    // 重点词汇
+    const _ldch = lodash.find(question.solution.solutionAccessories, {label: 'ldch', type: 181})
+
+    lodash.remove(question.solution.solutionAccessories, _ldch)
+
+    if (_ldch?.content) {
+      _meta.points['[P#L#[T#B#重点词汇]]'] = await html.toImage(await fenbi.parseDoc(_ldch.content), {
+        imgSrcHandler,
+        style: this.HTML_STYLE,
+      })
+    }
+
+    // 维度分析
+    const _demonstrate = lodash.find(question.solution.solutionAccessories, {label: 'demonstrate', type: 181})
+
+    lodash.remove(question.solution.solutionAccessories, _demonstrate)
+
+    if (_demonstrate?.content) {
+      _meta.points['[P#L#[T#B#维度分析]]'] = await html.toImage(await fenbi.parseDoc(_demonstrate.content), {
+        imgSrcHandler,
+        style: this.HTML_STYLE,
+      })
+    }
+
+    // 题目解析
+    if (question.solution.solution) {
+      _meta.points['[P#L#[T#B#题目解析]]'] = await markji.parseHtml(question.solution.solution, {
+        imgSrcHandler,
+        style: this.HTML_STYLE,
+      })
+    }
+
+    if (!lodash.isEmpty(question.solution.solutionAccessories)) {
+      throwError('Unsupported solution accessories.', {params, question})
+    }
 
     // ===========================
     // points.
-    const _points = [
-      '[P#L#[T#B#类别]]',
-      `${params.category.name} / ${params.sheet.name}`,
-      `[P#L#[T#B#来源]]`,
-      question.solution?.source || '',
-      lodash.isEmpty(_meta.explain.text) ? '' : `[P#L#[T#B#解析]]`,
-      lodash.trim(_meta.explain.text),
-      lodash.isEmpty(_meta.demonstrate.text) ? '' : `[P#L#[T#B#维度分析]]`,
-      lodash.trim(_meta.demonstrate.text),
-    ]
+    _meta.points['[P#L#[T#B#题目来源]]'] = {assets: {}, text: question.solution.source || ''}
+    _meta.points['[P#L#[T#B#题目类别]]'] = {assets: {}, text: `${params.category.name} / ${params.sheet.name}`}
 
     // ===========================
     // _output.
@@ -512,7 +666,13 @@ export default class Markji extends MarkjiBase {
           '---',
           _meta.translation.text,
           '---',
-          ..._points,
+          ...lodash
+            .chain(_meta.points)
+            .toPairs()
+            .sortBy(0)
+            .fromPairs()
+            .map((point, key) => `${key}\n${point.text}`)
+            .value(),
         ])
         .join('\n')
         .trim()
@@ -522,9 +682,8 @@ export default class Markji extends MarkjiBase {
     _output.assets = lodash.merge(
       {},
       _meta.content.assets,
-      _meta.demonstrate.assets,
-      _meta.explain.assets,
       ...lodash.map(_meta.materials, 'assets'),
+      ...lodash.map(_meta.points, 'assets'),
       _meta.translation.assets,
     )
 

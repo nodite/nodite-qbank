@@ -5,6 +5,26 @@ import {parse} from 'node-html-parser'
 import {AssetString, ParseOptions} from '../types/common.js'
 import axios from './axios.js'
 
+const audio = async (url: string, _options?: ParseOptions): Promise<AssetString> => {
+  const assetString = {assets: {}} as AssetString
+
+  const hash = md5(JSON.stringify({type: 'audio', url})).slice(0, 8)
+
+  try {
+    const resp = await axios.get(url, {responseType: 'arraybuffer'})
+
+    const base64String = Buffer.from(resp.data, 'binary').toString('base64')
+
+    assetString.assets[`[audio#${hash}]`] = `data:${resp.headers['content-type']};base64,${base64String}`
+  } catch (error: any) {
+    assetString.assets[`[audio#${error.status}#${url}]`] = ''
+  }
+
+  assetString.text = `[audio#${hash}]`
+
+  return assetString
+}
+
 const image = async (text: string, options?: ParseOptions): Promise<AssetString> => {
   const assetString = {assets: {}} as AssetString
 
@@ -153,4 +173,4 @@ const toAssets = async (text: string, options?: ParseOptions): Promise<AssetStri
   return parsed
 }
 
-export default {image, input, quotes, toAssets, underline}
+export default {audio, image, input, quotes, toAssets, underline}

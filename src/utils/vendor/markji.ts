@@ -403,8 +403,15 @@ const upload = async (info: MarkjiInfo, index: number, question: AssetString): P
   for (const [key, value] of Object.entries(question.assets)) {
     if (value.startsWith('data:')) {
       const parsed = dataUriToBuffer(value)
-      const filename = key + '.' + parsed.type.split('/')[1]
 
+      // filename
+      let filename = key + '.' + parsed.type.split('/')[1]
+
+      if (parsed.type.startsWith('audio')) {
+        filename = key + '.mp3'
+      }
+
+      // form.
       const form = new FormData()
 
       form.append('file', streamifier.createReadStream(Buffer.from(parsed.buffer)), {
@@ -414,7 +421,11 @@ const upload = async (info: MarkjiInfo, index: number, question: AssetString): P
 
       const response = await axios.post('https://www.markji.com/api/v1/files', form, info.requestConfig)
 
-      question.assets[key] = `[Pic#ID/${response.data.data.file.id}#]`
+      if (response.data.data.file.mime.startsWith('image')) {
+        question.assets[key] = `[Pic#ID/${response.data.data.file.id}#]`
+      } else if (response.data.data.file.mime.startsWith('audio')) {
+        question.assets[key] = `[Audio#ID/${response.data.data.file.id}#]`
+      }
     }
 
     question.text = question.text.replaceAll(key, question.assets[key])
