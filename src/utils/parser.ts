@@ -90,6 +90,24 @@ const input = async (text: string, options?: ParseOptions): Promise<AssetString>
 const underline = async (text: string, options?: ParseOptions): Promise<AssetString> => {
   const assetString = {assets: {}} as AssetString
 
+  // 如果有连续的 __，则去掉前后空格
+  if (/_{2,}/g.test(text)) {
+    // pass
+  }
+  // 没有连续的 __，则将连续的空格替换为 _
+  else if (/ {3,}/g.test(text)) {
+    for (const _space of text.matchAll(/ {3,}/g)) {
+      text = text.replace(_space[0], '_'.repeat(_space[0].length))
+    }
+  }
+
+  text = lodash.trim(text)
+
+  // 间断的 __ 替换为连续的 __
+  while (text.includes('_ _')) {
+    text = text.replaceAll('_ _', '__')
+  }
+
   let idx = 0
 
   for (const _underline of text.matchAll(/_{2,}/g)) {

@@ -104,6 +104,13 @@ abstract class Vendor extends Component {
         ...bank,
         order: options?.excludeTtl ? idx : idx - 1,
       }))
+      .groupBy('name')
+      .map((_categories, _name) => {
+        if (_categories.length === 1) return _categories
+        return _categories.map((_category) => ({..._category, name: `${_name} (${_category.id})`}))
+      })
+      .flatten()
+      .sortBy(['order', 'id', 'name'], ['asc', 'asc', 'asc'])
       .value()
   }
 
@@ -128,21 +135,28 @@ abstract class Vendor extends Component {
       categories.unshift({children: [], count: lodash.sumBy(categories, 'count'), id: '*', name: '全部', order: -999})
     }
 
-    // Sort categories.
-    const _sortBy = (categories: Category[]): Category[] => {
+    // Sort categories, and fix the same name.
+    const _fix = (categories: Category[]): Category[] => {
       for (const category of categories) {
         if (category.children.length === 0) continue
-        category.children = _sortBy(category.children)
+        category.children = _fix(category.children)
       }
 
       return lodash
         .chain(categories)
         .sortBy(['order', 'id', 'name'], ['asc', 'asc', 'asc'])
         .map((category, idx) => ({...category, order: options?.excludeTtl ? idx : idx - 1}))
+        .groupBy('name')
+        .map((_categories, _name) => {
+          if (_categories.length === 1) return _categories
+          return _categories.map((_category) => ({..._category, name: `${_name} (${_category.id})`}))
+        })
+        .flatten()
+        .sortBy(['order', 'id', 'name'], ['asc', 'asc', 'asc'])
         .value()
     }
 
-    return _sortBy(categories)
+    return _fix(categories)
   }
 
   /**
@@ -171,12 +185,21 @@ abstract class Vendor extends Component {
   public async sheets(params: {bank: Bank; category: Category}, options?: Options): Promise<Sheet[]> {
     const sheets = await this.fetchSheet(params)
 
-    if (!options?.excludeTtl) sheets.unshift({count: lodash.sumBy(sheets, 'count'), id: '*', name: '全部', order: -999})
+    if (!options?.excludeTtl) {
+      sheets.unshift({count: lodash.sumBy(sheets, 'count'), id: '*', name: '全部', order: -999})
+    }
 
     return lodash
       .chain(sheets)
       .sortBy(['order', 'id', 'name'], ['asc', 'asc', 'asc'])
       .map((sheet, idx) => ({...sheet, order: options?.excludeTtl ? idx : idx - 1}))
+      .groupBy('name')
+      .map((_sheets, _name) => {
+        if (_sheets.length === 1) return _sheets
+        return _sheets.map((_sheet) => ({..._sheet, name: `${_name} (${_sheet.id})`}))
+      })
+      .flatten()
+      .sortBy(['order', 'id', 'name'], ['asc', 'asc', 'asc'])
       .value()
   }
 

@@ -4,6 +4,7 @@ import lodash from 'lodash'
 import {AssetString, Params} from '../../../types/common.js'
 import html from '../../../utils/html.js'
 import {throwError} from '../../../utils/index.js'
+import prompt from '../../../utils/prompt.js'
 import markji from '../../../utils/vendor/markji.js'
 import MarkjiBase from '../markji.js'
 
@@ -112,11 +113,27 @@ export default class Markji extends MarkjiBase {
   protected async _processBlankFilling(question: any, params: Params): Promise<AssetString> {
     const _meta = {
       content: {assets: [] as never, text: ''} as AssetString,
-      explain: {assets: [] as never, text: ''} as AssetString,
+      points: {} as Record<string, AssetString>,
     }
 
     // ====================
     // _content.
+    while (question.questionAsk.includes('_ _')) {
+      question.questionAsk = question.questionAsk.replaceAll('_ _', '__')
+    }
+
+    // ====================
+    // fix the questionAsk.
+    if (
+      question.questionAsk ===
+      '变量是指在___________或__________可变的事物的___________。在实验中实验者_________、__________的变量称为自变量；由操纵而引起的被试者的__________称为因变量。'
+    ) {
+      question.questionAsk =
+        '变量是指在____或____可变的事物的____。在实验中实验者____、____的变量称为____；由操纵而引起的被试者的____称为因变量。'
+    } else if (question.questionAsk === '相当于一个微缩的小社会。') {
+      question.questionAsk = '____相当于一个微缩的小社会。'
+    }
+
     _meta.content = await markji.parseHtml(question.questionAsk, {style: this.HTML_STYLE})
 
     // ====================
@@ -129,27 +146,20 @@ export default class Markji extends MarkjiBase {
     // 1. 单个
     if (_inputs.length === 1) {
       _blanks = [correctOption]
-    }
-    // 2. ；分隔
-    else if (correctOption.includes('；') || correctOption.includes(';')) {
-      _blanks = correctOption.split(/[;；]/)
-    }
-    // 3. 和分隔
-    else if (correctOption.includes('和')) {
-      _blanks = correctOption.split('和')
-    }
-    // 4. 、分隔
-    else if (correctOption.includes('、')) {
-      _blanks = correctOption.split('、')
-    }
-    // 5. 连续空格分割
-    else if (correctOption.includes('  ')) {
-      _blanks = correctOption.split(/\s{2,}/)
+    } else {
+      const _chunk = await prompt.BLANK_FILLING.invoke({
+        answer: correctOption,
+        question: question.questionAsk,
+      })
+
+      const _chunkStr = _chunk.content.toString()
+
+      _blanks = JSON.parse(_chunkStr)
     }
 
     // unknown to process.
     if (_inputs.length === 0 || _blanks.length === 0 || _inputs.length !== _blanks.length) {
-      return this._processTranslate(question, params)
+      throwError('Unknown to process', {blanks: _blanks, inputs: _inputs, params, question})
     }
 
     for (const [idx, assertKey] of _inputs.entries()) {
@@ -160,30 +170,42 @@ export default class Markji extends MarkjiBase {
 
     // ====================
     // _explain.
-    _meta.explain = await markji.parseHtml(question.explanation, {style: this.HTML_STYLE})
+    _meta.points['[P#L#[T#B#题目解析]]'] = await markji.parseHtml(question.explanation, {style: this.HTML_STYLE})
 
     // ====================
     // _points.
-    const _points = [
-      '[P#L#[T#B#来源]]',
-      `${params.bank.name} - ${params.category.name} - ${question.sheet.name}`,
-      '[P#L#[T#B#题型]]',
-      question.topic_type_name,
-      '[P#L#[T#B#解析]]',
-      lodash.trim(_meta.explain.text),
-    ]
+    _meta.points['[P#L#[T#B#题目来源]]'] = {
+      assets: {},
+      text: `${params.bank.name} - ${params.category.name} - ${question.sheet.name}`,
+    }
+
+    _meta.points['[P#L#[T#B#题目类型]]'] = {
+      assets: {},
+      text: question.topic_type_name,
+    }
 
     // ===========================
     // _output.
     const _output = await html.toText(
       lodash
-        .filter([`[${question.topic_type_name}]`, lodash.trim(_meta.content.text), '---', ..._points])
+        .filter([
+          `[${question.topic_type_name}]`,
+          lodash.trim(_meta.content.text),
+          '---',
+          ...lodash
+            .chain(_meta.points)
+            .toPairs()
+            .sortBy(0)
+            .fromPairs()
+            .map((point, key) => `${key}\n${point.text}`)
+            .value(),
+        ])
         .join('\n')
         .trim()
         .replaceAll('\n', '<br>'),
     )
 
-    _output.assets = lodash.merge({}, _meta.content.assets, _meta.explain.assets)
+    _output.assets = lodash.merge({}, _meta.content.assets, ...lodash.map(_meta.points, 'assets'))
 
     return _output
   }
@@ -195,9 +217,9 @@ export default class Markji extends MarkjiBase {
     const _meta = {
       answers: [] as AssetString[],
       content: {assets: [] as never, text: ''} as AssetString,
-      explain: {assets: [] as never, text: ''} as AssetString,
       options: [] as AssetString[],
       optionsAttr: question.topic_type === 2 ? 'fixed,multi' : 'fixed',
+      points: {} as Record<string, AssetString>,
     }
 
     // ====================
@@ -243,18 +265,19 @@ export default class Markji extends MarkjiBase {
 
     // ====================
     // _explain.
-    _meta.explain = await markji.parseHtml(question.explanation, {style: this.HTML_STYLE})
+    _meta.points['[P#L#[T#B#题目解析]]'] = await markji.parseHtml(question.explanation, {style: this.HTML_STYLE})
 
     // ====================
     // _points.
-    const _points = [
-      '[P#L#[T#B#来源]]',
-      `${params.bank.name} - ${params.category.name} - ${question.sheet.name}`,
-      '[P#L#[T#B#题型]]',
-      question.topic_type_name,
-      '[P#L#[T#B#解析]]',
-      lodash.trim(_meta.explain.text),
-    ]
+    _meta.points['[P#L#[T#B#题目来源]]'] = {
+      assets: {},
+      text: `${params.bank.name} - ${params.category.name} - ${question.sheet.name}`,
+    }
+
+    _meta.points['[P#L#[T#B#题目类型]]'] = {
+      assets: {},
+      text: question.topic_type_name,
+    }
 
     // ===========================
     // _output.
@@ -265,7 +288,13 @@ export default class Markji extends MarkjiBase {
           lodash.trim(_meta.content.text),
           `[Choice#${_meta.optionsAttr}#\n${lodash.trim(lodash.map(_meta.options, 'text').join('\n'))}\n]\n`,
           '---\n',
-          ..._points,
+          ...lodash
+            .chain(_meta.points)
+            .toPairs()
+            .sortBy(0)
+            .fromPairs()
+            .map((point, key) => `${key}\n${point.text}`)
+            .value(),
         ])
         .join('\n')
         .trim()
@@ -276,8 +305,8 @@ export default class Markji extends MarkjiBase {
       {},
       ...lodash.map(_meta.answers, 'assets'),
       _meta.content.assets,
-      _meta.explain.assets,
       ...lodash.map(_meta.options, 'assets'),
+      ...lodash.map(_meta.points, 'assets'),
     )
 
     return _output
@@ -289,7 +318,7 @@ export default class Markji extends MarkjiBase {
   protected async _processTranslate(question: any, params: Params): Promise<AssetString> {
     const _meta = {
       content: {assets: [] as never, text: ''} as AssetString,
-      explain: {assets: [] as never, text: ''} as AssetString,
+      points: {} as Record<string, AssetString>,
       translation: {assets: [] as never, text: ''} as AssetString,
     }
 
@@ -303,18 +332,19 @@ export default class Markji extends MarkjiBase {
 
     // ===========================
     // _explain.
-    _meta.explain = await markji.parseHtml(question.explanation || '', {style: this.HTML_STYLE})
+    _meta.points['[P#L#[T#B#题目解析]]'] = await markji.parseHtml(question.explanation || '', {style: this.HTML_STYLE})
 
     // ===========================
     // _points.
-    const _points = [
-      '[P#L#[T#B#来源]]',
-      `${params.bank.name} - ${params.category.name} - ${question.sheet.name}`,
-      '[P#L#[T#B#题型]]',
-      question.topic_type_name,
-      `[P#L#[T#B#解析]]`,
-      lodash.trim(_meta.explain.text),
-    ]
+    _meta.points['[P#L#[T#B#题目来源]]'] = {
+      assets: {},
+      text: `${params.bank.name} - ${params.category.name} - ${question.sheet.name}`,
+    }
+
+    _meta.points['[P#L#[T#B#题目类型]]'] = {
+      assets: {},
+      text: question.topic_type_name,
+    }
 
     // _output.
     const _output = await html.toText(
@@ -325,14 +355,25 @@ export default class Markji extends MarkjiBase {
           '---',
           _meta.translation.text,
           '---',
-          ..._points,
+          ...lodash
+            .chain(_meta.points)
+            .toPairs()
+            .sortBy(0)
+            .fromPairs()
+            .map((point, key) => `${key}\n${point.text}`)
+            .value(),
         ])
         .join('\n')
         .trim()
         .replaceAll('\n', '<br>'),
     )
 
-    _output.assets = lodash.merge({}, _meta.content.assets, _meta.explain.assets, _meta.translation.assets)
+    _output.assets = lodash.merge(
+      {},
+      _meta.content.assets,
+      ...lodash.map(_meta.points, 'assets'),
+      _meta.translation.assets,
+    )
 
     return _output
   }
