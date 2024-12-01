@@ -8,6 +8,7 @@ import {Fenbi} from './_/fenbi.js'
 import FenbiKaoyan from './_/fenbi-kaoyan.js'
 import _ from './_/index.js'
 import JsonFile from './_/json-file.js'
+import LearnABC from './_/learnabc.js'
 import Markji from './_/markji.js'
 import MyTodoAws from './_/mytodo-aws.js'
 import Shangfen from './_/shangfen.js'
@@ -27,6 +28,7 @@ export default class VendorManager {
     [Fenbi.META.key]: Fenbi, // WIP
     [FenbiKaoyan.META.key]: FenbiKaoyan, // done
     [JsonFile.META.key]: JsonFile, // done
+    [LearnABC.META.key]: LearnABC, // WIP
     [Markji.META.key]: Markji, // skip
     [MyTodoAws.META.key]: MyTodoAws, // done
     [Shangfen.META.key]: Shangfen, // implement

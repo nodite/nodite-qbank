@@ -95,9 +95,10 @@ const underline = async (text: string, options?: ParseOptions): Promise<AssetStr
     // pass
   }
   // 没有连续的 __，则将连续的空格替换为 _
-  else if (/ {3,}/g.test(text)) {
-    for (const _space of text.matchAll(/ {3,}/g)) {
-      text = text.replace(_space[0], '_'.repeat(_space[0].length))
+  else if (/[ |\u00A0]{3,}/g.test(text)) {
+    for (const _space of text.matchAll(/[ |\u00A0]{3,}/g)) {
+      const _idx = _space.index
+      text = text.slice(0, _idx) + '_'.repeat(_space[0].length) + text.slice(_idx + _space[0].length)
     }
   }
 

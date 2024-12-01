@@ -161,20 +161,20 @@ export default class Markji extends MarkjiBase {
 
       const _htmlStyle = ['<style type="text/css">', 'p { display: inline-block; }', '</style>'].join(' ')
 
-      const _options: string[] = []
+      const _opts: string[] = []
 
       for (const [key, value] of Object.entries(_options)) {
-        _options.push(`${key}. ${value}`)
+        _opts.push(`${key}. ${value}`)
         _meta.options.push({assets: [] as never, text: key})
       }
 
-      const _optionsContent = await html.toImage(_options.join('<br>'), {
+      const _optsContent = await html.toImage(_opts.join('<br>'), {
         imgSrcHandler,
         style: `${this.HTML_STYLE}${_htmlStyle}`,
       })
 
-      _meta.content.text += `\n${_optionsContent.text}`
-      _meta.content.assets = lodash.merge({}, _meta.content.assets, _optionsContent.assets)
+      _meta.content.text += `\n${_optsContent.text}`
+      _meta.content.assets = lodash.merge({}, _meta.content.assets, _optsContent.assets)
     }
 
     // ===========================

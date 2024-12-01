@@ -132,6 +132,7 @@ export default class Markji extends MarkjiBase {
         context: _meta.content.text,
         input: _meta.explain.text,
       })
+
       _meta.explain.text =
         lodash.trim(_chunk.content.toString().replace(/^格式化后的文本如下：\n/, '')) + '\n（该解析由 AI 整理）'
     }
@@ -202,6 +203,7 @@ export default class Markji extends MarkjiBase {
     // format by ai.
     if (lodash.isEmpty(_meta.translation.assets) && _meta.translation.text) {
       const _chunk = await prompt.PARAGRAPH_FORMAT.invoke({context: _meta.content.text, input: _meta.translation.text})
+
       _meta.translation.text =
         lodash.trim(_chunk.content.toString().replace(/^格式化后的文本如下：\n/, '')) +
         '\n（该答案由 AI 整理，原答案请看解析）'
