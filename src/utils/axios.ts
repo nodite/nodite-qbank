@@ -1,16 +1,16 @@
-import Axios from 'axios'
+import axios from 'axios'
 import {buildMemoryStorage, setupCache} from 'axios-cache-interceptor'
 import axiosRetry from 'axios-retry'
 import lodash from 'lodash'
 
-const axiosInstance = setupCache(Axios, {
+const _axios = setupCache(axios, {
   interpretHeader: false,
   storage: buildMemoryStorage(),
   ttl: 1000 * 60 * 5, // 5min
 })
 
 // @ts-ignore
-axiosRetry(axiosInstance, {
+axiosRetry(_axios, {
   retries: 3,
   retryCondition(error: any) {
     if (lodash.isNumber(error.response?.status) && error.response.status >= 500 && error.response.status <= 599) {
@@ -26,7 +26,7 @@ axiosRetry(axiosInstance, {
   retryDelay: axiosRetry.linearDelay(2000),
 })
 
-axiosInstance.interceptors.response.use(
+_axios.interceptors.response.use(
   (response) => {
     // biguo.
     if (
@@ -76,4 +76,4 @@ axiosInstance.interceptors.response.use(
   },
 )
 
-export default axiosInstance
+export default _axios
