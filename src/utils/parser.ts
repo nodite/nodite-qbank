@@ -90,19 +90,22 @@ const input = async (text: string, options?: ParseOptions): Promise<AssetString>
 const underline = async (text: string, options?: ParseOptions): Promise<AssetString> => {
   const assetString = {assets: {}} as AssetString
 
+  text = text.replaceAll(' <wbr>', ' ')
+
   // 如果有连续的 __，则去掉前后空格
   if (/_{2,}/g.test(text)) {
     // pass
   }
-  // 没有连续的 __，则将连续的空格替换为 _
+  // 连续空格，连续 \U00A0，连续 \U00A0<wbr>
   else if (/[ |\u00A0]{3,}/g.test(text)) {
     for (const _space of text.matchAll(/[ |\u00A0]{3,}/g)) {
       const _idx = _space.index
-      text = text.slice(0, _idx) + '_'.repeat(_space[0].length) + text.slice(_idx + _space[0].length)
+      const _spaceCount = _space[0].replaceAll('<wbr>', '').length
+      text = text.slice(0, _idx) + '_'.repeat(_spaceCount) + text.slice(_idx + _space[0].length)
     }
   }
 
-  text = lodash.trim(text)
+  text = lodash.trim(text.replaceAll(' ', ' <wbr>'))
 
   // 间断的 __ 替换为连续的 __
   while (text.includes('_ _')) {
