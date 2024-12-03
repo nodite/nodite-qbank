@@ -17,7 +17,7 @@ export default class Markji extends MarkjiBase {
   protected async _output(question: any, params: Params): Promise<AssetString> {
     let output = {} as AssetString
 
-    if (params.bank.meta?.type === 'topic') {
+    if (params.bank.meta?.type === 'topic' || params.bank.meta?.type === 'stage') {
       output = await this._processChoice(question, params)
     } else if (params.bank.meta?.type) {
       throwError('Unsupported question type', {params, question})
@@ -97,14 +97,17 @@ export default class Markji extends MarkjiBase {
 
     // ====================
     // _points.
-    _meta.points['[P#L#[T#B#题目类别]]'] = {assets: {}, text: params.bank.name}
+    _meta.points['[P#L#[T#B#题目类别]]'] = {
+      assets: {},
+      text: `${params.bank.meta?.name} / ${params.category.name} / ${params.sheet.name}`,
+    }
 
     // ===========================
     // _output.
     const _output = await html.toText(
       lodash
         .filter([
-          `[${params.bank.meta?.topic_name}]`,
+          `[#${question.id}]`,
           lodash.trim(_meta.content.text),
           `[Choice#${_meta.optionsAttr}#\n${lodash.trim(lodash.map(_meta.options, 'text').join('\n'))}\n]\n`,
           '---\n',

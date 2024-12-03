@@ -13,7 +13,7 @@ import {FetchOptions} from '../../../types/common.js'
 import {Sheet} from '../../../types/sheet.js'
 import axios from '../../../utils/axios.js'
 import {emitter} from '../../../utils/event.js'
-import {throwError} from '../../../utils/index.js'
+import {safeName, throwError} from '../../../utils/index.js'
 import learnabc from '../../../utils/vendor/learnabc.js'
 import {CACHE_KEY_ORIGIN_QUESTION_ITEM} from '../../cache-pattern.js'
 import {OutputClass} from '../../output/common.js'
@@ -39,9 +39,9 @@ export default class LearnABC extends Vendor {
     const banks = [] as Bank[]
 
     // topic.
-    const _topics = await axios.get('http://m.beauty-story.cn/api/englishpaper/getTopicList', config)
+    const _topicResp = await axios.get('http://m.beauty-story.cn/api/englishpaper/getTopicList', config)
 
-    for (const [_idx, _topic] of (_topics.data.data || []).entries()) {
+    for (const [_idx, _topic] of (_topicResp.data.data || []).entries()) {
       const _id = md5(JSON.stringify({id: _topic.id, type: 'topic'}))
 
       banks.push({
@@ -49,12 +49,34 @@ export default class LearnABC extends Vendor {
         id: _id,
         meta: {
           _index: _idx,
-          topic_detail: _topic.topic_detail,
-          topic_id: _topic.id,
-          topic_name: _topic.topic_name,
+          name: _topic.topic_name,
+          topic: _topic,
           type: 'topic',
         },
-        name: `英语习题册 > 语法 > ${_topic.topic_name}`,
+        name: await safeName(`英语习题册 > 语法 > ${_topic.topic_name}`),
+      })
+    }
+
+    // stage.
+    const _stageResp = await axios.get('http://m.beauty-story.cn/api/englishpaper/allcategory2', config)
+
+    for (const [_idx, _stage] of (_stageResp.data.data.active || []).entries()) {
+      const _stgKey = _stage.stage
+      const _stgMeta = lodash.find(_stageResp.data.data.stage, {key: _stgKey})
+
+      banks.push({
+        id: md5(JSON.stringify({stage: _stgKey})),
+        meta: {
+          _index: _idx,
+          categories: lodash.map(_stage.category, (c) => {
+            const _catMeta = lodash.find(_stageResp.data.data.category, {key: c.key})
+            return {..._catMeta, ...c}
+          }),
+          name: _stgMeta.value,
+          stage: _stgMeta,
+          type: 'stage',
+        },
+        name: await safeName(`英语习题册 > 阶段 > ${_stgMeta.value}`),
       })
     }
 
@@ -73,6 +95,26 @@ export default class LearnABC extends Vendor {
    */
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.CATEGORIES)})
   protected async fetchCategories(params: {bank: Bank}): Promise<Category[]> {
+    if (params.bank.meta?.type === 'topic') {
+      return [{children: [], count: params.bank.count || 0, id: '0', name: params.bank.meta.topic.topic_name}]
+    }
+
+    if (params.bank.meta?.type === 'stage') {
+      const _cats = [] as Category[]
+
+      for (const [_idx, _cat] of params.bank.meta.categories.entries()) {
+        _cats.push({
+          children: [],
+          count: _cat.count,
+          id: _cat.key,
+          name: await safeName(_cat.value),
+          order: _idx,
+        })
+      }
+
+      return _cats
+    }
+
     return [{children: [], count: params.bank.count || 0, id: '0', name: '默认'}]
   }
 
@@ -106,58 +148,63 @@ export default class LearnABC extends Vendor {
 
     emitter.emit('questions.fetch.count', originQuestionKeys.length)
 
-    // topic
-    if (params.bank.meta?.type === 'topic') {
-      let _id = 0
+    // fetch questions.
+    let _id = 0
 
-      do {
-        if (originQuestionKeys.length >= params.sheet.count) break
+    do {
+      if (originQuestionKeys.length >= params.sheet.count) break
 
-        const _qResp = await axios.get(
-          'http://m.beauty-story.cn/api/englishpaper/cq',
-          lodash.merge(
-            {},
-            config,
-            _id === 0
-              ? {params: {firstTimeEnter: true, id: _id, topic_id: params.bank.meta?.topic_id}}
-              : {params: {id: _id, isNextPaper: true, topic_id: params.bank.meta?.topic_id}},
-          ),
-        )
+      const _respParams: Record<string, any> =
+        _id === 0 ? {firstTimeEnter: true, id: _id} : {id: _id, isNextPaper: true}
 
-        const _qs: Record<string, any>[] = _qResp.data.data
+      // topic.
+      if (params.bank.meta?.type === 'topic') {
+        _respParams.topic_id = params.bank.meta?.topic.id
+      }
+      // stage.
+      else if (params.bank.meta?.type === 'stage') {
+        _respParams.stage = params.bank.meta?.stage.key
+        _respParams.category = params.category.id
+      }
+      // others.
+      else if (params.bank.meta?.type) {
+        throwError('Not implemented', {params})
+      }
 
-        for (const _q of _qs) {
-          const _qId = String(_q.id)
+      const _qResp = await axios.get(
+        'http://m.beauty-story.cn/api/englishpaper/cq',
+        lodash.merge({}, config, {params: _respParams}),
+      )
 
-          const _qCacheKey = lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)({
-            ...cacheKeyParams,
-            questionId: _qId,
-          })
+      const _qs: Record<string, any>[] = _qResp.data.data
 
-          if (originQuestionKeys.includes(_qCacheKey)) continue
+      for (const _q of _qs) {
+        const _qId = String(_q.id)
 
-          if (_q.decode_type === '2') {
-            _q.shift_question = learnabc.decryptServer(_q.shift_question)
-            _q.shift_analyzing = learnabc.decryptServer(_q.shift_analyzing)
-          } else {
-            _q.shift_question = learnabc.decryptQuestion(_q.shift_question)
-            _q.shift_analyzing = learnabc.decryptAnalyzing(_q.shift_analyzing)
-          }
+        const _qCacheKey = lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)({
+          ...cacheKeyParams,
+          questionId: _qId,
+        })
 
-          await cacheClient.set(_qCacheKey, _q)
-          originQuestionKeys.push(_qCacheKey)
-          emitter.emit('questions.fetch.count', originQuestionKeys.length)
+        if (originQuestionKeys.includes(_qCacheKey)) continue
 
-          await sleep(500)
+        if (_q.decode_type === '2') {
+          _q.shift_question = learnabc.decryptServer(_q.shift_question)
+          _q.shift_analyzing = learnabc.decryptServer(_q.shift_analyzing)
+        } else {
+          _q.shift_question = learnabc.decryptQuestion(_q.shift_question)
+          _q.shift_analyzing = learnabc.decryptAnalyzing(_q.shift_analyzing)
         }
 
-        _id = _qs.at(-1)?.id
-      } while (true)
-    }
-    // others.
-    else if (params.bank.meta?.type) {
-      throwError('Not implemented', {params})
-    }
+        await cacheClient.set(_qCacheKey, _q)
+        originQuestionKeys.push(_qCacheKey)
+        emitter.emit('questions.fetch.count', originQuestionKeys.length)
+
+        await sleep(500)
+      }
+
+      _id = _qs.at(-1)?.id
+    } while (true)
 
     emitter.emit('questions.fetch.count', originQuestionKeys.length)
     await sleep(1000)
