@@ -8,7 +8,7 @@ import VendorManager from '../../components/vendor/index.js'
 import {Bank} from '../../types/bank.js'
 import {Category} from '../../types/category.js'
 import {Sheet} from '../../types/sheet.js'
-import {fiindAll} from '../../utils/index.js'
+import {fiindAll, getMemoryUsage} from '../../utils/index.js'
 
 export default class Index extends BaseCommand {
   static args = {}
@@ -64,6 +64,11 @@ Chain to qbank (./src/commands/chain/index.ts)
           // output for each sheet.
           await this._runOutputConvert(bank, category, sheet)
           await this._runOutputUpload(bank, category, sheet)
+
+          // print memory usage.
+          this.log('\n' + JSON.stringify(getMemoryUsage()))
+          if (global.gc) global.gc()
+          this.log(JSON.stringify(getMemoryUsage()))
 
           this.log(colors.green('\n\t\t|=== sheet ===|'))
         })

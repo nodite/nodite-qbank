@@ -28,9 +28,11 @@ for (const vendorName of [...vendor.list(), '_common']) {
   // VACUUM the database to shrink the file size
   store.client.pragma('auto_vacuum = FULL')
   // ANALYZE the caches database
-  store.client.pragma('analyze')
-  // Set synchronous to FULL
-  store.client.pragma('synchronous = FULL')
+  store.client.pragma('analysis_limit = 1000')
+  // Set synchronous to NORMAL
+  store.client.pragma('synchronous = NORMAL')
+  // optimize the database
+  store.client.pragma('optimize = 0x10002')
 
   const cache = cacheManager.createCache(store)
 

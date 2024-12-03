@@ -132,3 +132,8 @@ export function isJSON(str: string): boolean {
     return false
   }
 }
+
+export function getMemoryUsage(): Record<string, string> {
+  const memoryUsage = process.memoryUsage()
+  return lodash.mapValues(memoryUsage, (value) => (value / 1024 / 1024).toFixed(2) + ' MB')
+}
