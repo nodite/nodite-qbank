@@ -204,7 +204,7 @@ export default class LearnABC extends Vendor {
       }
 
       _id = _qs.at(-1)?.id
-    } while (true)
+    } while (Number(_id) > 0)
 
     emitter.emit('questions.fetch.count', originQuestionKeys.length)
     await sleep(1000)

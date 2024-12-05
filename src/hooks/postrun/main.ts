@@ -3,7 +3,7 @@ import {Hook} from '@oclif/core'
 import {service as embeddingService} from '../../embedding/service.js'
 import puppeteer from '../../utils/puppeteer.js'
 
-const hook: Hook.Postrun = async () => {
+const postrun = async () => {
   // Close the browser
   await puppeteer.close()
 
@@ -14,4 +14,7 @@ const hook: Hook.Postrun = async () => {
   if (global.gc) global.gc()
 }
 
+const hook: Hook.Postrun = postrun
+
+export {postrun}
 export default hook

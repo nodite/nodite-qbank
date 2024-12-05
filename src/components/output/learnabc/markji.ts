@@ -42,6 +42,15 @@ export default class Markji extends MarkjiBase {
     // _context.
     _meta.content = await markji.parseHtml(question.shift_question, {imgSrcHandler, style: this.HTML_STYLE})
 
+    let _offset = 0
+    for (const _space of _meta.content.text.matchAll(/—+/g)) {
+      const _idx = _space.index + _offset
+      _meta.content.text = _meta.content.text.slice(0, _idx) + '\n' + _meta.content.text.slice(_idx)
+      _offset++
+    }
+
+    _meta.content.text = lodash.trim(_meta.content.text)
+
     // ===========================
     // _options.
     const _options = JSON.parse(question.options)
@@ -93,7 +102,9 @@ export default class Markji extends MarkjiBase {
 
     // ====================
     // _explain.
-    _meta.points['[P#L#[T#B#题目解析]]'] = await markji.parseHtml(question.shift_analyzing || '')
+    _meta.points['[P#L#[T#B#题目解析]]'] = await markji.parseHtml(
+      (question.shift_analyzing || '').replaceAll(/ {3,}/g, ' '),
+    )
 
     // ====================
     // _points.

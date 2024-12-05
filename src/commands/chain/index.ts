@@ -5,6 +5,7 @@ import lodash from 'lodash'
 import BaseCommand from '../../base.js'
 import {Vendor} from '../../components/vendor/common.js'
 import VendorManager from '../../components/vendor/index.js'
+import {postrun} from '../../hooks/postrun/main.js'
 import {Bank} from '../../types/bank.js'
 import {Category} from '../../types/category.js'
 import {Sheet} from '../../types/sheet.js'
@@ -67,7 +68,7 @@ Chain to qbank (./src/commands/chain/index.ts)
 
           // print memory usage.
           this.log('\n' + JSON.stringify(getMemoryUsage()))
-          if (global.gc) global.gc()
+          await postrun()
           this.log(JSON.stringify(getMemoryUsage()))
 
           this.log(colors.green('\n\t\t|=== sheet ===|'))
