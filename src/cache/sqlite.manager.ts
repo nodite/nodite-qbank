@@ -2,11 +2,10 @@ import {SqliteStore, sqliteStore} from '@resolid/cache-manager-sqlite'
 import {useAdapter} from '@type-cacheable/cache-manager-adapter'
 import typeCacheableManager, {CacheManagerOptions as TypeCacheManagerOptions} from '@type-cacheable/core'
 import * as cacheManager from 'cache-manager'
-import lodash from 'lodash'
 import path from 'node:path'
 
-import vendor from '../components/vendor/_/index.js'
 import {CLI_ASSETS_DIR} from '../env.js'
+import memory from './memory.manager.js'
 
 // Set cacheable manager options
 typeCacheableManager.default.setOptions(<TypeCacheManagerOptions>{
@@ -15,10 +14,13 @@ typeCacheableManager.default.setOptions(<TypeCacheManagerOptions>{
   ttlSeconds: 0,
 })
 
-const stories = {} as Record<string, {cache: cacheManager.Cache; store: SqliteStore}>
+type InitStoreReturn = {cache: cacheManager.Cache; store: SqliteStore}
 
-for (const vendorName of [...vendor.list(), '_common']) {
-  // On disk cache on caches table sync version
+const initStore = async (vendorName: string): Promise<InitStoreReturn> => {
+  const _existStore = await memory.cache.get<InitStoreReturn>(`sqlite:store:${vendorName}`)
+
+  if (_existStore) return _existStore
+
   const store = sqliteStore({
     cacheTableName: 'qbank_' + vendorName.replaceAll('-', '_'),
     enableWALMode: true,
@@ -36,15 +38,13 @@ for (const vendorName of [...vendor.list(), '_common']) {
 
   const cache = cacheManager.createCache(store)
 
-  stories[vendorName] = {cache, store}
+  await memory.cache.set(`sqlite:store:${vendorName}`, {cache, store})
+
+  return {cache, store}
 }
 
-const switchClient = (vendorName: string) => {
-  if (!lodash.has(stories, vendorName)) {
-    throw new Error(`The store of Vendor ${vendorName} not found`)
-  }
-
-  const {cache, store} = stories[vendorName]
+const switchClient = async (vendorName: string) => {
+  const {cache, store} = await initStore(vendorName)
 
   typeCacheableManager.default.setClient(useAdapter(cache))
   typeCacheableManager.default.setFallbackClient(useAdapter(cache))
@@ -52,6 +52,8 @@ const switchClient = (vendorName: string) => {
   return {cache, store}
 }
 
-const CommonClient = useAdapter(stories._common.cache) as typeCacheableManager.CacheClient
+const commonStore = await initStore('_common')
 
-export default {CommonClient, stories, switchClient}
+const CommonClient = useAdapter(commonStore.cache) as typeCacheableManager.CacheClient
+
+export default {CommonClient, initStore, switchClient}

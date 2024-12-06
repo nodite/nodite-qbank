@@ -124,6 +124,9 @@
       ],
       "postrun": [
         "./dist/hooks/postrun/main"
+      ],
+      "prerun": [
+        "./dist/hooks/prerun/main"
       ]
     },
     "plugins": [

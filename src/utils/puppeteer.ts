@@ -47,7 +47,7 @@ const page = async (name: string, url: string, params?: {cookies?: puppeteer.Coo
 
     await _page?.setUserAgent(userAgent)
 
-    await _page?.setCacheEnabled(true)
+    await _page?.setCacheEnabled(false)
 
     await _page?.setCookie(...(params?.cookies || []))
 
@@ -67,7 +67,8 @@ const close = async () => {
   const _browser = await browser(false)
   await _browser?.close()
 
-  const cacheKeys = await memory.cache.store.keys('puppeteer:*')
+  const cacheKeys = lodash.filter(await memory.cache.store.keys(), (key) => key.startsWith('puppeteer:'))
+
   await Promise.all(lodash.map(cacheKeys, memory.cache.del))
 }
 

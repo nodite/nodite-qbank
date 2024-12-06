@@ -90,12 +90,12 @@ export default class Markji extends Output {
 
       doneQuestionParams.push(_questionParam)
 
-      await sleep(1000)
+      await sleep(500)
     }
 
     emitter.emit('output.convert.count', doneQuestionParams.length)
 
-    await sleep(1000)
+    await sleep(500)
 
     emitter.closeListener('output.convert.count')
   }

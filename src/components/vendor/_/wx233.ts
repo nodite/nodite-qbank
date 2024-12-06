@@ -272,7 +272,7 @@ export default class Wx233 extends Vendor {
 
     emitter.emit('questions.fetch.count', questionKeys.length)
 
-    await sleep(1000)
+    await sleep(500)
 
     emitter.closeListener('questions.fetch.count')
   }

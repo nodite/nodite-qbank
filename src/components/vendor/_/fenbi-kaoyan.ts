@@ -205,17 +205,16 @@ export default class FenbiKaoyan extends Vendor {
     const exerciseCacheKeyParams = {...cacheKeyParams, processScope: 'exercise'}
 
     // check.
-    const exerciseIds = lodash.map(
-      await cacheClient.keys(
+    const [exerciseKeys, questionKeys] = await Promise.all([
+      cacheClient.keys(
         lodash.template(CACHE_KEY_ORIGIN_QUESTION_PROCESSING)({...exerciseCacheKeyParams, processId: '*'}),
       ),
-      (key) => key.split(':').pop() as string,
-    )
+      cacheClient.keys(lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)({...cacheKeyParams, questionId: '*'})),
+    ])
 
-    const questionIds = lodash.map(
-      await cacheClient.keys(lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)({...cacheKeyParams, questionId: '*'})),
-      (key) => key.split(':').pop() as string,
-    )
+    const exerciseIds = lodash.map(exerciseKeys, (key) => key.split(':').pop() as string)
+
+    const questionIds = lodash.map(questionKeys, (key) => key.split(':').pop() as string)
 
     // refetch.
     if (options?.refetch) {
@@ -443,7 +442,7 @@ export default class FenbiKaoyan extends Vendor {
 
     emitter.emit('questions.fetch.count', questionIds.length)
 
-    await sleep(1000)
+    await sleep(500)
 
     emitter.closeListener('questions.fetch.count')
   }

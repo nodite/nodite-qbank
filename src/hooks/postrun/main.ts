@@ -14,7 +14,9 @@ const postrun = async () => {
   if (global.gc) global.gc()
 }
 
-const hook: Hook.Postrun = postrun
+const hook: Hook.Postrun = async () => {
+  await postrun()
+}
 
 export {postrun}
 export default hook

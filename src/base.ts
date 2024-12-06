@@ -36,7 +36,7 @@ export default abstract class BaseCommand extends Command {
     }
 
     // switch cache client
-    sqliteCache.switchClient(flags.vendor)
+    await sqliteCache.switchClient(flags.vendor)
 
     if (flags.username) {
       console.log(`${colors.green('✔')} ${colors.bold('供应商账号')}: ${colors.cyan(flags.username)}`)

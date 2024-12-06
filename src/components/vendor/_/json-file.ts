@@ -112,7 +112,7 @@ export default class JsonFile extends Vendor {
     }
 
     emitter.emit('questions.fetch.count', originQuestionKeys.length)
-    await sleep(1000)
+    await sleep(500)
     emitter.closeListener('questions.fetch.count')
   }
 
