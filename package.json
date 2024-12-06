@@ -89,7 +89,7 @@
     "eslint-config-prettier": "^9",
     "eslint-plugin-prettier": "^5",
     "husky": "^9",
-    "mocha": "^10",
+    "mocha": "^11",
     "oclif": "^4",
     "prettier": "^3",
     "shx": "^0",
