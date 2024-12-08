@@ -383,7 +383,7 @@ const bulkUpload = async (options: BulkUploadOptions): Promise<void> => {
 
       // emit.
       emitter.emit('output.upload.count', _questionIdx + 1)
-      await sleep(500)
+      // await sleep(500)
     }
   }
 
