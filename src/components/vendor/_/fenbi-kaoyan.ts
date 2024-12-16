@@ -187,6 +187,8 @@ export default class FenbiKaoyan extends Vendor {
     params: {bank: Bank; category: Category; sheet: Sheet},
     options?: FetchOptions,
   ): Promise<void> {
+    lodash.set(params, 'vendor', this)
+
     if (params.sheet.id === '*') throw new Error('Sheet ID is required.')
 
     // prepare.
@@ -393,19 +395,21 @@ export default class FenbiKaoyan extends Vendor {
             }
           }
 
-          await axios.post(
-            lodash.template(this._fetchQuestionMeta.incrEndpoint)({bankPrefix, exerciseId: _exerciseId}),
-            [
-              {
-                answer: correctAnswer,
-                flag: 0,
-                questionId,
-                questionIndex: _questionIdx,
-                time: elapsedTime,
-              },
-            ],
-            lodash.merge({}, requestConfig, {params: {forceUpdateAnswer: 1}}),
-          )
+          try {
+            await axios.post(
+              lodash.template(this._fetchQuestionMeta.incrEndpoint)({bankPrefix, exerciseId: _exerciseId}),
+              [
+                {
+                  answer: correctAnswer,
+                  flag: 0,
+                  questionId,
+                  questionIndex: _questionIdx,
+                  time: elapsedTime,
+                },
+              ],
+              lodash.merge({}, requestConfig, {params: {forceUpdateAnswer: 1}}),
+            )
+          } catch {}
         }
 
         // update.
@@ -418,14 +422,16 @@ export default class FenbiKaoyan extends Vendor {
 
       // submit exercise.
       if (!String(_exerciseId).startsWith('_')) {
-        await axios.post(
-          lodash.template(this._fetchQuestionMeta.submitEndpoint)({bankPrefix, exerciseId: _exerciseId}),
-          {status: 1},
-          lodash.merge({}, requestConfig, {
-            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-            validateStatus: () => true,
-          }),
-        )
+        try {
+          await axios.post(
+            lodash.template(this._fetchQuestionMeta.submitEndpoint)({bankPrefix, exerciseId: _exerciseId}),
+            {status: 1},
+            lodash.merge({}, requestConfig, {
+              headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+              validateStatus: () => true,
+            }),
+          )
+        } catch {}
       }
 
       await cacheClient.del(
