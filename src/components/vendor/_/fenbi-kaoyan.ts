@@ -1,3 +1,4 @@
+/* eslint-disable max-depth */
 import type {CacheRequestConfig} from 'axios-cache-interceptor'
 
 import {Cacheable} from '@type-cacheable/core'
@@ -274,7 +275,10 @@ export default class FenbiKaoyan extends Vendor {
       if (bankPrefix === 'zhyynl') {
         const zhyynls: any = (await memory.cache.get('zhyynls')) || params.sheet.meta?.zhyynl || []
 
-        if (zhyynls.length === 0) continue
+        if (zhyynls.length === 0) {
+          _times = 5
+          continue
+        }
 
         do {
           const zhyynl = zhyynls.shift()
@@ -283,14 +287,22 @@ export default class FenbiKaoyan extends Vendor {
             _exerId = String(zhyynl.exerciseId)
             _qIds = [String(zhyynl.questionId)]
           } else if (zhyynl.sheetId) {
-            const exerciseResponse = await axios.post(
-              lodash.template(this._fetchQuestionMeta.exercisesEndpoint)({bankPrefix}),
-              undefined,
-              lodash.merge({}, requestConfig, {params: {sheetId: zhyynl.sheetId, type: 26}}),
-            )
+            try {
+              // 您创建练习的频率过高，请稍候再试
+              await sleep(1000)
 
-            _exerId = lodash.get(exerciseResponse.data, 'id', 0)
-            _qIds = lodash.get(exerciseResponse.data, 'sheet.questionIds', [])
+              const exerciseResponse = await axios.post(
+                lodash.template(this._fetchQuestionMeta.exercisesEndpoint)({bankPrefix}),
+                undefined,
+                lodash.merge({}, requestConfig, {params: {sheetId: zhyynl.sheetId, type: 26}}),
+              )
+
+              _exerId = lodash.get(exerciseResponse.data, 'id', 0)
+              _qIds = lodash.get(exerciseResponse.data, 'sheet.questionIds', [])
+            } catch {
+              _exerId = '_0'
+              _qIds = [String(zhyynl.questionId)]
+            }
           } else if (zhyynl.questionId) {
             _exerId = '_0'
             _qIds = [String(zhyynl.questionId)]

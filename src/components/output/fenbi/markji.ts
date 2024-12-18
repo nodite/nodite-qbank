@@ -77,6 +77,12 @@ export default class Markji extends MarkjiBase {
         break
       }
 
+      case 21: {
+        question.typeName = '案例分析'
+        output = await this._processTranslate(question, params)
+        break
+      }
+
       // 61. BlankFilling, 填空题
       case 61: {
         question.typeName = '填空题'
