@@ -8,6 +8,7 @@ import random from 'random-number'
 import sleep from 'sleep-promise'
 import UserAgent from 'user-agents'
 
+import memory from '../../../cache/memory.manager.js'
 import sqliteCache from '../../../cache/sqlite.manager.js'
 import {Bank} from '../../../types/bank.js'
 import {Category} from '../../../types/category.js'
@@ -214,21 +215,21 @@ export default class FenbiKaoyan extends Vendor {
       cacheClient.keys(lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)({...cacheKeyParams, questionId: '*'})),
     ])
 
-    const exerciseIds = lodash.map(exerciseKeys, (key) => key.split(':').pop() as string)
+    const exerIds = lodash.map(exerciseKeys, (key) => key.split(':').pop() as string)
 
-    const questionIds = lodash.map(questionKeys, (key) => key.split(':').pop() as string)
+    const doneQIds = lodash.map(questionKeys, (key) => key.split(':').pop() as string)
 
     // refetch.
     if (options?.refetch) {
       await cacheClient.delHash(lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)({...cacheKeyParams, questionId: '*'}))
-      questionIds.length = 0
+      doneQIds.length = 0
     }
 
     // ###########################################
     // customize exercises.
     //
     if (
-      questionIds.length < params.sheet.count &&
+      doneQIds.length < params.sheet.count &&
       // giant questions.
       params.sheet.meta?.giantOnly
     ) {
@@ -247,53 +248,66 @@ export default class FenbiKaoyan extends Vendor {
           _questionsIds,
         )
 
-        exerciseIds.push(_exerciseId)
+        exerIds.push(_exerciseId)
       }
 
-      questionIds.length = 0
+      doneQIds.length = 0
     }
     //
     // ###########################################
 
     // fetch.
-    let _prevCount = questionIds.length
+    let _prevCount = doneQIds.length
     let _times = 0
 
-    emitter.emit('questions.fetch.count', questionIds.length)
+    emitter.emit('questions.fetch.count', doneQIds.length)
 
-    while ((questionIds.length < params.sheet.count || exerciseIds.length > 0) && _times < 5) {
+    while ((doneQIds.length < params.sheet.count || exerIds.length > 0) && _times < 5) {
       // emit count.
-      emitter.emit('questions.fetch.count', questionIds.length)
+      emitter.emit('questions.fetch.count', doneQIds.length)
 
       // exercise processing.
-      let _exerciseId: string
-      let _questionIds: string[]
+      let _exerId: string
+      let _qIds: string[]
 
       // zhyynl.
       if (bankPrefix === 'zhyynl') {
-        const zhyynl = (params.sheet.meta?.zhyynl || []).shift()
+        const zhyynls: any = (await memory.cache.get('zhyynls')) || params.sheet.meta?.zhyynl || []
 
-        if (zhyynl.exerciseId) {
-          _exerciseId = String(zhyynl.exerciseId)
-          _questionIds = [String(zhyynl.questionId)]
-        } else if (zhyynl.sheetId) {
-          const exerciseResponse = await axios.post(
-            lodash.template(this._fetchQuestionMeta.exercisesEndpoint)({bankPrefix}),
-            undefined,
-            lodash.merge({}, requestConfig, {params: {sheetId: zhyynl.sheetId, type: 26}}),
-          )
+        if (zhyynls.length === 0) continue
 
-          _exerciseId = lodash.get(exerciseResponse.data, 'id', 0)
-          _questionIds = lodash.get(exerciseResponse.data, 'sheet.questionIds', [])
-        } else {
-          throwError('zhyynl error', {params, zhyynl})
-        }
+        do {
+          const zhyynl = zhyynls.shift()
+
+          if (zhyynl.exerciseId) {
+            _exerId = String(zhyynl.exerciseId)
+            _qIds = [String(zhyynl.questionId)]
+          } else if (zhyynl.sheetId) {
+            const exerciseResponse = await axios.post(
+              lodash.template(this._fetchQuestionMeta.exercisesEndpoint)({bankPrefix}),
+              undefined,
+              lodash.merge({}, requestConfig, {params: {sheetId: zhyynl.sheetId, type: 26}}),
+            )
+
+            _exerId = lodash.get(exerciseResponse.data, 'id', 0)
+            _qIds = lodash.get(exerciseResponse.data, 'sheet.questionIds', [])
+          } else if (zhyynl.questionId) {
+            _exerId = '_0'
+            _qIds = [String(zhyynl.questionId)]
+          } else {
+            throwError('zhyynl error', {params, zhyynl})
+          }
+
+          if (lodash.without(_qIds, ...doneQIds).length > 0) break
+        } while (true)
+
+        await memory.cache.set('zhyynls', zhyynls)
       }
       // existing exercise.
-      else if (exerciseIds.length > 0) {
-        _exerciseId = exerciseIds.shift() as string
-        _questionIds = await cacheClient.get(
-          lodash.template(CACHE_KEY_ORIGIN_QUESTION_PROCESSING)({...exerciseCacheKeyParams, processId: _exerciseId}),
+      else if (exerIds.length > 0) {
+        _exerId = exerIds.shift() as string
+        _qIds = await cacheClient.get(
+          lodash.template(CACHE_KEY_ORIGIN_QUESTION_PROCESSING)({...exerciseCacheKeyParams, processId: _exerId}),
         )
       }
       // new exercise for default.
@@ -304,21 +318,21 @@ export default class FenbiKaoyan extends Vendor {
           lodash.merge({}, requestConfig, {headers: {'Content-Type': 'application/x-www-form-urlencoded'}}),
         )
 
-        _exerciseId = lodash.get(exerciseResponse.data, 'id', 0)
-        _questionIds = lodash.get(exerciseResponse.data, 'sheet.questionIds', [])
+        _exerId = lodash.get(exerciseResponse.data, 'id', 0)
+        _qIds = lodash.get(exerciseResponse.data, 'sheet.questionIds', [])
       }
 
       await cacheClient.set(
-        lodash.template(CACHE_KEY_ORIGIN_QUESTION_PROCESSING)({...exerciseCacheKeyParams, processId: _exerciseId}),
-        _questionIds,
+        lodash.template(CACHE_KEY_ORIGIN_QUESTION_PROCESSING)({...exerciseCacheKeyParams, processId: _exerId}),
+        _qIds,
       )
 
       // check.
-      if (lodash.isUndefined(_questionIds)) {
+      if (lodash.isUndefined(_qIds)) {
         throwError('Fetch questions failed.', {
           exerciseCacheKey: lodash.template(CACHE_KEY_ORIGIN_QUESTION_PROCESSING)({
             ...exerciseCacheKeyParams,
-            processId: _exerciseId,
+            processId: _exerId,
           }),
           params,
         })
@@ -335,7 +349,7 @@ export default class FenbiKaoyan extends Vendor {
           lodash.template(this._fetchQuestionMeta.universalAuthSolutionsEndpoint)({
             bankPrefix,
           }),
-          lodash.merge({}, requestConfig, {params: {questionIds: _questionIds.join(','), type: 9}}),
+          lodash.merge({}, requestConfig, {params: {questionIds: _qIds.join(','), type: 9}}),
         )
 
         _questions = lodash.chain(solutionsResponse).get('data.solutions', []).cloneDeep().value()
@@ -346,12 +360,12 @@ export default class FenbiKaoyan extends Vendor {
       else {
         const questionsResponse = await axios.get(
           lodash.template(this._fetchQuestionMeta.questionsEndpoint)({bankPrefix}),
-          lodash.merge({}, requestConfig, {params: {questionIds: _questionIds.join(',')}}),
+          lodash.merge({}, requestConfig, {params: {questionIds: _qIds.join(',')}}),
         )
 
         const solutionsResponse = await axios.get(
           lodash.template(this._fetchQuestionMeta.solutionsEndpoint)({bankPrefix}),
-          lodash.merge({}, requestConfig, {params: {ids: _questionIds.join(',')}}),
+          lodash.merge({}, requestConfig, {params: {ids: _qIds.join(',')}}),
         )
 
         _questions = lodash.get(questionsResponse.data, 'questions', [])
@@ -376,7 +390,7 @@ export default class FenbiKaoyan extends Vendor {
         )
 
         // answer.
-        if (!String(_exerciseId).startsWith('_')) {
+        if (!String(_exerId).startsWith('_')) {
           const elapsedTime = random({integer: true, max: 100, min: 1})
 
           let {correctAnswer, id: questionId} = _question
@@ -397,7 +411,7 @@ export default class FenbiKaoyan extends Vendor {
 
           try {
             await axios.post(
-              lodash.template(this._fetchQuestionMeta.incrEndpoint)({bankPrefix, exerciseId: _exerciseId}),
+              lodash.template(this._fetchQuestionMeta.incrEndpoint)({bankPrefix, exerciseId: _exerId}),
               [
                 {
                   answer: correctAnswer,
@@ -413,18 +427,18 @@ export default class FenbiKaoyan extends Vendor {
         }
 
         // update.
-        if (!questionIds.includes(_questionId)) questionIds.push(_questionId)
-        emitter.emit('questions.fetch.count', questionIds.length)
+        if (!doneQIds.includes(_questionId)) doneQIds.push(_questionId)
+        emitter.emit('questions.fetch.count', doneQIds.length)
 
         // delay.
         await sleep(100)
       }
 
       // submit exercise.
-      if (!String(_exerciseId).startsWith('_')) {
+      if (!String(_exerId).startsWith('_')) {
         try {
           await axios.post(
-            lodash.template(this._fetchQuestionMeta.submitEndpoint)({bankPrefix, exerciseId: _exerciseId}),
+            lodash.template(this._fetchQuestionMeta.submitEndpoint)({bankPrefix, exerciseId: _exerId}),
             {status: 1},
             lodash.merge({}, requestConfig, {
               headers: {'Content-Type': 'application/x-www-form-urlencoded'},
@@ -435,18 +449,16 @@ export default class FenbiKaoyan extends Vendor {
       }
 
       await cacheClient.del(
-        lodash.template(CACHE_KEY_ORIGIN_QUESTION_PROCESSING)({...exerciseCacheKeyParams, processId: _exerciseId}),
+        lodash.template(CACHE_KEY_ORIGIN_QUESTION_PROCESSING)({...exerciseCacheKeyParams, processId: _exerId}),
       )
 
-      await this.invalidate(HashKeyScope.SHEETS, params)
-
       // repeat fetch.
-      _times = questionIds.length === _prevCount ? _times + 1 : 0
-      _prevCount = questionIds.length
+      _times = doneQIds.length === _prevCount ? _times + 1 : 0
+      _prevCount = doneQIds.length
       emitter.emit('questions.fetch.times', _times)
     }
 
-    emitter.emit('questions.fetch.count', questionIds.length)
+    emitter.emit('questions.fetch.count', doneQIds.length)
 
     await sleep(500)
 
