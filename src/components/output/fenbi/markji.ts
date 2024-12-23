@@ -1,3 +1,4 @@
+/* eslint-disable complexity */
 import lodash from 'lodash'
 
 import {AssetString, Params} from '../../../types/common.js'
@@ -11,10 +12,109 @@ import MarkjiBase from '../markji.js'
 const imgSrcHandler = (src: string): string => {
   if (src.startsWith('/api/planet/accessories')) {
     src = 'https://fb.fenbike.cn' + src
+  } else if (src.startsWith('//')) {
+    src = 'https:' + src
   }
 
   return src
 }
+
+// export enum QuestionType {
+//   TypeInvalid = 0,
+//   TypeSingleChoice = 1,
+//   TypeMultiChoice = 2,
+//   TypeUncertainChoice = 3,
+//   TypeCloze = 4,
+//   TypeTrueOrFlase = 5,
+//   TypeReadingComprehension5In7 = 6,
+//   TypeProof = 11,
+//   TypeEssay = 12,
+//   TypeCaculation = 13,
+//   TypeReadingComprehension = 14,
+//   TypeAnalysis = 15,
+//   TypeCorrection = 16,
+//   TypeOther = 50,
+//   TypeBlankFilling = 61,
+//   TypeAccountingEntry = 62,
+//   TypeYufa = 64,
+//   TypeOfficeWord = 106,
+//   TypeOfficeExcel = 107,
+//   TypeOfficePPT = 108,
+//   TypeOfficeSUB = 5,
+//   TypeOnlineCorrect = 21,
+//   ESSAY_ANALYSIS = 22,
+//   ESSAY_STRATEGY = 23,
+//   ESSAY_OFFICIAL = 24,
+//   ESSAY_WRITING = 25,
+//   ESSAY_VIEW = 26,
+//   PIAN_DUAN = 104,
+// }
+
+// switch (t) {
+//   case r.e.TypeSingleChoice: {
+//     return '\u5355\u9009\u9898'
+//   }
+
+//   case r.e.TypeMultiChoice: {
+//     return '\u591A\u9009\u9898'
+//   }
+
+//   case r.e.TypeTrueOrFlase: {
+//     return '\u5224\u65AD\u9898'
+//   }
+
+//   case r.e.TypeUncertainChoice: {
+//     return '\u4E0D\u5B9A\u9879'
+//   }
+
+//   case r.e.TypeBlankFilling: {
+//     return '\u586B\u7A7A\u9898'
+//   }
+
+//   case r.e.TypeEssay: {
+//     return '\u8BBA\u8FF0\u9898'
+//   }
+
+//   case r.e.TypeAnalysis: {
+//     return '\u5206\u6790\u9898'
+//   }
+
+//   case r.e.TypeOther: {
+//     return '\u5176\u4ED6\uFF08\u9AD8\u8003\u586B\u7A7A\uFF09'
+//   }
+
+//   case r.e.TypeProof: {
+//     return '\u8BC1\u660E\u9898'
+//   }
+
+//   case r.e.TypeYufa: {
+//     return '\u8BED\u6CD5\u586B\u7A7A'
+//   }
+
+//   case r.e.TypeCaculation: {
+//     return '\u8BA1\u7B97\u9898'
+//   }
+
+//   case r.e.TypeCorrection: {
+//     return '\u6539\u9519'
+//   }
+
+//   case r.e.TypeCloze: {
+//     return '\u5B8C\u5F62\u586B\u7A7A'
+//   }
+
+//   case r.e.TypeReadingComprehension5In7: {
+//     return '\u9605\u8BFB\u7406\u89E37\u90095'
+//   }
+
+//   case r.e.TypeReadingComprehension: {
+//     return '\u9605\u8BFB\u7406\u89E3'
+//   }
+
+//   default: {
+//     return '\u5176\u4ED6'
+//   }
+// }
 
 export default class Markji extends MarkjiBase {
   /**
@@ -27,7 +127,7 @@ export default class Markji extends MarkjiBase {
 
     // ===========================
     switch (_questionType) {
-      // 1. SingleChoice, 单选题
+      // 1. TypeSingleChoice, 单选题
       case 1: {
         question.typeName = '单选题'
         question.optionsAttr = 'fixed'
@@ -35,7 +135,7 @@ export default class Markji extends MarkjiBase {
         break
       }
 
-      // 2. MultipleChoice, 多选题
+      // 2. TypeMultiChoice, 多选题
       case 2:
       case 3: {
         question.typeName = '多选题'
@@ -44,14 +144,14 @@ export default class Markji extends MarkjiBase {
         break
       }
 
-      // 4. Cloze, 完型填空
+      // 4. TypeCloze, 完型填空
       case 4: {
         question.typeName = '完型填空'
         output = await this._processChoice(question, params)
         break
       }
 
-      // 5. TrueOrFlase, 判断题
+      // 5. TypeTrueOrFlase, 判断题
       case 5: {
         question.typeName = '判断题'
 
@@ -64,21 +164,58 @@ export default class Markji extends MarkjiBase {
         break
       }
 
-      // 6. ReadingComprehension5In7, 阅读理解7选5
+      // 6. TypeReadingComprehension5In7, 阅读理解7选5
       case 6: {
         question.typeName = '阅读理解7选5'
         output = await this._processChoice(question, params)
         break
       }
 
+      // 12. TypeEssay, 论述题
       case 12: {
         question.typeName = '论述题'
         output = await this._processTranslate(question, params)
         break
       }
 
+      // 21: TypeOnlineCorrect, 在线批改
       case 21: {
-        question.typeName = '案例分析'
+        question.typeName = '在线批改'
+        output = await this._processTranslate(question, params)
+        break
+      }
+
+      // 22: TypeEssayAnalysis, 作文分析
+      case 22: {
+        question.typeName = '作文分析'
+        output = await this._processTranslate(question, params)
+        break
+      }
+
+      // 23: TypeEssayStrategy, 作文策略
+      case 23: {
+        question.typeName = '作文策略'
+        output = await this._processTranslate(question, params)
+        break
+      }
+
+      // 24: TypeEssayOfficial, 作文范文
+      case 24: {
+        question.typeName = '作文范文'
+        output = await this._processTranslate(question, params)
+        break
+      }
+
+      // 25: TypeEssayWriting, 作文写作
+      case 25: {
+        question.typeName = '作文写作'
+        output = await this._processTranslate(question, params)
+        break
+      }
+
+      // 26: TypeEssayView, 作文观点
+      case 26: {
+        question.typeName = '作文观点'
         output = await this._processTranslate(question, params)
         break
       }
@@ -233,7 +370,7 @@ export default class Markji extends MarkjiBase {
   /**
    * _processChoice
    */
-  // eslint-disable-next-line complexity
+
   protected async _processChoice(question: any, params: Params): Promise<AssetString> {
     const _meta = {
       answers: [] as AssetString[],
