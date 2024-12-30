@@ -118,11 +118,8 @@
       "init": [
         "./dist/hooks/init/main"
       ],
-      "postrun": [
-        "./dist/hooks/postrun/main"
-      ],
-      "prerun": [
-        "./dist/hooks/prerun/main"
+      "finally": [
+        "./dist/hooks/finally/main"
       ]
     },
     "plugins": [

@@ -5,7 +5,6 @@ import lodash from 'lodash'
 import BaseCommand from '../../base.js'
 import {Vendor} from '../../components/vendor/common.js'
 import VendorManager from '../../components/vendor/index.js'
-import {postrun} from '../../hooks/postrun/main.js'
 import {Bank} from '../../types/bank.js'
 import {Category} from '../../types/category.js'
 import {Sheet} from '../../types/sheet.js'
@@ -33,7 +32,6 @@ Chain to qbank (./src/commands/chain/index.ts)
       multiple: true,
       options: ['*', 'bank.list', 'category.list', 'sheet.list', 'question.fetch', 'output.convert', 'output.upload'],
     }),
-    delay: Flags.integer({default: 0, description: '延迟(ms)'}),
     output: Flags.string({default: '', description: '接收方'}),
     'output-username': Flags.string({default: '', description: '接收方用户名'}),
     'sheet-list': Flags.string({default: ['*'], delimiter: ',', description: '试卷', multiple: true}),
@@ -68,8 +66,6 @@ Chain to qbank (./src/commands/chain/index.ts)
 
           // print memory usage.
           this.log('\n' + JSON.stringify(getMemoryUsage()))
-          await postrun()
-          this.log(JSON.stringify(getMemoryUsage()))
 
           this.log(colors.green('\n\t\t|=== sheet ===|'))
         })
