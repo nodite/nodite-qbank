@@ -5,7 +5,7 @@ import path from 'node:path'
 
 import {Bank} from '../../../types/bank.js'
 import {Category} from '../../../types/category.js'
-import {Params} from '../../../types/common.js'
+import {LoginOptions, Params} from '../../../types/common.js'
 import {Sheet} from '../../../types/sheet.js'
 import axios from '../../../utils/axios.js'
 import {safeName} from '../../../utils/index.js'
@@ -72,8 +72,8 @@ export default class BiguoChapter extends BiguoReal {
   /**
    * Login.
    */
-  public async login(password?: string): Promise<CacheRequestConfig> {
-    return new BiguoReal(this.getUsername()).login(password)
+  public async login(options?: LoginOptions): Promise<CacheRequestConfig> {
+    return new BiguoReal(this.getUsername()).login(options)
   }
 
   /**

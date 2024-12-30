@@ -3,6 +3,7 @@ import type {CacheRequestConfig} from 'axios-cache-interceptor'
 import lodash from 'lodash'
 import path from 'node:path'
 
+import {LoginOptions} from '../../../types/common.js'
 import {OutputClass} from '../../output/common.js'
 import Markji from '../../output/fenbi/markji.js'
 import FenbiKaoyan from './fenbi-kaoyan.js'
@@ -22,8 +23,8 @@ export class Fenbi extends FenbiKaoyan {
   /**
    * Login.
    */
-  public async login(password?: string): Promise<CacheRequestConfig> {
-    const config = await new FenbiKaoyan(this.getUsername()).login(password)
+  public async login(options?: LoginOptions): Promise<CacheRequestConfig> {
+    const config = await new FenbiKaoyan(this.getUsername()).login(options)
 
     config.params = lodash.merge({}, config.params, {
       app: 'gwy',

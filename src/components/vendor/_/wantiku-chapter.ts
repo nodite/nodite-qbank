@@ -1,6 +1,7 @@
 import {CacheRequestConfig} from 'axios-cache-interceptor'
 import path from 'node:path'
 
+import {LoginOptions} from '../../../types/common.js'
 import Wantiku from './wantiku.js'
 
 export default class WantikuChapter extends Wantiku {
@@ -13,7 +14,7 @@ export default class WantikuChapter extends Wantiku {
   /**
    * Login.
    */
-  public login(password?: string): Promise<CacheRequestConfig> {
-    return new Wantiku(this.getUsername()).login(password)
+  public login(options?: LoginOptions): Promise<CacheRequestConfig> {
+    return new Wantiku(this.getUsername()).login(options)
   }
 }

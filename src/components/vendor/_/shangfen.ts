@@ -11,7 +11,7 @@ import sleep from 'sleep-promise'
 import sqliteCache from '../../../cache/sqlite.manager.js'
 import {Bank} from '../../../types/bank.js'
 import {Category} from '../../../types/category.js'
-import {FetchOptions} from '../../../types/common.js'
+import {FetchOptions, LoginOptions} from '../../../types/common.js'
 import {Sheet} from '../../../types/sheet.js'
 import axios from '../../../utils/axios.js'
 import {emitter} from '../../../utils/event.js'
@@ -262,8 +262,8 @@ export default class Shangfen extends Vendor {
     return questions
   }
 
-  public async login(password?: string): Promise<CacheRequestConfig> {
-    const config = await super.login(password)
+  public async login(options?: LoginOptions): Promise<CacheRequestConfig> {
+    const config = await super.login(options)
 
     if (config?.params?.token) {
       // s.base64Encode)(a.AES.encrypt(e+"#"+r,"ixunke").toString()+"#"+r)

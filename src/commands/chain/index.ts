@@ -238,12 +238,12 @@ Chain to qbank (./src/commands/chain/index.ts)
     // fetch banks.
     await this._runBankList()
 
-    let _banks = fiindAll(await params.vendor.banks(), flags['bank-list'] as string[], {fuzzy: true})
+    let _banks = fiindAll(await params.vendor.banks({dedup: true}), flags['bank-list'] as string[], {fuzzy: true})
 
     const _wildBank = lodash.find(_banks, {id: '*'})
 
     if (_wildBank) {
-      _banks = await params.vendor.banks({excludeTtl: true})
+      _banks = await params.vendor.banks({dedup: true, excludeTtl: true})
     }
 
     for (const _bank of _banks) {
@@ -262,15 +262,19 @@ Chain to qbank (./src/commands/chain/index.ts)
   ): Promise<void> {
     const {flags} = await this.parse(Index)
 
-    let _categories = fiindAll(await params.vendor.categories(params), flags['category-list'] as string[], {
-      excludeKey: ['children'],
-      fuzzy: true,
-    })
+    let _categories = fiindAll(
+      await params.vendor.categories(params, {dedup: true}),
+      flags['category-list'] as string[],
+      {
+        excludeKey: ['children'],
+        fuzzy: true,
+      },
+    )
 
     const _wildCategory = lodash.find(_categories, {id: '*'})
 
     if (_wildCategory) {
-      _categories = await params.vendor.categories(params, {excludeTtl: true})
+      _categories = await params.vendor.categories(params, {dedup: true, excludeTtl: true})
     }
 
     for (const _category of _categories) {
@@ -289,12 +293,14 @@ Chain to qbank (./src/commands/chain/index.ts)
   ): Promise<void> {
     const {flags} = await this.parse(Index)
 
-    let _sheets = fiindAll(await params.vendor.sheets(params), flags['sheet-list'] as string[], {fuzzy: true})
+    let _sheets = fiindAll(await params.vendor.sheets(params, {dedup: true}), flags['sheet-list'] as string[], {
+      fuzzy: true,
+    })
 
     const _wildSheet = lodash.find(_sheets, {id: '*'})
 
     if (_wildSheet) {
-      _sheets = await params.vendor.sheets(params, {excludeTtl: true})
+      _sheets = await params.vendor.sheets(params, {dedup: true, excludeTtl: true})
     }
 
     for (const _sheet of _sheets) {

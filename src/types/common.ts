@@ -9,6 +9,11 @@ type AssetString = {
   text: string
 }
 
+type LoginOptions = {
+  clean?: boolean
+  password?: string
+}
+
 type FetchOptions = {
   refetch?: boolean
 }
@@ -42,4 +47,4 @@ type Params = {
   vendor: Vendor
 }
 
-export {AssetString, ComponentMeta, ConvertOptions, FetchOptions, Params, ParseOptions, UploadOptions}
+export {AssetString, ComponentMeta, ConvertOptions, FetchOptions, LoginOptions, Params, ParseOptions, UploadOptions}

@@ -6,7 +6,7 @@ import lodash from 'lodash'
 import sqliteCache from '../../cache/sqlite.manager.js'
 import {Bank} from '../../types/bank.js'
 import {Category} from '../../types/category.js'
-import {FetchOptions} from '../../types/common.js'
+import {FetchOptions, LoginOptions} from '../../types/common.js'
 import {Sheet} from '../../types/sheet.js'
 import {
   CACHE_KEY_BANKS,
@@ -20,6 +20,7 @@ import {Component} from '../common.js'
 import {Output, OutputClass} from '../output/common.js'
 
 type Options = {
+  dedup?: true
   excludeTtl?: true
 }
 
@@ -106,7 +107,7 @@ abstract class Vendor extends Component {
       }))
       .groupBy('name')
       .map((_categories, _name) => {
-        if (_categories.length === 1) return _categories
+        if (_categories.length === 1 || !options?.dedup) return _categories
         return _categories.map((_category) => ({..._category, name: `${_name} (${_category.id})`}))
       })
       .flatten()
@@ -148,7 +149,7 @@ abstract class Vendor extends Component {
         .map((category, idx) => ({...category, order: options?.excludeTtl ? idx : idx - 1}))
         .groupBy('name')
         .map((_categories, _name) => {
-          if (_categories.length === 1) return _categories
+          if (_categories.length === 1 || !options?.dedup) return _categories
           return _categories.map((_category) => ({..._category, name: `${_name} (${_category.id})`}))
         })
         .flatten()
@@ -175,8 +176,9 @@ abstract class Vendor extends Component {
   /**
    * Login.
    */
-  public async login(password?: string): Promise<CacheRequestConfig> {
-    return password === undefined ? this._login() : this.toLogin(password)
+  public async login(options?: LoginOptions): Promise<CacheRequestConfig> {
+    if (options?.clean) this.invalidate(HashKeyScope.LOGIN)
+    return lodash.isNil(options?.password) ? this._login() : this.toLogin(options.password)
   }
 
   /**
@@ -195,7 +197,7 @@ abstract class Vendor extends Component {
       .map((sheet, idx) => ({...sheet, order: options?.excludeTtl ? idx : idx - 1}))
       .groupBy('name')
       .map((_sheets, _name) => {
-        if (_sheets.length === 1) return _sheets
+        if (_sheets.length === 1 || !options?.dedup) return _sheets
         return _sheets.map((_sheet) => ({..._sheet, name: `${_name} (${_sheet.id})`}))
       })
       .flatten()

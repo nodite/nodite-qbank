@@ -2,7 +2,6 @@ import {password} from '@inquirer/prompts'
 import {Flags} from '@oclif/core'
 
 import BaseCommand from '../../base.js'
-import {HashKeyScope} from '../../components/vendor/common.js'
 import VendorManager from '../../components/vendor/index.js'
 
 export default class Login extends BaseCommand {
@@ -33,9 +32,7 @@ Login to vendor (./src/commands/vendor/login.ts)
     // Login to vendor
     const vendor = new (VendorManager.getClass(flags.vendor))(flags.username)
 
-    if (flags.clean) await vendor.invalidate(HashKeyScope.LOGIN)
-
-    const config = await vendor.login(flags.password)
+    const config = await vendor.login({clean: flags.clean, password: flags.password})
 
     this.log(`Login to ${flags.vendor} successfully! (./src/commands/vendor/login.ts)`)
     this.log(`config: ${JSON.stringify(config, null, 2)}`)
