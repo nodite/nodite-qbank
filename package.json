@@ -42,7 +42,7 @@
     "js-base64": "^3.7.7",
     "lodash": "^4",
     "md5": "^2",
-    "node-html-parser": "^6",
+    "node-html-parser": "^7",
     "object-treeify": "^4",
     "pickleparser": "^0",
     "pkg-dir": "^8",
