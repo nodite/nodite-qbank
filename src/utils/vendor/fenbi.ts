@@ -1,3 +1,4 @@
+/* eslint-disable complexity */
 import lodash from 'lodash'
 
 import {isJSON, throwError} from '../index.js'
@@ -118,6 +119,39 @@ const parseDoc = async (str: string): Promise<string> => {
       }
 
       elements.push('</u>')
+
+      break
+    }
+
+    case 'input': {
+      const _attrs = lodash
+        .chain(data.value)
+        .split(',')
+        .map((dv) => {
+          const _dv = dv.split(':')
+          return `${_dv[0]}="${_dv[1]}"`
+        })
+        .join(' ')
+        .value()
+
+      elements.push(`<input ${_attrs} />`)
+
+      break
+    }
+
+    case 'b': {
+      elements.push('<b>')
+
+      if (!lodash.isEmpty(data.value)) {
+        elements.push(data.value)
+      }
+
+      if (!lodash.isEmpty(data.children)) {
+        const children = await Promise.all(lodash.map(data.children, async (child) => parseDoc(JSON.stringify(child))))
+        elements.push(...children)
+      }
+
+      elements.push('</b>')
 
       break
     }
