@@ -1,10 +1,10 @@
 /* eslint-disable max-depth */
-import type {CacheRequestConfig} from 'axios-cache-interceptor'
+import path from 'node:path'
 
 import {Cacheable} from '@type-cacheable/core'
+import type {CacheRequestConfig} from 'axios-cache-interceptor'
 import lodash from 'lodash'
 import md5 from 'md5'
-import path from 'node:path'
 import random from 'random-number'
 import sleep from 'sleep-promise'
 import UserAgent from 'user-agents'
@@ -23,7 +23,7 @@ import {CACHE_KEY_ORIGIN_QUESTION_ITEM, CACHE_KEY_ORIGIN_QUESTION_PROCESSING} fr
 import {OutputClass} from '../../output/common.js'
 import Markji from '../../output/fenbi/markji.js'
 import MarkjiUpload from '../../output/markji-upload.js'
-import {HashKeyScope, Vendor, cacheKeyBuilder} from '../common.js'
+import {cacheKeyBuilder, HashKeyScope, Vendor} from '../common.js'
 
 export default class FenbiKaoyan extends Vendor {
   public static META = {key: path.parse(import.meta.url).name, name: '粉笔考研'}
@@ -54,7 +54,7 @@ export default class FenbiKaoyan extends Vendor {
     const _banks = lodash.get(response, this._fetchBankMeta.path, [])
 
     // quiz change.
-    for (const _bank of lodash.cloneDeep(_banks)) {
+    for (const _bank of structuredClone(_banks)) {
       if (!lodash.has(this._fetchBankMeta, 'quizChange')) continue
 
       const _quizChange = await axios.put(
@@ -95,13 +95,11 @@ export default class FenbiKaoyan extends Vendor {
       banks.push({
         id: _id,
         meta: {
-          bankPrefix: lodash
-            .filter([
-              lodash.get(bank, 'courseSet.prefix', ''),
-              lodash.get(bank, 'course.prefix', ''),
-              lodash.get(bank, 'quiz.prefix', ''),
-            ])
-            .pop(),
+          bankPrefix: lodash.findLast([
+            lodash.get(bank, 'courseSet.prefix', ''),
+            lodash.get(bank, 'course.prefix', ''),
+            lodash.get(bank, 'quiz.prefix', ''),
+          ]),
           courseId: lodash.get(bank, 'course.id', ''),
           coursePrefix: lodash.get(bank, 'course.prefix', ''),
           courseSetId: lodash.get(bank, 'courseSet.id', ''),
@@ -184,7 +182,7 @@ export default class FenbiKaoyan extends Vendor {
   /**
    * Origin questions.
    */
-  // eslint-disable-next-line complexity
+
   public async fetchQuestions(
     params: {bank: Bank; category: Category; sheet: Sheet},
     options?: FetchOptions,

@@ -1,7 +1,7 @@
-import type {CacheRequestConfig} from 'axios-cache-interceptor'
+import path from 'node:path'
 
 import {Cacheable} from '@type-cacheable/core'
-import path from 'node:path'
+import type {CacheRequestConfig} from 'axios-cache-interceptor'
 
 import sqliteCache from '../../../cache/sqlite.manager.js'
 import {Bank} from '../../../types/bank.js'
@@ -10,7 +10,7 @@ import {FetchOptions} from '../../../types/common.js'
 import {Sheet} from '../../../types/sheet.js'
 import {OutputClass} from '../../output/common.js'
 import File from '../../output/file.js'
-import {HashKeyScope, Vendor, cacheKeyBuilder} from '../common.js'
+import {cacheKeyBuilder, HashKeyScope, Vendor} from '../common.js'
 
 export default class Demo extends Vendor {
   public static META = {key: path.parse(import.meta.url).name, name: 'Demo'}

@@ -1,7 +1,7 @@
-import type {CacheRequestConfig} from 'axios-cache-interceptor'
-
-import lodash from 'lodash'
 import path from 'node:path'
+
+import type {CacheRequestConfig} from 'axios-cache-interceptor'
+import lodash from 'lodash'
 
 import {LoginOptions} from '../../../types/common.js'
 import {OutputClass} from '../../output/common.js'

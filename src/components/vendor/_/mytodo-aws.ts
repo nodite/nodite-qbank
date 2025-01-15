@@ -1,8 +1,8 @@
-import type {CacheRequestConfig} from 'axios-cache-interceptor'
+import path from 'node:path'
 
 import {Cacheable} from '@type-cacheable/core'
+import type {CacheRequestConfig} from 'axios-cache-interceptor'
 import lodash from 'lodash'
-import path from 'node:path'
 import sleep from 'sleep-promise'
 
 import sqliteCache from '../../../cache/sqlite.manager.js'
@@ -15,7 +15,7 @@ import puppeteer from '../../../utils/puppeteer.js'
 import {CACHE_KEY_ORIGIN_QUESTION_ITEM} from '../../cache-pattern.js'
 import {OutputClass} from '../../output/common.js'
 import Markji from '../../output/mytodo/markji.js'
-import {HashKeyScope, Vendor, cacheKeyBuilder} from '../common.js'
+import {cacheKeyBuilder, HashKeyScope, Vendor} from '../common.js'
 
 export default class MyTodoAws extends Vendor {
   public static META = {key: path.parse(import.meta.url).name, name: 'AWS'}

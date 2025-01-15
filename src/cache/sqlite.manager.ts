@@ -1,8 +1,9 @@
+import path from 'node:path'
+
 import {SqliteStore, sqliteStore} from '@resolid/cache-manager-sqlite'
 import {useAdapter} from '@type-cacheable/cache-manager-adapter'
 import typeCacheableManager, {CacheManagerOptions as TypeCacheManagerOptions} from '@type-cacheable/core'
 import * as cacheManager from 'cache-manager'
-import path from 'node:path'
 
 import {CLI_ASSETS_DIR} from '../env.js'
 import memory from './memory.manager.js'

@@ -1,11 +1,12 @@
+import path from 'node:path'
+
 import {Cacheable} from '@type-cacheable/core'
 import {CacheRequestConfig} from 'axios-cache-interceptor'
-import path from 'node:path'
 
 import {Bank} from '../../../types/bank.js'
 import {Category} from '../../../types/category.js'
 import {LoginOptions, Params} from '../../../types/common.js'
-import {HashKeyScope, cacheKeyBuilder} from '../common.js'
+import {cacheKeyBuilder, HashKeyScope} from '../common.js'
 import BiguoReal from './biguo-real.js'
 
 export default class BiguoFree extends BiguoReal {

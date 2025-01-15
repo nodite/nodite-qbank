@@ -1,4 +1,3 @@
-/* eslint-disable complexity */
 import lodash from 'lodash'
 
 import {isJSON, throwError} from '../index.js'

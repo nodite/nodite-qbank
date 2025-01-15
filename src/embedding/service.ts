@@ -1,6 +1,6 @@
 import {Document} from '@langchain/core/documents'
 import {Mutex} from 'async-mutex'
-import {MemoryCache, caching} from 'cache-manager'
+import {caching, MemoryCache} from 'cache-manager'
 import lodash from 'lodash'
 import {v5 as uuid} from 'uuid'
 

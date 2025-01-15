@@ -1,5 +1,6 @@
-import {CacheRequestConfig} from 'axios-cache-interceptor'
 import path from 'node:path'
+
+import {CacheRequestConfig} from 'axios-cache-interceptor'
 
 import {LoginOptions} from '../../../types/common.js'
 import Wantiku from './wantiku.js'

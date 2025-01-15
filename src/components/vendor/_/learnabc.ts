@@ -1,9 +1,9 @@
-import type {CacheRequestConfig} from 'axios-cache-interceptor'
+import path from 'node:path'
 
 import {Cacheable} from '@type-cacheable/core'
+import type {CacheRequestConfig} from 'axios-cache-interceptor'
 import lodash from 'lodash'
 import md5 from 'md5'
-import path from 'node:path'
 import sleep from 'sleep-promise'
 
 import sqliteCache from '../../../cache/sqlite.manager.js'
@@ -18,7 +18,7 @@ import learnabc from '../../../utils/vendor/learnabc.js'
 import {CACHE_KEY_ORIGIN_QUESTION_ITEM} from '../../cache-pattern.js'
 import {OutputClass} from '../../output/common.js'
 import Markji from '../../output/learnabc/markji.js'
-import {HashKeyScope, Vendor, cacheKeyBuilder} from '../common.js'
+import {cacheKeyBuilder, HashKeyScope, Vendor} from '../common.js'
 
 export default class LearnABC extends Vendor {
   public static META = {key: path.parse(import.meta.url).name, name: '英语习题册'}

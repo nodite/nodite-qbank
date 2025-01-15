@@ -1,8 +1,9 @@
+import path from 'node:path'
+
 import {Cacheable} from '@type-cacheable/core'
 import {CacheRequestConfig} from 'axios-cache-interceptor'
 import lodash from 'lodash'
 import md5 from 'md5'
-import path from 'node:path'
 import sleep from 'sleep-promise'
 
 import sqliteCache from '../../../cache/sqlite.manager.js'
@@ -17,7 +18,7 @@ import biguo from '../../../utils/vendor/biguo.js'
 import {CACHE_KEY_CUSTOM_ITEM, CACHE_KEY_ORIGIN_QUESTION_ITEM} from '../../cache-pattern.js'
 import Markji from '../../output/biguo/markji.js'
 import {OutputClass} from '../../output/common.js'
-import {HashKeyScope, Vendor, cacheKeyBuilder} from '../common.js'
+import {cacheKeyBuilder, HashKeyScope, Vendor} from '../common.js'
 
 export default class BiguoReal extends Vendor {
   public static META = {key: path.parse(import.meta.url).name, name: '笔果真题'}

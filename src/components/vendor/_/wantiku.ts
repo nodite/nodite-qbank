@@ -1,8 +1,9 @@
+import path from 'node:path'
+
 import {Cacheable} from '@type-cacheable/core'
 import {CacheRequestConfig} from 'axios-cache-interceptor'
 import lodash from 'lodash'
 import md5 from 'md5'
-import path from 'node:path'
 import sleep from 'sleep-promise'
 
 import sqliteCache from '../../../cache/sqlite.manager.js'
@@ -16,7 +17,7 @@ import {fiindAll, safeName} from '../../../utils/index.js'
 import {CACHE_KEY_ORIGIN_QUESTION_ITEM} from '../../cache-pattern.js'
 import {OutputClass} from '../../output/common.js'
 import Markji from '../../output/wantiku/markji.js'
-import {HashKeyScope, Vendor, cacheKeyBuilder} from '../common.js'
+import {cacheKeyBuilder, HashKeyScope, Vendor} from '../common.js'
 
 export default class Wantiku extends Vendor {
   public static META = {key: path.parse(import.meta.url).name, name: '万题库·真题'}

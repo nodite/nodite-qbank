@@ -1,7 +1,8 @@
+import path from 'node:path'
+
 import {Cacheable} from '@type-cacheable/core'
 import {CacheRequestConfig} from 'axios-cache-interceptor'
 import lodash from 'lodash'
-import path from 'node:path'
 
 import sqliteCache from '../../../cache/sqlite.manager.js'
 import {Bank, MarkjiFolder} from '../../../types/bank.js'
@@ -9,7 +10,7 @@ import {Category} from '../../../types/category.js'
 import {MarkjiChapter} from '../../../types/sheet.js'
 import axios from '../../../utils/axios.js'
 import {OutputClass} from '../../output/common.js'
-import {HashKeyScope, Vendor, cacheKeyBuilder} from '../common.js'
+import {cacheKeyBuilder, HashKeyScope, Vendor} from '../common.js'
 
 export default class Markji extends Vendor {
   public static META = {key: path.parse(import.meta.url).name, name: 'Markji'}

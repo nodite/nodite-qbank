@@ -1,9 +1,9 @@
-import type {CacheRequestConfig} from 'axios-cache-interceptor'
+import path from 'node:path'
 
 import {Cacheable} from '@type-cacheable/core'
 import axios from 'axios'
+import type {CacheRequestConfig} from 'axios-cache-interceptor'
 import md5 from 'md5'
-import path from 'node:path'
 
 import sqliteCache from '../../../cache/sqlite.manager.js'
 import {Bank} from '../../../types/bank.js'
@@ -12,7 +12,7 @@ import {FetchOptions} from '../../../types/common.js'
 import {Sheet} from '../../../types/sheet.js'
 import {OutputClass} from '../../output/common.js'
 import Skip from '../../output/skip.js'
-import {HashKeyScope, Vendor, cacheKeyBuilder} from '../common.js'
+import {cacheKeyBuilder, HashKeyScope, Vendor} from '../common.js'
 
 export default class Yiguo extends Vendor {
   public static META = {key: path.parse(import.meta.url).name, name: '羿过题库'}

@@ -1,6 +1,8 @@
 import 'dotenv/config'
-import fs from 'fs-extra'
+
 import path from 'node:path'
+
+import fs from 'fs-extra'
 import {packageDirectorySync} from 'pkg-dir'
 
 export const CLI_ROOT_DIR = process.cwd()

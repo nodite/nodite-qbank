@@ -1,6 +1,5 @@
+import {Cacheable, CacheKeyBuilder} from '@type-cacheable/core'
 import type {CacheRequestConfig} from 'axios-cache-interceptor'
-
-import {CacheKeyBuilder, Cacheable} from '@type-cacheable/core'
 import lodash from 'lodash'
 
 import sqliteCache from '../../cache/sqlite.manager.js'
@@ -237,6 +236,6 @@ abstract class Vendor extends Component {
 type VendorClass = new (username: string) => Vendor
 
 // Export
-export {Vendor, VendorClass, cacheKeyBuilder}
+export {cacheKeyBuilder, Vendor, VendorClass}
 
 export {HashKeyScope} from '../cache-pattern.js'

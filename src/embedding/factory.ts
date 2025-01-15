@@ -1,5 +1,4 @@
 import type {DocumentInterface} from '@langchain/core/documents'
-
 import {Embeddings} from '@langchain/core/embeddings'
 import {VectorStore} from '@langchain/core/vectorstores'
 import {Mutex} from 'async-mutex'

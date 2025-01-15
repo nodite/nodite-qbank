@@ -1,3 +1,5 @@
+import path from 'node:path'
+
 import {LibSQLVectorStore} from '@langchain/community/vectorstores/libsql'
 import {DocumentInterface} from '@langchain/core/documents'
 import {Embeddings} from '@langchain/core/embeddings'
@@ -6,7 +8,6 @@ import {OllamaEmbeddings} from '@langchain/ollama'
 import {Client, createClient} from '@libsql/client'
 import {Mutex} from 'async-mutex'
 import lodash from 'lodash'
-import path from 'node:path'
 
 import {CLI_ASSETS_DIR} from '../../env.js'
 import BaseFactory, {SearchOptions} from '../factory.js'

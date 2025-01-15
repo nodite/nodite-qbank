@@ -194,7 +194,7 @@ export default class Markji extends MarkjiBase {
     // 判断题.
     const _firstPContent = parse(_translation).querySelectorAll('p').shift()?.textContent?.trim().slice(0, 10)
     if (_firstPContent?.startsWith('正确') || _firstPContent?.startsWith('错误')) {
-      const _question = lodash.cloneDeep(question)
+      const _question = structuredClone(question)
       _question.QuestionTypeName = '判断题'
 
       _question.QuestionContentKeyValue = [

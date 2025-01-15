@@ -1,11 +1,11 @@
-import type {CacheRequestConfig} from 'axios-cache-interceptor'
+import path from 'node:path'
 
 import {Cacheable} from '@type-cacheable/core'
+import type {CacheRequestConfig} from 'axios-cache-interceptor'
 import CryptoJS from 'crypto-js'
 import {Base64} from 'js-base64'
 import lodash from 'lodash'
 import md5 from 'md5'
-import path from 'node:path'
 import sleep from 'sleep-promise'
 
 import sqliteCache from '../../../cache/sqlite.manager.js'
@@ -20,7 +20,7 @@ import shangfen from '../../../utils/vendor/shangfen.js'
 import {CACHE_KEY_ORIGIN_QUESTION_ITEM} from '../../cache-pattern.js'
 import {OutputClass} from '../../output/common.js'
 import Markji from '../../output/shangfen/markji.js'
-import {HashKeyScope, Vendor, cacheKeyBuilder} from '../common.js'
+import {cacheKeyBuilder, HashKeyScope, Vendor} from '../common.js'
 
 export default class Shangfen extends Vendor {
   public static META = {key: path.parse(import.meta.url).name, name: '上分题库'}

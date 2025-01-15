@@ -1,11 +1,11 @@
-import type {CacheRequestConfig} from 'axios-cache-interceptor'
+import path from 'node:path'
 
 import {Document} from '@langchain/core/documents'
 import {Cacheable} from '@type-cacheable/core'
+import type {CacheRequestConfig} from 'axios-cache-interceptor'
 import fs from 'fs-extra'
 import lodash from 'lodash'
 import md5 from 'md5'
-import path from 'node:path'
 import sleep from 'sleep-promise'
 
 import sqliteCache from '../../../cache/sqlite.manager.js'
@@ -22,7 +22,7 @@ import puppeteer from '../../../utils/puppeteer.js'
 import {CACHE_KEY_ORIGIN_QUESTION_ITEM} from '../../cache-pattern.js'
 import Markji from '../../output/chaoxing/markji.js'
 import {OutputClass} from '../../output/common.js'
-import {HashKeyScope, Vendor, cacheKeyBuilder} from '../common.js'
+import {cacheKeyBuilder, HashKeyScope, Vendor} from '../common.js'
 
 export default class ChaoXing extends Vendor {
   public static META = {key: path.parse(import.meta.url).name, name: '超星'}

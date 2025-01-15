@@ -1,8 +1,9 @@
+import path from 'node:path'
+
 import {Cacheable} from '@type-cacheable/core'
 import {CacheRequestConfig} from 'axios-cache-interceptor'
 import lodash from 'lodash'
 import md5 from 'md5'
-import path from 'node:path'
 import sleep from 'sleep-promise'
 
 import sqliteCache from '../../../cache/sqlite.manager.js'
@@ -18,7 +19,7 @@ import wx233 from '../../../utils/vendor/wx233.js'
 import {CACHE_KEY_ORIGIN_QUESTION_ITEM, CACHE_KEY_ORIGIN_QUESTION_PROCESSING} from '../../cache-pattern.js'
 import {OutputClass} from '../../output/common.js'
 import Markji from '../../output/wx233/markji.js'
-import {HashKeyScope, Vendor, cacheKeyBuilder} from '../common.js'
+import {cacheKeyBuilder, HashKeyScope, Vendor} from '../common.js'
 
 export default class Wx233 extends Vendor {
   public static META = {key: path.parse(import.meta.url).name, name: '233网校'}
@@ -64,7 +65,7 @@ export default class Wx233 extends Vendor {
             id: _id,
             meta: {
               domainKey: domain.domain,
-              subjectId: lodash.filter([domain.id, subject.id, child.id]).pop(),
+              subjectId: lodash.findLast([domain.id, subject.id, child.id]),
             },
             name: await safeName([domain.cname, subject.cname, child.cname].join(' > ')),
           })

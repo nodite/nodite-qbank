@@ -1,3 +1,5 @@
+import path from 'node:path'
+
 import {SynchronousInMemoryDocstore} from '@langchain/community/stores/doc/in_memory'
 import {FaissStore} from '@langchain/community/vectorstores/faiss'
 import {DocumentInterface} from '@langchain/core/documents'
@@ -6,7 +8,6 @@ import {VectorStore} from '@langchain/core/vectorstores'
 import {OllamaEmbeddings} from '@langchain/ollama'
 import fs from 'fs-extra'
 import lodash from 'lodash'
-import path from 'node:path'
 
 import {CLI_ASSETS_DIR, PKG_ASSETS_DIR} from '../../env.js'
 import BaseFactory, {SearchOptions} from '../factory.js'
