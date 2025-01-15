@@ -11,7 +11,7 @@ import parser from './parser.js'
 import puppeteer from './puppeteer.js'
 
 const _htmlPreprocess = (html: string): string => {
-  return html.trim().replaceAll(' ', ' <wbr>').replaceAll('\n', '<br>').trim()
+  return html.replaceAll(' ', ' <wbr>').replaceAll('\n', '<br>')
 }
 
 const toImage = async (html: string, options?: ParseOptions): Promise<AssetString> => {

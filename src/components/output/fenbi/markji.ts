@@ -543,7 +543,7 @@ export default class Markji extends MarkjiBase {
 
     if (_source) lodash.remove(question.accessories, _source)
 
-    _meta.points['[P#L#[T#B#题目来源]]'] = await html.toText(
+    _meta.points['[P#L#[T#B#题目来源]]'] = await markji.parseHtml(
       await fenbi.parseDoc(question.solution.source || _source?.content || ''),
     )
 
@@ -557,7 +557,16 @@ export default class Markji extends MarkjiBase {
     if (_listenQuestionStem) lodash.remove(question.accessories, _listenQuestionStem)
 
     if (_listenQuestionStem?.content) {
-      _meta.points['[P#L#[T#B#听力题干]]'] = await html.toText(await fenbi.parseDoc(_listenQuestionStem?.content))
+      _meta.points['[P#L#[T#B#听力题干]]'] = await markji.parseHtml(await fenbi.parseDoc(_listenQuestionStem?.content))
+    }
+
+    // 181+expand: 扩展
+    const _expand = lodash.find(question.accessories, {label: 'expand', type: 181})
+
+    if (_expand) lodash.remove(question.accessories, _expand)
+
+    if (_expand?.content) {
+      _meta.points['[P#L#[T#B#扩展]]'] = await markji.parseHtml(await fenbi.parseDoc(_expand?.content))
     }
 
     // 182: 材料标题
