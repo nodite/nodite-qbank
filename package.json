@@ -46,7 +46,7 @@
     "object-treeify": "^4",
     "pickleparser": "^0",
     "pkg-dir": "^8",
-    "puppeteer": "^23",
+    "puppeteer": "^24",
     "random-number": "^0",
     "sleep-promise": "^9",
     "streamifier": "^0",
