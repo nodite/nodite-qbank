@@ -464,6 +464,9 @@ export default class Markji extends MarkjiBase {
           _meta.materials.push(await parser.audio(_audio?.url))
         }
 
+        // 1005: 关键词
+        lodash.remove(material.accessories, {type: 1005})
+
         // throw
         if (!lodash.isEmpty(material.accessories)) {
           throwError('Unsupported material accessories.', {material, params, question})
