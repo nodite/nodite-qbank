@@ -38,11 +38,11 @@ export default class MyTodoAws extends Vendor {
     await page.waitForSelector('.card-body')
 
     const banks: Bank[] = await page.$$eval('.card-body', (elements) =>
-      elements.map((element, index) => {
+      elements.map((element, index): Bank => {
         const id = element.querySelector('.card-title')?.textContent?.trim()
         const name = element.querySelector('.card-text')?.textContent?.trim()
 
-        return {id: String(id?.toLowerCase()), key: String(id?.toLowerCase()), name: String(name), order: index}
+        return {id: String(id?.toLowerCase()), name: String(name), order: index}
       }),
     )
 
