@@ -19,7 +19,6 @@ import {Component} from '../common.js'
 import {Output, OutputClass} from '../output/common.js'
 
 type Options = {
-  dedup?: true
   excludeTtl?: true
 }
 
@@ -100,14 +99,14 @@ abstract class Vendor extends Component {
     return lodash
       .chain(banks)
       .sortBy(['order', 'id', 'name'], ['asc', 'asc', 'asc'])
-      .map((bank, idx) => ({
-        ...bank,
+      .map((_bank, idx) => ({
+        ..._bank,
         order: options?.excludeTtl ? idx : idx - 1,
       }))
       .groupBy('name')
-      .map((_categories, _name) => {
-        if (_categories.length === 1 || !options?.dedup) return _categories
-        return _categories.map((_category) => ({..._category, name: `${_name} (${_category.id})`}))
+      .map((_banks, _name) => {
+        if (_banks.length <= 1) return _banks
+        return _banks.map((_bank) => ({..._bank, name: `${_name} (${_bank.id})`}))
       })
       .flatten()
       .sortBy(['order', 'id', 'name'], ['asc', 'asc', 'asc'])
@@ -145,11 +144,11 @@ abstract class Vendor extends Component {
       return lodash
         .chain(categories)
         .sortBy(['order', 'id', 'name'], ['asc', 'asc', 'asc'])
-        .map((category, idx) => ({...category, order: options?.excludeTtl ? idx : idx - 1}))
+        .map((_cate, idx) => ({..._cate, order: options?.excludeTtl ? idx : idx - 1}))
         .groupBy('name')
-        .map((_categories, _name) => {
-          if (_categories.length === 1 || !options?.dedup) return _categories
-          return _categories.map((_category) => ({..._category, name: `${_name} (${_category.id})`}))
+        .map((_cates, _name) => {
+          if (_cates.length <= 1) return _cates
+          return _cates.map((_category) => ({..._category, name: `${_name} (${_category.id})`}))
         })
         .flatten()
         .sortBy(['order', 'id', 'name'], ['asc', 'asc', 'asc'])
@@ -193,10 +192,10 @@ abstract class Vendor extends Component {
     return lodash
       .chain(sheets)
       .sortBy(['order', 'id', 'name'], ['asc', 'asc', 'asc'])
-      .map((sheet, idx) => ({...sheet, order: options?.excludeTtl ? idx : idx - 1}))
+      .map((_sheet, idx) => ({..._sheet, order: options?.excludeTtl ? idx : idx - 1}))
       .groupBy('name')
       .map((_sheets, _name) => {
-        if (_sheets.length === 1 || !options?.dedup) return _sheets
+        if (_sheets.length <= 1) return _sheets
         return _sheets.map((_sheet) => ({..._sheet, name: `${_name} (${_sheet.id})`}))
       })
       .flatten()
