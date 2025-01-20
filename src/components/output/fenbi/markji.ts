@@ -915,6 +915,33 @@ export default class Markji extends MarkjiBase {
       })
     }
 
+    // 181+stzd: 试题指导
+    const _stzd = lodash.find(question.solution.solutionAccessories, {label: 'stzd', type: 181})
+
+    if (_stzd) lodash.remove(question.solution.solutionAccessories, _stzd)
+
+    if (_stzd?.content) {
+      _meta.points['[P#L#[T#B#试题指导]]'] = await html.toImage(await fenbi.parseDoc(_stzd.content), {
+        imgSrcHandler,
+        style: this.HTML_STYLE,
+      })
+    }
+
+    // 181+swdt: 思维导图
+    const _swdt = lodash.find(question.solution.solutionAccessories, {label: 'swdt', type: 181})
+
+    if (_swdt) lodash.remove(question.solution.solutionAccessories, _swdt)
+
+    if (_swdt?.content) {
+      _meta.points['[P#L#[T#B#思维导图]]'] = await html.toImage(await fenbi.parseDoc(_swdt.content), {
+        imgSrcHandler,
+        style: this.HTML_STYLE,
+      })
+    }
+
+    // 181+sfdt: todo
+    lodash.remove(question.solution.solutionAccessories, {label: 'sfdt', type: 181})
+
     // 题目解析
     if (question.solution.solution) {
       _meta.points['[P#L#[T#B#题目解析]]'] = await markji.parseHtml(question.solution.solution, {
