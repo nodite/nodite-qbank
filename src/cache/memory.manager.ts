@@ -1,8 +1,9 @@
-import {caching} from 'cache-manager'
+import {createCache} from 'cache-manager'
+import {KeyvCacheableMemory} from 'cacheable'
+import {Keyv} from 'keyv'
 
-const cache = await caching('memory', {
-  shouldCloneBeforeSet: false,
-  ttl: 0,
-})
+const store = new KeyvCacheableMemory({lruSize: 5000, ttl: '1h', useClone: false})
+const keyv = new Keyv({deserialize: undefined, namespace: '', serialize: undefined, store, useKeyPrefix: false})
+const cache = createCache({stores: [keyv]})
 
-export default {cache}
+export default {cache, store: store.store}

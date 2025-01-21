@@ -1,9 +1,9 @@
 import {Document} from '@langchain/core/documents'
 import {Mutex} from 'async-mutex'
-import {caching, MemoryCache} from 'cache-manager'
 import lodash from 'lodash'
 import {v5 as uuid} from 'uuid'
 
+import memory from '../cache/memory.manager.js'
 import {throwError} from '../utils/index.js'
 import BaseFactory from './factory.js'
 import Factory from './libsql/factory.js'
@@ -11,7 +11,7 @@ import Factory from './libsql/factory.js'
 export default class Service {
   public static QUERY_ID = 'queryId'
 
-  private _cache?: MemoryCache
+  private _cache = memory.cache
 
   private _factory?: BaseFactory
 
@@ -38,22 +38,7 @@ export default class Service {
     }
   }
 
-  protected async cache(): Promise<MemoryCache> {
-    if (!this._cache) {
-      const _create = async (service: Service) => {
-        // Thread-safe
-        return service._mutex.runExclusive(async () => {
-          if (!service._cache) {
-            service._cache = await caching('memory', {shouldCloneBeforeSet: false, ttl: 1000 * 60 * 60 * 10})
-          }
-
-          return service._cache
-        })
-      }
-
-      this._cache = await _create(this)
-    }
-
+  protected async cache(): Promise<typeof memory.cache> {
     return this._cache
   }
 

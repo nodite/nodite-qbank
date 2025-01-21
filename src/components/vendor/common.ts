@@ -175,7 +175,7 @@ abstract class Vendor extends Component {
    * Login.
    */
   public async login(options?: LoginOptions): Promise<CacheRequestConfig> {
-    if (options?.clean) this.invalidate(HashKeyScope.LOGIN)
+    if (options?.clean) await this.invalidate(HashKeyScope.LOGIN)
     return lodash.isNil(options?.password) ? this._login() : this.toLogin(options.password)
   }
 

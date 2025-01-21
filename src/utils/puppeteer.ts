@@ -1,4 +1,3 @@
-import lodash from 'lodash'
 import md5 from 'md5'
 import * as puppeteer from 'puppeteer'
 
@@ -67,9 +66,13 @@ const close = async () => {
   const _browser = await browser(false)
   await _browser?.close()
 
-  const cacheKeys = lodash.filter(await memory.cache.store.keys(), (key) => key.startsWith('puppeteer:'))
+  const cacheKeys = [] as string[]
 
-  await Promise.all(lodash.map(cacheKeys, memory.cache.del))
+  for (const key of memory.store.keys) {
+    if (key.startsWith('puppeteer:')) cacheKeys.push(key)
+  }
+
+  await memory.cache.mdel(cacheKeys)
 }
 
 export default {browser, close, page}

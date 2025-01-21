@@ -106,7 +106,7 @@ export async function safeName(name: string): Promise<string> {
 
   const cacheClient = sqliteCache.CommonClient
 
-  let _safeName = await cacheClient.get(`safe-name:${name}`)
+  let _safeName = await cacheClient.get<string>(`safe-name:${name}`)
 
   if (_safeName) return _safeName
 
