@@ -180,4 +180,4 @@ const parseDoc = async (str: string): Promise<string> => {
   return elements.join('')
 }
 
-export default {PUBLIC_KEY, encrypt, parseDoc}
+export default {encrypt, parseDoc, PUBLIC_KEY}

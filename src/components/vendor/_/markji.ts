@@ -146,8 +146,8 @@ export default class Markji extends Vendor {
 
     return {
       headers: {
-        'User-Agent': userAgent,
         token: response.data.data.token,
+        'User-Agent': userAgent,
       },
     }
   }

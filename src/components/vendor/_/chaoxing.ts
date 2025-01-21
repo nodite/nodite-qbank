@@ -101,10 +101,10 @@ export default class ChaoXing extends Vendor {
         const item = lodash.find(data, {目录ID: id})
         return {
           metadata: {
-            [Service.QUERY_ID]: id,
             dirId: item['目录ID'],
             dirname: [item['一级目录'], item['二级目录'], item['三级目录']],
             exerIds: lodash.chain(data).filter({目录ID: id}).map('练习ID').value(),
+            [Service.QUERY_ID]: id,
           },
           pageContent: [item['一级目录'], item['二级目录'], item['三级目录']].join(' > '),
         }

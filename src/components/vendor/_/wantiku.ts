@@ -175,10 +175,10 @@ export default class Wantiku extends Vendor {
           },
           params: {
             ExamSiteId: params.category.id,
-            SubjectId: params.bank.meta?.subjectId,
             practiceTypeEnum: 0,
             questionNum: 100, // 一次请求的题目数量
             questionTypeEnum: 10,
+            SubjectId: params.bank.meta?.subjectId,
             time: Date.now(),
           },
         }),
@@ -246,8 +246,8 @@ export default class Wantiku extends Vendor {
       },
       params: {
         Password: password,
-        UserName: this.getUsername(),
         time: Date.now(),
+        UserName: this.getUsername(),
       },
     })
 

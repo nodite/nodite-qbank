@@ -8,7 +8,7 @@ import {OutputClass} from '../../output/common.js'
 import Markji from '../../output/fenbi/markji.js'
 import FenbiKaoyan from './fenbi-kaoyan.js'
 
-export class Fenbi extends FenbiKaoyan {
+export default class Fenbi extends FenbiKaoyan {
   public static META = {key: path.parse(import.meta.url).name, name: '粉笔教育'}
 
   /**
