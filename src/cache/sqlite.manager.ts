@@ -27,6 +27,7 @@ const initStore = async (vendor: string): Promise<CacheReturn> => {
 
   const store = new KeyvSqlite({
     enableWALMode: true,
+    iterationLimit: 5000,
     table: 'qbank_' + vendor.replaceAll('-', '_'),
     uri: path.join(CLI_ASSETS_DIR, 'cache.sqlite3'),
   })
@@ -40,7 +41,12 @@ const initStore = async (vendor: string): Promise<CacheReturn> => {
   // optimize the database
   store.sqlite.pragma('optimize = 0x10002')
 
-  const keyv = new Keyv({namespace: '', store, useKeyPrefix: false})
+  const keyv = new Keyv({
+    namespace: vendor,
+    store,
+    ttl: cacheManager.default.options.ttlSeconds,
+    useKeyPrefix: false,
+  })
 
   const cache = createCache({stores: [keyv]})
 

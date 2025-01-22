@@ -19,7 +19,7 @@
     "@oclif/plugin-help": "^6",
     "@oclif/plugin-plugins": "^5",
     "@oscaner/cache-manager-adapter": "github:Oscaner/type-cacheable-cache-manager-adapter#main",
-    "@resolid/keyv-sqlite": "^5",
+    "@resolid/keyv-sqlite": "github:Oscaner/keyv-sqlite#main",
     "@type-cacheable/core": "^14",
     "@xenova/transformers": "^2",
     "ansi-colors": "^4",
