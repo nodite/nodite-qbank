@@ -2,6 +2,8 @@ import {CacheRequestConfig} from 'axios-cache-interceptor'
 import {dataUriToBuffer} from 'data-uri-to-buffer'
 import FormData from 'form-data'
 import lodash from 'lodash'
+import md5 from 'md5'
+import {natsort} from 'natsort-esm'
 import sleep from 'sleep-promise'
 import * as streamifier from 'streamifier'
 
@@ -179,7 +181,9 @@ const _deck = async (
  * _chapter.
  */
 const _chapterName = async (qbank: {category: Category; sheet: Sheet}): Promise<string> => {
-  return safeName(qbank.sheet.id === '0' ? qbank.category.name : `${qbank.category.name} / ${qbank.sheet.name}`)
+  if (qbank.sheet.id === '0') return safeName(qbank.category.name)
+  if (qbank.sheet.id === md5('0')) return safeName(qbank.category.name)
+  return safeName(`${qbank.category.name} / ${qbank.sheet.name}`)
 }
 
 const _chapter = async (
@@ -358,7 +362,7 @@ const bulkUpload = async (options: BulkUploadOptions): Promise<void> => {
         }),
       ),
     )
-    .sort((a, b) => Number(a) - Number(b)) // asc.
+    .sort((a, b) => natsort({insensitive: true})(a.split(':').pop(), b.split(':').pop())) // asc.
     .value()
 
   if (markji.chapter.count < allQuestionKeys.length) {

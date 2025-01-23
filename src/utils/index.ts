@@ -101,21 +101,24 @@ export function reverseTemplate(template: string, result: string): Record<string
   return obj
 }
 
-export async function safeName(name: string): Promise<string> {
-  if (name.length <= 48) return name
+/**
+ * Safe name.
+ */
+export async function safeName(name: string, length: number = 48): Promise<string> {
+  if (name.length <= length) return name
 
   const cacheClient = cacheManager.CommonClient
 
   let _safeName = await cacheClient.get<string>(`safe-name:${name}`)
 
-  if (_safeName) return _safeName
+  if (_safeName && _safeName.length <= length) return _safeName
 
   _safeName = name
 
-  while (_safeName.length > 48) {
+  while (_safeName.length > length) {
     _safeName = await input({
       default: _safeName,
-      message: `Safe name (max 48 chars):\n`,
+      message: `Safe name (max ${length} chars):\n`,
     })
   }
 

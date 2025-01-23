@@ -15,9 +15,9 @@ export default class Markji extends MarkjiBase {
     const _meta = {
       answers: [] as AssetString[],
       content: {assets: [] as never, text: ''} as AssetString,
-      explain: {assets: [] as never, text: ''} as AssetString,
       options: [] as AssetString[],
       optionsAttr: 'fixed',
+      points: {} as Record<string, AssetString>,
     }
 
     const _html = parse(question)
@@ -27,6 +27,7 @@ export default class Markji extends MarkjiBase {
     _meta.content = await markji.parseHtml(
       lodash
         .chain(_html.querySelector('div:first-of-type > div:first-of-type > p:first-of-type')?.innerHTML || '')
+        .trim()
         .replace(/^【所有题目】/, '')
         .value(),
       {style: this.HTML_STYLE},
@@ -36,7 +37,7 @@ export default class Markji extends MarkjiBase {
     // _options.
     _meta.options = await Promise.all(
       lodash.map(_html.querySelectorAll('div[id^=choiceDiv]'), (element) => {
-        const choice = element.querySelector('label')?.innerHTML || ''
+        const choice = lodash.trim(element.querySelector('label')?.innerHTML || '')
         const content = markji.parseHtml(choice, {style: this.HTML_STYLE})
 
         return content
@@ -55,10 +56,10 @@ export default class Markji extends MarkjiBase {
       const _options: string[] = []
 
       for (const option of _html.querySelectorAll('div[id^=choiceDiv]')) {
-        _options.push(option.querySelector('label')?.outerHTML || '')
+        _options.push(lodash.trim(option.querySelector('label')?.outerHTML || ''))
         _meta.options.push({
           assets: [] as never,
-          text: option.querySelector('label')?.querySelector('strong')?.textContent || '',
+          text: lodash.trim(option.querySelector('label')?.querySelector('strong')?.textContent || ''),
         })
       }
 
@@ -71,7 +72,7 @@ export default class Markji extends MarkjiBase {
     // ===========================
     // _answers.
     _meta.answers = lodash
-      .chain(_html.querySelector('p[id=answerConcatenateStr]')?.innerHTML || '')
+      .chain(lodash.trim(_html.querySelector('p[id=answerConcatenateStr]')?.innerHTML || ''))
       .split(',')
       .map((answer) => lodash.find(_meta.options, (option) => option.text.startsWith(answer.trim())) as AssetString)
       .value()
@@ -89,13 +90,17 @@ export default class Markji extends MarkjiBase {
 
     // ===========================
     // _explain.
-    _meta.explain = await markji.parseHtml(_html.querySelector('div#answerExplanation')?.innerHTML || '', {
-      style: this.HTML_STYLE,
-    })
-
-    // ===========================
-    // _points.
-    const _points = ['[P#L#[T#B#解析]]', lodash.trim(_meta.explain.text)]
+    _meta.points['[P#L#[T#B#解析]]'] = await markji.parseHtml(
+      lodash
+        .chain(_html.querySelectorAll('div#answerExplanation > p') || [])
+        .map((p) => lodash.trim(p.innerHTML))
+        .join('\n')
+        .trim()
+        .value(),
+      {
+        style: this.HTML_STYLE,
+      },
+    )
 
     // ===========================
     // _output.
@@ -105,7 +110,13 @@ export default class Markji extends MarkjiBase {
           lodash.trim(_meta.content.text),
           `[Choice#${_meta.optionsAttr}#\n${lodash.trim(lodash.map(_meta.options, 'text').join('\n'))}\n]\n`,
           '---\n',
-          ..._points,
+          ...lodash
+            .chain(_meta.points)
+            .toPairs()
+            .sortBy(0)
+            .fromPairs()
+            .map((point, key) => `${key}\n${point.text}`)
+            .value(),
         ])
         .join('\n')
         .trim()
@@ -116,8 +127,8 @@ export default class Markji extends MarkjiBase {
       {},
       ...lodash.map(_meta.answers, 'assets'),
       _meta.content.assets,
-      _meta.explain.assets,
       ...lodash.map(_meta.options, 'assets'),
+      ...lodash.map(_meta.points, 'assets'),
     )
 
     return _output
