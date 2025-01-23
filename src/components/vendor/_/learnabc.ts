@@ -6,7 +6,7 @@ import lodash from 'lodash'
 import md5 from 'md5'
 import sleep from 'sleep-promise'
 
-import sqliteCache from '../../../cache/sqlite.manager.js'
+import cacheManager from '../../../cache/cache.manager.js'
 import {Bank} from '../../../types/bank.js'
 import {Category} from '../../../types/category.js'
 import {FetchOptions} from '../../../types/common.js'
@@ -222,7 +222,7 @@ export default class LearnABC extends Vendor {
   /**
    * Login.
    */
-  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN), client: sqliteCache.CommonClient})
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN), client: cacheManager.CommonClient})
   protected async toLogin(_password: string): Promise<CacheRequestConfig> {
     return {
       headers: {

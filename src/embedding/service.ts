@@ -6,7 +6,7 @@ import {v5 as uuid} from 'uuid'
 import memory from '../cache/memory.manager.js'
 import {throwError} from '../utils/index.js'
 import BaseFactory from './factory.js'
-import Factory from './libsql/factory.js'
+import Factory from './pgvector/factory.js'
 
 export default class Service {
   public static QUERY_ID = 'queryId'
@@ -45,9 +45,13 @@ export default class Service {
   public async close(): Promise<void> {
     const _factory = await this.factory()
 
-    await Promise.all(
-      lodash.map(Object.keys(_factory.collectionNameToStore), async (collectionName) => _factory.close(collectionName)),
-    )
+    const closes = lodash
+      .chain(_factory.collectionNameToStore)
+      .keys()
+      .map(async (collectionName) => _factory.close(collectionName))
+      .value()
+
+    await Promise.all(closes)
   }
 
   public async deleteQuery(collectionName: string, queries: Document[]): Promise<void> {
@@ -89,8 +93,9 @@ export default class Service {
     if (!queryId) return false
 
     const _cache = await this.cache()
+    const _cacheId = `embedding:${queryId}`
 
-    const cached = await _cache.get(queryId)
+    const cached = await _cache.get(_cacheId)
 
     // cached.
     if (cached) return cached as string
@@ -106,7 +111,7 @@ export default class Service {
 
     // stored.
     if (_storeIds.includes(_docId)) {
-      await _cache.set(queryId, _docId)
+      await _cache.set(_cacheId, _docId)
       return _docId
     }
 
@@ -120,7 +125,7 @@ export default class Service {
 
     const docId = lodash.map(searched, ([doc]) => doc.id || this._uuidByQuery(doc)).pop() as string
 
-    await _cache.set(queryId, docId)
+    await _cache.set(_cacheId, docId)
 
     return docId
   }

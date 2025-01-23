@@ -69,7 +69,7 @@ const close = async () => {
   const cacheKeys = [] as string[]
 
   for (const key of memory.store.keys) {
-    if (key.startsWith('puppeteer:')) cacheKeys.push(key)
+    if (String(key).startsWith('puppeteer:')) cacheKeys.push(key)
   }
 
   await memory.cache.mdel(cacheKeys)

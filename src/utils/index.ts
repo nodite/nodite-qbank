@@ -2,7 +2,7 @@ import {input} from '@inquirer/prompts'
 import fs from 'fs-extra'
 import lodash from 'lodash'
 
-import sqliteCache from '../cache/sqlite.manager.js'
+import cacheManager from '../cache/cache.manager.js'
 import {Vendor} from '../components/vendor/common.js'
 
 export type FindOptions<T = object> = {
@@ -104,7 +104,7 @@ export function reverseTemplate(template: string, result: string): Record<string
 export async function safeName(name: string): Promise<string> {
   if (name.length <= 48) return name
 
-  const cacheClient = sqliteCache.CommonClient
+  const cacheClient = cacheManager.CommonClient
 
   let _safeName = await cacheClient.get<string>(`safe-name:${name}`)
 

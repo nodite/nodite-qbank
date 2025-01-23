@@ -6,7 +6,7 @@ import fs from 'fs-extra'
 import lodash from 'lodash'
 import sleep from 'sleep-promise'
 
-import sqliteCache from '../../../cache/sqlite.manager.js'
+import cacheManager from '../../../cache/cache.manager.js'
 import {PKG_ROOT_DIR} from '../../../env.js'
 import {Bank} from '../../../types/bank.js'
 import {Category} from '../../../types/category.js'
@@ -145,7 +145,7 @@ export default class JsonFile extends Vendor {
   /**
    * Login.
    */
-  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN), client: sqliteCache.CommonClient})
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN), client: cacheManager.CommonClient})
   protected async toLogin(_password: string): Promise<CacheRequestConfig<any, any>> {
     return {}
   }

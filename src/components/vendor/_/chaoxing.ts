@@ -8,7 +8,7 @@ import lodash from 'lodash'
 import md5 from 'md5'
 import sleep from 'sleep-promise'
 
-import sqliteCache from '../../../cache/sqlite.manager.js'
+import cacheManager from '../../../cache/cache.manager.js'
 import Service, {service as embeddingService} from '../../../embedding/service.js'
 import {PKG_ASSETS_DIR} from '../../../env.js'
 import {Bank} from '../../../types/bank.js'
@@ -320,7 +320,7 @@ export default class ChaoXing extends Vendor {
   /**
    * Login.
    */
-  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN), client: sqliteCache.CommonClient})
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN), client: cacheManager.CommonClient})
   protected async toLogin(password: string): Promise<CacheRequestConfig> {
     const page = await puppeteer.page('chaoxing', 'https://passport2.chaoxing.com/login')
 

@@ -2,7 +2,7 @@ import {Cacheable, CacheKeyBuilder} from '@type-cacheable/core'
 import type {CacheRequestConfig} from 'axios-cache-interceptor'
 import lodash from 'lodash'
 
-import sqliteCache from '../../cache/sqlite.manager.js'
+import cacheManager from '../../cache/cache.manager.js'
 import {Bank} from '../../types/bank.js'
 import {Category} from '../../types/category.js'
 import {FetchOptions, LoginOptions} from '../../types/common.js'
@@ -167,7 +167,7 @@ abstract class Vendor extends Component {
   ): Promise<void> {
     const cacheKey = cacheKeyBuilder(scope)([params], this)
     let cacheClient = this.getCacheClient()
-    if (scope === HashKeyScope.LOGIN) cacheClient = sqliteCache.CommonClient
+    if (scope === HashKeyScope.LOGIN) cacheClient = cacheManager.CommonClient
     await cacheClient.delHash(cacheKey)
   }
 
@@ -206,7 +206,7 @@ abstract class Vendor extends Component {
   /**
    * Login.
    */
-  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN), client: sqliteCache.CommonClient})
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN), client: cacheManager.CommonClient})
   protected async _login(): Promise<CacheRequestConfig> {
     const vendorKey = (this.constructor as typeof Vendor).META.key
     throw new Error(`Please run 'vendor login -v ${vendorKey} -u ${this.getUsername()}' command to login first.`)

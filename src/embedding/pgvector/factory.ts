@@ -1,88 +1,75 @@
-import path from 'node:path'
-
-import {LibSQLVectorStore} from '@langchain/community/vectorstores/libsql'
+import {PGVectorStore} from '@langchain/community/vectorstores/pgvector'
 import {DocumentInterface} from '@langchain/core/documents'
 import {Embeddings} from '@langchain/core/embeddings'
 import {VectorStore} from '@langchain/core/vectorstores'
 import {OllamaEmbeddings} from '@langchain/ollama'
-import {Client, createClient} from '@libsql/client'
-import {Mutex} from 'async-mutex'
 import lodash from 'lodash'
+import {PoolConfig} from 'pg'
 
-import {CLI_ASSETS_DIR} from '../../env.js'
 import BaseFactory, {SearchOptions} from '../factory.js'
 
 export default class Factory extends BaseFactory {
-  protected _collectionNameToClient: Record<string, Client> = {}
-
   protected _model = new OllamaEmbeddings({
     model: 'paraphrase-multilingual',
   })
-
-  protected _mutex = new Mutex()
 
   public get model(): Embeddings {
     return this._model
   }
 
   /**
-   * Get a client.
-   */
-  protected async client(): Promise<Client> {
-    return createClient({
-      url: 'file:' + path.join(CLI_ASSETS_DIR, 'cache.sqlite3'),
-    })
-  }
-
-  /**
    * Close a collection.
    */
-  public async close(_collectionName: string): Promise<void> {}
+  public async close(collectionName: string): Promise<void> {
+    const store = (await this.create(collectionName)) as PGVectorStore
+    await store.end()
+    await super.close(collectionName)
+  }
 
   /**
    * Create a collection vectorstore.
    */
   public async createVectorStore(collectionName: string): Promise<VectorStore> {
-    const tableName = `vectors_${collectionName}`
     const embeddingCol = 'embedding'
-    const embeddingSize = (await this._model.embedQuery('hello world')).length
 
-    const client = await this.client()
-
-    await client.batch(
-      [
-        `CREATE TABLE IF NOT EXISTS ${tableName} (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  content TEXT,
-  metadata TEXT,
-  ${embeddingCol} F32_BLOB(${embeddingSize}) -- 768-dimensional f32 vector for paraphrase-multilingual
-);`,
-        `CREATE INDEX IF NOT EXISTS
-idx_${tableName}_${embeddingCol}
-ON ${tableName}(libsql_vector_idx(${embeddingCol}));`,
-      ],
-      'write',
-    )
-
-    const vectorstore = new LibSQLVectorStore(this._model, {
-      column: 'embedding',
-      db: client,
-      table: tableName,
+    const vectorStore = await PGVectorStore.initialize(this._model, {
+      collectionName,
+      collectionTableName: 'langchain_pg_collection',
+      columns: {
+        contentColumnName: 'content',
+        idColumnName: 'id',
+        metadataColumnName: 'metadata',
+        vectorColumnName: embeddingCol,
+      },
+      distanceStrategy: 'cosine',
+      postgresConnectionOptions: {
+        connectionString: 'postgres://qbank:qbank@localhost:5432/qbank',
+      } as PoolConfig,
+      tableName: 'langchain_pg_embedding',
     })
 
-    return vectorstore
+    return vectorStore
   }
 
   /**
    * Get ids in collection.
    */
   public async getIds(collectionName: string): Promise<string[]> {
-    const tableName = `vectors_${collectionName}`
+    const store = (await this.create(collectionName)) as PGVectorStore
 
-    const client = await this.client()
-    const result = await client.execute(`SELECT id FROM ${tableName};`)
+    let collectionId
 
-    return lodash.map(result.rows, (row) => String(row.id))
+    if (store.collectionTableName) {
+      collectionId = await store.getOrCreateCollection()
+    }
+
+    const queryString = [`SELECT id FROM ${store.computedTableName}`, collectionId ? `WHERE collection_id = $1` : '']
+      .join(' ')
+      .trim()
+
+    const {rows} = await store.pool.query(queryString, [collectionId])
+
+    return lodash.map(rows, (row) => row.id)
   }
 
   /**

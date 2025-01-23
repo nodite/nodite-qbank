@@ -1,2 +1,2 @@
 import './memory.manager.js'
-import './sqlite.manager.js'
+import './cache.manager.js'
