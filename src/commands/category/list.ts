@@ -48,7 +48,7 @@ List categories (./src/commands/category/list.ts)
       const _convert = (cts: Category[]): unknown => {
         return lodash
           .chain(cts)
-          .keyBy((ct) => `${ct.order}. ${ct.name} [${ct.id}, ${ct.count}]`)
+          .keyBy((ct) => `${ct.order}. ${ct.name} [${ct.count}]`)
           .mapValues((ct) => (ct.children.length === 0 || !flags.rich ? '' : _convert(ct.children)))
           .value()
       }

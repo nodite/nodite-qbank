@@ -11,7 +11,7 @@ import {Bank} from '../../../types/bank.js'
 import {Category} from '../../../types/category.js'
 import {FetchOptions} from '../../../types/common.js'
 import {Sheet} from '../../../types/sheet.js'
-import axios from '../../../utils/axios.js'
+import axios, {setCookieSyntax} from '../../../utils/axios.js'
 import {emitter} from '../../../utils/event.js'
 import {reverseTemplate, safeName, throwError} from '../../../utils/index.js'
 import puppeteer from '../../../utils/puppeteer.js'
@@ -306,12 +306,12 @@ export default class Wx233 extends Vendor {
     await page.click('span[class="user_protocolCheck js-protocolCheck"]')
     await Promise.all([page.waitForNavigation(), page.click('input[id="normalSubmit"]')])
 
-    const cookies = await page.cookies()
+    const cookies = await page.browser().cookies()
 
     return {
       headers: {
         'Content-Type': 'application/json',
-        Cookie: cookies.map((cookie) => `${cookie.name}=${cookie.value}`).join('; '),
+        'set-cookie': cookies.map((cookie) => setCookieSyntax(cookie)),
         Token: cookies.find((cookie) => cookie.name === 'clientauthentication')?.value,
         'User-Agent': await page.evaluate(() => window.navigator.userAgent),
       },

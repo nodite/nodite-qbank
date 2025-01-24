@@ -10,6 +10,7 @@ import {Bank} from '../../../types/bank.js'
 import {Category} from '../../../types/category.js'
 import {FetchOptions} from '../../../types/common.js'
 import {Sheet} from '../../../types/sheet.js'
+import {setCookieSyntax} from '../../../utils/axios.js'
 import {emitter} from '../../../utils/event.js'
 import puppeteer from '../../../utils/puppeteer.js'
 import {CACHE_KEY_ORIGIN_QUESTION_ITEM} from '../../cache-pattern.js'
@@ -33,7 +34,7 @@ export default class MyTodoAws extends Vendor {
   protected async fetchBanks(): Promise<Bank[]> {
     const config = await this.login()
 
-    const page = await puppeteer.page('mytodo', 'https://mytodo.vip/', {cookies: config.params.cookies})
+    const page = await puppeteer.page('mytodo', 'https://mytodo.vip/', config)
 
     await page.waitForSelector('.card-body')
 
@@ -56,7 +57,7 @@ export default class MyTodoAws extends Vendor {
   protected async fetchCategories(params: {bank: Bank}): Promise<Category[]> {
     const config = await this.login()
 
-    const page = await puppeteer.page('mytodo', 'https://mytodo.vip/', {cookies: config.params.cookies})
+    const page = await puppeteer.page('mytodo', 'https://mytodo.vip/', config)
 
     await Promise.all([
       page.waitForSelector('a[id^=sheet]'),
@@ -120,7 +121,7 @@ export default class MyTodoAws extends Vendor {
         const page = await puppeteer.page(
           'mytodo',
           `https://mytodo.vip/subjects/detail?type=1&category=${params.bank.id}&sid=${_questionId}`,
-          {cookies: config.params.cookies},
+          config,
         )
 
         await page.waitForSelector('div[id=answerExplanation]')
@@ -167,10 +168,12 @@ export default class MyTodoAws extends Vendor {
     await page.type('input[name=floatingPassword]', password)
     await Promise.all([page.waitForNavigation(), page.click('button[type=submit]')])
 
-    const cookies = await page.cookies()
+    const cookies = await page.browser().cookies()
 
     return {
-      params: {cookies},
+      headers: {
+        'set-cookie': cookies.map((cookie) => setCookieSyntax(cookie)),
+      },
     }
   }
 }

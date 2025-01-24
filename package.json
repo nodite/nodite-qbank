@@ -37,6 +37,7 @@
     "form-data": "^4",
     "fs-extra": "^11",
     "html-to-text": "^9",
+    "http-cookie-agent": "^6",
     "js-base64": "^3.7.7",
     "keyv": "^5",
     "lodash": "^4",
@@ -51,6 +52,7 @@
     "sleep-promise": "^9",
     "streamifier": "^0",
     "tmp": "^0",
+    "tough-cookie": "^5",
     "tty-table": "^4",
     "user-agents": "^1",
     "uuid": "^11"
