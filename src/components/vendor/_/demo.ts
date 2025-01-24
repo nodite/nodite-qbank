@@ -3,7 +3,7 @@ import path from 'node:path'
 import {Cacheable} from '@type-cacheable/core'
 import type {CacheRequestConfig} from 'axios-cache-interceptor'
 
-import sqliteCache from '../../../cache/sqlite.manager.js'
+import cacheManager from '../../../cache/cache.manager.js'
 import {Bank} from '../../../types/bank.js'
 import {Category} from '../../../types/category.js'
 import {FetchOptions} from '../../../types/common.js'
@@ -58,7 +58,7 @@ export default class Demo extends Vendor {
   /**
    * Login.
    */
-  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN), client: sqliteCache.CommonClient})
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN), client: cacheManager.CommonClient})
   protected async toLogin(password: string): Promise<CacheRequestConfig> {
     return {
       headers: {password},

@@ -4,7 +4,7 @@ import {Cacheable} from '@type-cacheable/core'
 import {CacheRequestConfig} from 'axios-cache-interceptor'
 import lodash from 'lodash'
 
-import sqliteCache from '../../../cache/sqlite.manager.js'
+import cacheManager from '../../../cache/cache.manager.js'
 import {Bank, MarkjiFolder} from '../../../types/bank.js'
 import {Category} from '../../../types/category.js'
 import {MarkjiChapter} from '../../../types/sheet.js'
@@ -118,7 +118,7 @@ export default class Markji extends Vendor {
   /**
    * Login.
    */
-  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN), client: sqliteCache.CommonClient})
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN), client: cacheManager.CommonClient})
   protected async toLogin(password: string): Promise<CacheRequestConfig> {
     const userAgent =
       'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) ' +

@@ -8,7 +8,7 @@ import lodash from 'lodash'
 import md5 from 'md5'
 import sleep from 'sleep-promise'
 
-import sqliteCache from '../../../cache/sqlite.manager.js'
+import cacheManager from '../../../cache/cache.manager.js'
 import {Bank} from '../../../types/bank.js'
 import {Category} from '../../../types/category.js'
 import {FetchOptions, LoginOptions} from '../../../types/common.js'
@@ -279,7 +279,7 @@ export default class Shangfen extends Vendor {
   /**
    * Login.
    */
-  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN), client: sqliteCache.CommonClient})
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN), client: cacheManager.CommonClient})
   protected async toLogin(password: string): Promise<CacheRequestConfig> {
     const _headers = {
       Referer: 'https://servicewechat.com/wx220f2ece144fc528/1/page-frame.html',

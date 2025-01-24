@@ -3,7 +3,7 @@ import {Command, Flags} from '@oclif/core'
 import colors from 'ansi-colors'
 import lodash from 'lodash'
 
-import sqliteCache from './cache/sqlite.manager.js'
+import cacheManager from './cache/cache.manager.js'
 import OutputManager from './components/output/index.js'
 import VendorManager from './components/vendor/index.js'
 import {Bank} from './types/bank.js'
@@ -36,7 +36,7 @@ export default abstract class BaseCommand extends Command {
     }
 
     // switch cache client
-    await sqliteCache.switchClient(flags.vendor)
+    await cacheManager.switchClient(flags.vendor)
 
     if (flags.username) {
       console.log(`${colors.green('✔')} ${colors.bold('供应商账号')}: ${colors.cyan(flags.username)}`)

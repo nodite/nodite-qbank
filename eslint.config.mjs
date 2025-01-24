@@ -69,6 +69,12 @@ export default [
       ],
       'n/hashbang': 'off',
       'n/no-unpublished-bin': 'off',
+      'n/no-unsupported-features/node-builtins': [
+        'error',
+        {
+          allowExperimental: true,
+        },
+      ],
       'new-cap': 'off',
       'no-await-in-loop': 'off',
       'no-constant-condition': 'off',

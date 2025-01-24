@@ -5,7 +5,7 @@ import type {CacheRequestConfig} from 'axios-cache-interceptor'
 import lodash from 'lodash'
 import sleep from 'sleep-promise'
 
-import sqliteCache from '../../../cache/sqlite.manager.js'
+import cacheManager from '../../../cache/cache.manager.js'
 import {Bank} from '../../../types/bank.js'
 import {Category} from '../../../types/category.js'
 import {FetchOptions} from '../../../types/common.js'
@@ -159,7 +159,7 @@ export default class MyTodoAws extends Vendor {
   /**
    * Login.
    */
-  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN), client: sqliteCache.CommonClient})
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN), client: cacheManager.CommonClient})
   protected async toLogin(password: string): Promise<CacheRequestConfig> {
     const page = await puppeteer.page('mytodo', 'https://mytodo.vip/login')
 

@@ -8,18 +8,16 @@
   },
   "bugs": "https://github.com/oscaner/qbank/issues",
   "dependencies": {
-    "@huggingface/inference": "^2",
     "@inquirer/prompts": "^7",
+    "@keyv/postgres": "^2.0.4",
     "@langchain/community": "^0",
     "@langchain/core": "^0",
     "@langchain/ollama": "^0",
     "@lesjoursfr/html-to-image": "^1",
-    "@libsql/client": "^0",
     "@oclif/core": "^4",
     "@oclif/plugin-help": "^6",
     "@oclif/plugin-plugins": "^5",
     "@oscaner/cache-manager-adapter": "github:Oscaner/type-cacheable-cache-manager-adapter#main",
-    "@resolid/keyv-sqlite": "github:Oscaner/keyv-sqlite#main",
     "@type-cacheable/core": "^14",
     "@xenova/transformers": "^2",
     "ansi-colors": "^4",
@@ -36,7 +34,6 @@
     "crypto-js": "^4.2.0",
     "data-uri-to-buffer": "^6",
     "dotenv": "^16",
-    "faiss-node": "^0",
     "form-data": "^4",
     "fs-extra": "^11",
     "html-to-text": "^9",
@@ -46,6 +43,7 @@
     "md5": "^2",
     "node-html-parser": "^7",
     "object-treeify": "^4",
+    "pg": "^8",
     "pickleparser": "^0",
     "pkg-dir": "^8",
     "puppeteer": "^24",
@@ -77,6 +75,7 @@
     "@types/md5": "^2",
     "@types/mocha": "^10",
     "@types/node": "^22",
+    "@types/pg": "^8",
     "@types/random-number": "^0",
     "@types/streamifier": "^0",
     "@types/tmp": "^0",
@@ -103,7 +102,7 @@
   },
   "overrides": {},
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">20.6.0"
   },
   "files": [
     "/bin",
