@@ -38,10 +38,6 @@ export default class Service {
     }
   }
 
-  protected async cache(): Promise<typeof memory.cache> {
-    return this._cache
-  }
-
   public async close(): Promise<void> {
     const _factory = await this.factory()
 
@@ -138,6 +134,10 @@ export default class Service {
     }
 
     return uuid(String(queryId), uuid.DNS)
+  }
+
+  protected async cache(): Promise<typeof memory.cache> {
+    return this._cache
   }
 }
 

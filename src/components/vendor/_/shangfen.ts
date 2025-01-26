@@ -245,6 +245,23 @@ export default class Shangfen extends Vendor {
   /**
    * Get data.
    */
+  public async login(options?: LoginOptions): Promise<CacheRequestConfig> {
+    const config = await super.login(options)
+
+    if (config?.params?.token) {
+      // s.base64Encode)(a.AES.encrypt(e+"#"+r,"ixunke").toString()+"#"+r)
+      const _timestamp = Date.now()
+      const _token = CryptoJS.AES.encrypt(`${config.params.token}#${_timestamp}`, 'ixunke').toString()
+      const _sign = Base64.encode(`${_token}#${_timestamp}`)
+      config.params.token = _sign
+    }
+
+    return config
+  }
+
+  /**
+   * Get data.
+   */
   protected async getData(params: {bank: Bank; category: Category}): Promise<Record<string, any>[]> {
     const config = await this.login()
 
@@ -260,20 +277,6 @@ export default class Shangfen extends Vendor {
     const questions = JSON.parse(shangfen.decryptQuestion(_resp.data.data.questions, key))
 
     return questions
-  }
-
-  public async login(options?: LoginOptions): Promise<CacheRequestConfig> {
-    const config = await super.login(options)
-
-    if (config?.params?.token) {
-      // s.base64Encode)(a.AES.encrypt(e+"#"+r,"ixunke").toString()+"#"+r)
-      const _timestamp = Date.now()
-      const _token = CryptoJS.AES.encrypt(`${config.params.token}#${_timestamp}`, 'ixunke').toString()
-      const _sign = Base64.encode(`${_token}#${_timestamp}`)
-      config.params.token = _sign
-    }
-
-    return config
   }
 
   /**

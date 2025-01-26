@@ -11,13 +11,13 @@ export type SearchOptions = {
 }
 
 export default abstract class BaseFactory {
-  protected _collectionNameToStore: Record<string, VectorStore> = {}
-
-  protected _mutex = new Mutex()
-
   public get collectionNameToStore(): Record<string, VectorStore> {
     return this._collectionNameToStore
   }
+
+  protected _collectionNameToStore: Record<string, VectorStore> = {}
+
+  protected _mutex = new Mutex()
 
   /**
    * Close a collection.

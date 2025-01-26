@@ -9,13 +9,13 @@ import {PoolConfig} from 'pg'
 import BaseFactory, {SearchOptions} from '../factory.js'
 
 export default class Factory extends BaseFactory {
-  protected _model = new OllamaEmbeddings({
-    model: 'paraphrase-multilingual',
-  })
-
   public get model(): Embeddings {
     return this._model
   }
+
+  protected _model = new OllamaEmbeddings({
+    model: 'paraphrase-multilingual',
+  })
 
   /**
    * Close a collection.

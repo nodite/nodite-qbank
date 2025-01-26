@@ -217,14 +217,14 @@ abstract class Vendor extends Component {
   //
   public abstract get allowedOutputs(): Record<string, OutputClass>
 
-  protected abstract fetchBanks(): Promise<Bank[]>
-
-  protected abstract fetchCategories(params: {bank: Bank}): Promise<Category[]>
-
   public abstract fetchQuestions(
     params: {bank: Bank; category: Category; sheet: Sheet},
     options?: FetchOptions,
   ): Promise<void>
+
+  protected abstract fetchBanks(): Promise<Bank[]>
+
+  protected abstract fetchCategories(params: {bank: Bank}): Promise<Category[]>
 
   protected abstract fetchSheet(params: {bank: Bank; category: Category}): Promise<Sheet[]>
 

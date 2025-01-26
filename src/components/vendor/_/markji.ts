@@ -50,6 +50,10 @@ export default class Markji extends Vendor {
   /**
    * Categories = Markji Decks.
    */
+  public async fetchQuestions(): Promise<void> {
+    throw new Error('Method not implemented.')
+  }
+
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.CATEGORIES)})
   protected async fetchCategories(params: {bank: MarkjiFolder}): Promise<Category[]> {
     const requestConfig = await this.login()
@@ -82,10 +86,6 @@ export default class Markji extends Vendor {
         order: Number(idx),
       }
     })
-  }
-
-  public async fetchQuestions(): Promise<void> {
-    throw new Error('Method not implemented.')
   }
 
   /**

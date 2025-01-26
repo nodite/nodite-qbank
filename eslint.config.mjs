@@ -79,6 +79,7 @@ export default [
       'no-await-in-loop': 'off',
       'no-constant-condition': 'off',
       'no-warning-comments': 'off',
+      'perfectionist/sort-classes': ['error', {type: 'natural'}],
       'perfectionist/sort-exports': ['error', {type: 'natural'}],
       'perfectionist/sort-imports': [
         'error',

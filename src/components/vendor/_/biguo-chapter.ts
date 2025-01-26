@@ -61,13 +61,7 @@ export default class BiguoChapter extends BiguoReal {
    */
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.SHEETS)})
   protected async fetchSheet(params: {bank: Bank; category: Category}): Promise<Sheet[]> {
-    return params.category.children.map((category) => ({
-      count: category.count,
-      id: category.id,
-      meta: category.meta,
-      name: category.name,
-      order: category.order,
-    }))
+    return params.category.children
   }
 
   /**
