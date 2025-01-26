@@ -14,3 +14,4 @@ pnpm-lock.yaml
 /assets
 .cache
 tsconfig.tsbuildinfo
+.puppeteer

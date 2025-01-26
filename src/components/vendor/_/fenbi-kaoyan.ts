@@ -593,12 +593,10 @@ export default class FenbiKaoyan extends Vendor {
       throw new Error(response.data.msg)
     }
 
-    const cookies = response.headers['set-cookie']?.map((cookie) => cookie.split(';')[0]).join('; ')
-
     return {
       headers: {
         'Content-Type': 'application/json',
-        Cookie: cookies,
+        'set-cookie': response.headers['set-cookie'] ?? [],
         'User-Agent': userAgent,
       },
       params,

@@ -356,7 +356,7 @@ export default class BiguoReal extends Vendor {
     return {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
-        Cookie: (response.headers['set-cookie'] ?? []).join('; '),
+        'set-cookie': response.headers['set-cookie'] ?? [],
         token: response.data.data.token,
         'User-Agent': userAgent,
       },
