@@ -56,7 +56,7 @@ const initStore = async (vendor: string): Promise<CacheReturn> => {
 const switchClient = async (vendor: string): Promise<CacheReturn> => {
   const {cache, keyv, store} = await initStore(vendor)
 
-  const adapter = useAdapter(cache, [keyv as never])
+  const adapter = useAdapter(cache as never, [keyv as never])
 
   cacheManager.default.setClient(adapter)
   cacheManager.default.setFallbackClient(adapter)
@@ -80,6 +80,6 @@ const close = async (): Promise<void> => {
 
 const CommonStore = await initStore('_common')
 
-const CommonClient = useAdapter(CommonStore.cache, [CommonStore.keyv as never])
+const CommonClient = useAdapter(CommonStore.cache as never, [CommonStore.keyv as never])
 
 export default {close, CommonClient, CommonStore, initStore, switchClient}
