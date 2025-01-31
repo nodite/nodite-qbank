@@ -4,6 +4,7 @@ export type Bank = {
   meta?: Record<string, any>
   name: string
   order?: number
+  orgName?: string
 }
 
 export type MarkjiFolder = {

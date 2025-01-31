@@ -109,7 +109,7 @@ abstract class Vendor extends Component {
         return _banks.map((_bank) => {
           const _shortId = _bank.id.slice(0, 8)
           if (_bank.name.includes(_shortId)) return _bank
-          return {..._bank, name: `${_name} (${_shortId})`}
+          return {..._bank, name: `${_name} (${_shortId})`, orgName: _name}
         })
       })
       .flatten()
@@ -155,7 +155,7 @@ abstract class Vendor extends Component {
           return _cates.map((_category) => {
             const _shortId = _category.id.slice(0, 8)
             if (_category.name.includes(_shortId)) return _category
-            return {..._category, name: `${_name} (${_shortId})`}
+            return {..._category, name: `${_name} (${_shortId})`, orgName: _name}
           })
         })
         .flatten()
@@ -186,7 +186,7 @@ abstract class Vendor extends Component {
         return _sheets.map((_sheet) => {
           const _shortId = _sheet.id.slice(0, 8)
           if (_sheet.name.includes(_shortId)) return _sheet
-          return {..._sheet, name: `${_name} (${_shortId})`}
+          return {..._sheet, name: `${_name} (${_shortId})`, orgName: _name}
         })
       })
       .flatten()

@@ -4,6 +4,7 @@ export type Sheet = {
   meta?: Record<string, any>
   name: string
   order?: number
+  orgName?: string
 }
 
 export type MarkjiChapter = {

@@ -57,7 +57,7 @@ export default class ChaoXingExam extends ChaoXing {
 
     const _convert = async (li: HTMLElement, index: number, parentId: string): Promise<Category> => {
       const name = await safeName((li.querySelector('> div.marbom16 > p.fl')?.textContent ?? '').trim())
-      const id = md5(JSON.stringify([parentId, name]))
+      const id = md5(JSON.stringify([parentId, index, name]))
 
       const children = [] as Category[]
 

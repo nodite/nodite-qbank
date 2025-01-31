@@ -5,4 +5,5 @@ export type Category = {
   meta?: Record<string, any>
   name: string
   order?: number
+  orgName?: string
 }
