@@ -162,10 +162,18 @@ export default class ChaoXingAssets extends ChaoXingExam {
             if (Number(dirId) > 0) {
               const thatIs = lodash
                 .chain(questions)
-                .map((q) => [q['一级目录'], q['二级目录'], q['三级目录'] || '根目录'])
+                .map((q) => [
+                  q['一级目录'].replaceAll(' ', ''),
+                  q['二级目录'].replaceAll(' ', ''),
+                  (q['三级目录'] || '根目录').replaceAll(' ', ''),
+                ])
                 .flatten()
                 .uniq()
-                .intersection([params.bank.name, params.category.name, params.sheet.name])
+                .intersection([
+                  params.bank.name.replaceAll(' ', ''),
+                  params.category.name.replaceAll(' ', ''),
+                  params.sheet.name.replaceAll(' ', ''),
+                ])
                 .value()
 
               if (thatIs.length === 0) {
