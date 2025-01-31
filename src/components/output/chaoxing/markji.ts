@@ -70,7 +70,7 @@ export default class Markji extends MarkjiBase {
   protected async _processBlankFilling(question: any, _params: Params): Promise<AssetString> {
     const _meta = {
       content: {assets: [] as never, text: ''} as AssetString,
-      explain: {assets: [] as never, text: ''} as AssetString,
+      points: {} as Record<string, AssetString>,
     }
 
     // ====================
@@ -101,29 +101,36 @@ export default class Markji extends MarkjiBase {
     }
 
     // ====================
-    // _explain.
-    _meta.explain = await markji.parseHtml('', {imgSrcHandler, style: this.HTML_STYLE})
+    // points.
+    _meta.points['[P#L#[T#B#题目类别]]'] = {
+      assets: {},
+      text: lodash.filter([question['一级目录'], question['二级目录'], question['三级目录']]).join('\n'),
+    }
 
-    // ====================
-    // _points.
-    const _points = [
-      '[P#L#[T#B#类别]]',
-      lodash.filter([question['一级目录'], question['二级目录'], question['三级目录']]).join('\n'),
-      '[P#L#[T#B#解析]]',
-      lodash.trim(_meta.explain.text),
-    ]
+    _meta.points['[P#L#[T#B#题目解析]]'] = await markji.parseHtml('', {imgSrcHandler, style: this.HTML_STYLE})
 
     // ===========================
     // _output.
     const _output = await html.toText(
       lodash
-        .filter([`[${question.KeyType}]`, lodash.trim(_meta.content.text), '---', ..._points])
+        .filter([
+          `[${question.KeyType}]`,
+          lodash.trim(_meta.content.text),
+          '---',
+          ...lodash
+            .chain(_meta.points)
+            .toPairs()
+            .sortBy(0)
+            .fromPairs()
+            .map((point, key) => `${key}\n${point.text}`)
+            .value(),
+        ])
         .join('\n')
         .trim()
         .replaceAll('\n', '<br>'),
     )
 
-    _output.assets = lodash.merge({}, _meta.content.assets, _meta.explain.assets)
+    _output.assets = lodash.merge({}, _meta.content.assets, ...lodash.map(_meta.points, 'assets'))
 
     return _output
   }
@@ -132,9 +139,9 @@ export default class Markji extends MarkjiBase {
     const _meta = {
       answers: [] as AssetString[],
       content: {assets: [] as never, text: ''} as AssetString,
-      explain: {assets: [] as never, text: ''} as AssetString,
       options: [] as AssetString[],
       optionsAttr: question.IsMultipleChoice ? 'fixed,multi' : 'fixed',
+      points: {} as Record<string, AssetString>,
     }
 
     // ===========================
@@ -190,17 +197,16 @@ export default class Markji extends MarkjiBase {
     }))
 
     // ====================
-    // _explain.
-    _meta.explain = await markji.parseHtml(question.Analyze || '', {imgSrcHandler, style: this.HTML_STYLE})
-
-    // ====================
     // _points.
-    const _points = [
-      '[P#L#[T#B#类别]]',
-      lodash.filter([question['一级目录'], question['二级目录'], question['三级目录']]).join('\n'),
-      '[P#L#[T#B#解析]]',
-      lodash.trim(_meta.explain.text),
-    ]
+    _meta.points['[P#L#[T#B#题目类别]]'] = {
+      assets: {},
+      text: lodash.filter([question['一级目录'], question['二级目录'], question['三级目录']]).join('\n'),
+    }
+
+    _meta.points['[P#L#[T#B#题目解析]]'] = await markji.parseHtml(question.Analyze || '', {
+      imgSrcHandler,
+      style: this.HTML_STYLE,
+    })
 
     // ===========================
     // _output.
@@ -211,7 +217,13 @@ export default class Markji extends MarkjiBase {
           lodash.trim(_meta.content.text),
           `[Choice#${_meta.optionsAttr}#\n${lodash.trim(lodash.map(_meta.options, 'text').join('\n'))}\n]\n`,
           '---\n',
-          ..._points,
+          ...lodash
+            .chain(_meta.points)
+            .toPairs()
+            .sortBy(0)
+            .fromPairs()
+            .map((point, key) => `${key}\n${point.text}`)
+            .value(),
         ])
         .join('\n')
         .trim()
@@ -222,7 +234,7 @@ export default class Markji extends MarkjiBase {
       {},
       ...lodash.map(_meta.answers, 'assets'),
       _meta.content.assets,
-      _meta.explain.assets,
+      ...lodash.map(_meta.points, 'assets'),
       ...lodash.map(_meta.options, 'assets'),
     )
 
@@ -235,7 +247,7 @@ export default class Markji extends MarkjiBase {
   protected async _processTranslate(question: any, _params: Params): Promise<AssetString> {
     const _meta = {
       content: {assets: [] as never, text: ''} as AssetString,
-      explain: {assets: [] as never, text: ''} as AssetString,
+      points: {} as Record<string, AssetString>,
       translation: {assets: [] as never, text: ''} as AssetString,
     }
 
@@ -247,18 +259,14 @@ export default class Markji extends MarkjiBase {
     // _translation.
     _meta.translation = await markji.parseHtml(question.Analyze || '', {imgSrcHandler, style: this.HTML_STYLE})
 
-    // ===========================
-    // _explain.
-    _meta.explain = await markji.parseHtml('', {imgSrcHandler, style: this.HTML_STYLE})
+    // ====================
+    // points.
+    _meta.points['[P#L#[T#B#题目类别]]'] = {
+      assets: {},
+      text: lodash.filter([question['一级目录'], question['二级目录'], question['三级目录']]).join('\n'),
+    }
 
-    // ===========================
-    // _points.
-    const _points = [
-      '[P#L#[T#B#类别]]',
-      lodash.filter([question['一级目录'], question['二级目录'], question['三级目录']]).join('\n'),
-      '[P#L#[T#B#解析]]',
-      lodash.trim(_meta.explain.text),
-    ]
+    _meta.points['[P#L#[T#B#题目解析]]'] = await markji.parseHtml('', {imgSrcHandler, style: this.HTML_STYLE})
 
     // _output.
     const _output = await html.toText(
@@ -269,14 +277,25 @@ export default class Markji extends MarkjiBase {
           '---',
           _meta.translation.text,
           '---',
-          ..._points,
+          ...lodash
+            .chain(_meta.points)
+            .toPairs()
+            .sortBy(0)
+            .fromPairs()
+            .map((point, key) => `${key}\n${point.text}`)
+            .value(),
         ])
         .join('\n')
         .trim()
         .replaceAll('\n', '<br>'),
     )
 
-    _output.assets = lodash.merge({}, _meta.content.assets, _meta.explain.assets, _meta.translation.assets)
+    _output.assets = lodash.merge(
+      {},
+      _meta.content.assets,
+      _meta.translation.assets,
+      ...lodash.map(_meta.points, 'assets'),
+    )
 
     return _output
   }

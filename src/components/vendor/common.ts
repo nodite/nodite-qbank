@@ -106,7 +106,10 @@ abstract class Vendor extends Component {
       .groupBy('name')
       .map((_banks, _name) => {
         if (_banks.length <= 1) return _banks
-        return _banks.map((_bank) => ({..._bank, name: `${_name} (${_bank.id})`}))
+        return _banks.map((_bank) => {
+          if (_bank.name.includes(_bank.id)) return _bank
+          return {..._bank, name: `${_name} (${_bank.id})`}
+        })
       })
       .flatten()
       .sortBy(['order', 'id', 'name'], ['asc', 'asc', 'asc'])
@@ -148,7 +151,10 @@ abstract class Vendor extends Component {
         .groupBy('name')
         .map((_cates, _name) => {
           if (_cates.length <= 1) return _cates
-          return _cates.map((_category) => ({..._category, name: `${_name} (${_category.id})`}))
+          return _cates.map((_category) => {
+            if (_category.name.includes(_category.id)) return _category
+            return {..._category, name: `${_name} (${_category.id})`}
+          })
         })
         .flatten()
         .sortBy(['order', 'id', 'name'], ['asc', 'asc', 'asc'])
@@ -156,6 +162,33 @@ abstract class Vendor extends Component {
     }
 
     return _fix(categories)
+  }
+
+  /**
+   * Sheets.
+   */
+  public async sheets(params: {bank: Bank; category: Category}, options?: Options): Promise<Sheet[]> {
+    const sheets = await this.fetchSheet(params)
+
+    if (!options?.excludeTtl) {
+      sheets.unshift({count: lodash.sumBy(sheets, 'count'), id: '*', name: '全部', order: -999})
+    }
+
+    return lodash
+      .chain(sheets)
+      .sortBy(['order', 'id', 'name'], ['asc', 'asc', 'asc'])
+      .map((_sheet, idx) => ({..._sheet, order: options?.excludeTtl ? idx : idx - 1}))
+      .groupBy('name')
+      .map((_sheets, _name) => {
+        if (_sheets.length <= 1) return _sheets
+        return _sheets.map((_sheet) => {
+          if (_sheet.name.includes(_sheet.id)) return _sheet
+          return {..._sheet, name: `${_name} (${_sheet.id})`}
+        })
+      })
+      .flatten()
+      .sortBy(['order', 'id', 'name'], ['asc', 'asc', 'asc'])
+      .value()
   }
 
   /**
@@ -177,30 +210,6 @@ abstract class Vendor extends Component {
   public async login(options?: LoginOptions): Promise<CacheRequestConfig> {
     if (options?.clean) await this.invalidate(HashKeyScope.LOGIN)
     return lodash.isNil(options?.password) ? this._login() : this.toLogin(options.password)
-  }
-
-  /**
-   * Sheets.
-   */
-  public async sheets(params: {bank: Bank; category: Category}, options?: Options): Promise<Sheet[]> {
-    const sheets = await this.fetchSheet(params)
-
-    if (!options?.excludeTtl) {
-      sheets.unshift({count: lodash.sumBy(sheets, 'count'), id: '*', name: '全部', order: -999})
-    }
-
-    return lodash
-      .chain(sheets)
-      .sortBy(['order', 'id', 'name'], ['asc', 'asc', 'asc'])
-      .map((_sheet, idx) => ({..._sheet, order: options?.excludeTtl ? idx : idx - 1}))
-      .groupBy('name')
-      .map((_sheets, _name) => {
-        if (_sheets.length <= 1) return _sheets
-        return _sheets.map((_sheet) => ({..._sheet, name: `${_name} (${_sheet.id})`}))
-      })
-      .flatten()
-      .sortBy(['order', 'id', 'name'], ['asc', 'asc', 'asc'])
-      .value()
   }
 
   /**

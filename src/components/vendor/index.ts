@@ -2,6 +2,7 @@ import BiguoChapter from './_/biguo-chapter.js'
 import BiguoFree from './_/biguo-free.js'
 import BiguoReal from './_/biguo-real.js'
 import BiguoVip from './_/biguo-vip.js'
+import ChaoXingAssets from './_/chaoxing-assets.js'
 import ChaoXingExam from './_/chaoxing-exam.js'
 import ChaoXingWork from './_/chaoxing-work.js'
 import Demo from './_/demo.js'
@@ -24,6 +25,7 @@ export default class VendorManager {
     [BiguoFree.META.key]: BiguoFree,
     [BiguoReal.META.key]: BiguoReal,
     [BiguoVip.META.key]: BiguoVip,
+    [ChaoXingAssets.META.key]: ChaoXingAssets,
     [ChaoXingExam.META.key]: ChaoXingExam,
     [ChaoXingWork.META.key]: ChaoXingWork,
     [Demo.META.key]: Demo,
