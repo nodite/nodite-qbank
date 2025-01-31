@@ -90,7 +90,7 @@
     "@typescript-eslint/typescript-estree": "^8",
     "chai": "^5",
     "eslint": "^9",
-    "eslint-config-oclif": "^5",
+    "eslint-config-oclif": "^6",
     "eslint-config-prettier": "^10",
     "eslint-plugin-n": "^17",
     "eslint-plugin-perfectionist": "^4",
