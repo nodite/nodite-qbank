@@ -45,7 +45,7 @@
     "lodash": "^4",
     "md5": "^2",
     "node-html-parser": "^7",
-    "object-treeify": "^4",
+    "object-treeify": "^5",
     "pg": "^8",
     "pickleparser": "^0",
     "pkg-dir": "^8",
