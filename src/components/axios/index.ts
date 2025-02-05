@@ -14,6 +14,7 @@ setupCache(axiosInstance, {
   ttl: 1000 * 60 * 5, // 5min
 })
 
+// @ts-ignore
 axiosRetry(axiosInstance, {
   retries: 3,
   retryCondition(error: any) {
