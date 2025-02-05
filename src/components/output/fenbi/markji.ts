@@ -617,6 +617,9 @@ export default class Markji extends MarkjiBase {
     // TODO
     lodash.remove(question.accessories, {type: 1006})
 
+    // 103: 问题求解
+    lodash.remove(question.accessories, {type: 103})
+
     // others.
     if (!lodash.isEmpty(question.accessories)) {
       throwError('Unsupported accessories.', {params, question})
@@ -848,6 +851,9 @@ export default class Markji extends MarkjiBase {
     // 1006: module，不知道是啥玩意儿
     // TODO
     lodash.remove(question.accessories, {type: 1006})
+
+    // 103: 问题求解
+    lodash.remove(question.accessories, {type: 103})
 
     if (!lodash.isEmpty(question.accessories)) {
       throwError('Unsupported accessories.', {params, question})
