@@ -1,40 +1,10 @@
 import {AxiosRequestConfig} from 'axios'
-import lodash from 'lodash'
 import md5 from 'md5'
 import * as puppeteer from 'puppeteer'
 import {Cookie} from 'tough-cookie'
 
 import memory from '../cache/memory.manager.js'
-import {jar} from './axios.js'
-
-const cookieJar2Puppeteer = (cookie: Cookie): puppeteer.Cookie => {
-  const _cookie = {} as puppeteer.Cookie
-
-  _cookie.domain = cookie.domain || ''
-  _cookie.domain = _cookie.domain.split('.').length === 2 ? `.${_cookie.domain}` : _cookie.domain
-
-  if (cookie.expires === 'Infinity') {
-    _cookie.expires = -1
-  } else if (cookie.expires) {
-    _cookie.expires = cookie.expires.getTime() / 1000
-  } else {
-    _cookie.expires = -1
-  }
-
-  _cookie.httpOnly = cookie.httpOnly
-  _cookie.name = cookie.key
-  _cookie.path = cookie.path || '/'
-  _cookie.sameSite = cookie.sameSite as puppeteer.CookieSameSite
-  _cookie.secure = cookie.secure
-  _cookie.session = Boolean(cookie.extensions?.includes('Session'))
-
-  const size = lodash.find(cookie.extensions, (v: string) => v.startsWith('Size'))
-  _cookie.size = Number(size?.split('=')?.[1] ?? encodeURIComponent(cookie.value).length)
-
-  _cookie.value = cookie.value
-
-  return _cookie
-}
+import cookie from '../components/axios/plugin/cookie.js'
 
 /**
  * Browser.
@@ -82,13 +52,13 @@ const page = async (name: string, url: string, config?: AxiosRequestConfig) => {
 
     // cookies.
     for (const c of config?.headers?.['set-cookie'] ?? []) {
-      const _cookie = Cookie.parse(c) as Cookie
-      jar.setCookieSync(_cookie, `https://${_cookie.domain}${_cookie.path}`)
+      const _ck = Cookie.parse(c) as Cookie
+      cookie.jar.setCookieSync(_ck, `https://${_ck.domain}${_ck.path}`)
     }
 
-    const cookies = await jar.store.getAllCookies()
+    const cookies = await cookie.jar.store.getAllCookies()
 
-    await _page!.browser().setCookie(...cookies.map((cookie) => cookieJar2Puppeteer(cookie)))
+    await _page!.browser().setCookie(...cookies.map((_ck) => cookie.toPuppeteer(_ck)))
 
     // params.
     const _url = URL.parse(url)!

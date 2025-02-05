@@ -11,9 +11,10 @@ import {Bank} from '../../../types/bank.js'
 import {Category} from '../../../types/category.js'
 import {FetchOptions} from '../../../types/common.js'
 import {Sheet} from '../../../types/sheet.js'
-import axios, {setCookieSyntax} from '../../../utils/axios.js'
 import {safeName} from '../../../utils/index.js'
 import puppeteer from '../../../utils/puppeteer.js'
+import axios from '../../axios/index.js'
+import cookie from '../../axios/plugin/cookie.js'
 import {OutputClass} from '../../output/common.js'
 import {cacheKeyBuilder, HashKeyScope, Vendor} from '../common.js'
 
@@ -134,7 +135,7 @@ export default class ChaoXing extends Vendor {
     const cookies = await page.browser().cookies()
 
     const headers = {
-      'set-cookie': cookies.map((cookie) => setCookieSyntax(cookie)),
+      'set-cookie': cookies.map((_ck) => cookie.toString(_ck)),
       'User-Agent':
         'Mozilla/5.0 (iPhone; CPU iPhone OS 17_6_1 like Mac OS X) ' +
         'AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 ' +
