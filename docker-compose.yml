@@ -7,7 +7,7 @@ services:
       - POSTGRES_PASSWORD=qbank
       - POSTGRES_DB=qbank
     ports:
-      - 5432:5432
+      - 15432:5432
     volumes:
       - ./assets/postgres:/var/lib/postgresql/data
     networks:

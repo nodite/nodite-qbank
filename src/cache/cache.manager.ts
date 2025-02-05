@@ -8,7 +8,10 @@ import {Keyv} from 'keyv'
 import lodash from 'lodash'
 
 import vendors from '../components/vendor/_/index.js'
+import docker from '../utils/docker.js'
 import memory from './memory.manager.js'
+
+const cacheHost = await docker.host()
 
 type CacheReturn = {cache: ReturnType<typeof createCache>; keyv: Keyv; store: KeyvPostgres}
 
@@ -34,7 +37,7 @@ const initStore = async (vendor: string): Promise<CacheReturn> => {
   const store = new KeyvPostgres({
     iterationLimit: 5000,
     table: 'qbank_' + vendor.replaceAll('-', '_'),
-    uri: 'postgres://qbank:qbank@localhost:5432/qbank',
+    uri: `postgres://qbank:qbank@${cacheHost}/qbank`,
   })
 
   const keyv = new Keyv({
