@@ -11,11 +11,12 @@ import {Bank} from '../../../types/bank.js'
 import {Category} from '../../../types/category.js'
 import {FetchOptions} from '../../../types/common.js'
 import {Sheet} from '../../../types/sheet.js'
-import axios, {setCookieSyntax} from '../../../utils/axios.js'
 import {emitter} from '../../../utils/event.js'
 import {reverseTemplate, safeName, throwError} from '../../../utils/index.js'
 import puppeteer from '../../../utils/puppeteer.js'
 import wx233 from '../../../utils/vendor/wx233.js'
+import axios from '../../axios/index.js'
+import cookie from '../../axios/plugin/cookie.js'
 import {CACHE_KEY_ORIGIN_QUESTION_ITEM, CACHE_KEY_ORIGIN_QUESTION_PROCESSING} from '../../cache-pattern.js'
 import {OutputClass} from '../../output/common.js'
 import Markji from '../../output/wx233/markji.js'
@@ -311,8 +312,8 @@ export default class Wx233 extends Vendor {
     return {
       headers: {
         'Content-Type': 'application/json',
-        'set-cookie': cookies.map((cookie) => setCookieSyntax(cookie)),
-        Token: cookies.find((cookie) => cookie.name === 'clientauthentication')?.value,
+        'set-cookie': cookies.map((_ck) => cookie.toString(_ck)),
+        Token: lodash.find(cookies, {name: 'clientauthentication'})?.value,
         'User-Agent': await page.evaluate(() => window.navigator.userAgent),
       },
     }

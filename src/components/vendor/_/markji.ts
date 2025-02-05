@@ -8,7 +8,7 @@ import cacheManager from '../../../cache/cache.manager.js'
 import {Bank, MarkjiFolder} from '../../../types/bank.js'
 import {Category} from '../../../types/category.js'
 import {MarkjiChapter} from '../../../types/sheet.js'
-import axios from '../../../utils/axios.js'
+import axios from '../../axios/index.js'
 import {OutputClass} from '../../output/common.js'
 import {cacheKeyBuilder, HashKeyScope, Vendor} from '../common.js'
 

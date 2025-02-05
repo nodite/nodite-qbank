@@ -10,9 +10,9 @@ import {Bank} from '../../../types/bank.js'
 import {Category} from '../../../types/category.js'
 import {FetchOptions} from '../../../types/common.js'
 import {Sheet} from '../../../types/sheet.js'
-import {setCookieSyntax} from '../../../utils/axios.js'
 import {emitter} from '../../../utils/event.js'
 import puppeteer from '../../../utils/puppeteer.js'
+import cookie from '../../axios/plugin/cookie.js'
 import {CACHE_KEY_ORIGIN_QUESTION_ITEM} from '../../cache-pattern.js'
 import {OutputClass} from '../../output/common.js'
 import Markji from '../../output/mytodo/markji.js'
@@ -172,7 +172,7 @@ export default class MyTodoAws extends Vendor {
 
     return {
       headers: {
-        'set-cookie': cookies.map((cookie) => setCookieSyntax(cookie)),
+        'set-cookie': cookies.map((_ck) => cookie.toString(_ck)),
       },
     }
   }

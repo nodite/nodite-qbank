@@ -2,8 +2,8 @@ import lodash from 'lodash'
 import md5 from 'md5'
 import {parse} from 'node-html-parser'
 
+import axios from '../components/axios/index.js'
 import {AssetString, ParseOptions} from '../types/common.js'
-import axios from './axios.js'
 
 const audio = async (url: string, _options?: ParseOptions): Promise<AssetString> => {
   const assetString = {assets: {}} as AssetString
