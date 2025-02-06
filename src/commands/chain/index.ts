@@ -32,7 +32,7 @@ Chain to qbank (./src/commands/chain/index.ts)
       multiple: true,
       options: ['*', 'bank.list', 'category.list', 'sheet.list', 'question.fetch', 'output.convert', 'output.upload'],
     }),
-    output: Flags.string({default: '', description: '接收方'}),
+    output: Flags.string({char: 'o', default: '', description: '接收方'}),
     'output-username': Flags.string({default: '', description: '接收方用户名'}),
     'sheet-list': Flags.string({default: ['*'], delimiter: ',', description: '试卷', multiple: true}),
   }
