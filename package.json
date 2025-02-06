@@ -9,7 +9,7 @@
   "bugs": "https://github.com/oscaner/qbank/issues",
   "dependencies": {
     "@inquirer/prompts": "^7",
-    "@keyv/postgres": "^2.0.4",
+    "@keyv/postgres": "^2.1.0",
     "@langchain/community": "^0",
     "@langchain/core": "^0",
     "@langchain/ollama": "^0",
