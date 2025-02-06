@@ -55,19 +55,26 @@ export default class FenbiKaoyan extends Vendor {
 
     // quiz change.
     for (const _bank of structuredClone(_banks)) {
-      if (!lodash.has(this._fetchBankMeta, 'quizChange')) continue
+      const quizData = await this.changeQuiz({
+        bank: {
+          id: '',
+          meta: {
+            bankPrefix: lodash.findLast([
+              lodash.get(_bank, 'courseSet.prefix', ''),
+              lodash.get(_bank, 'course.prefix', ''),
+              lodash.get(_bank, 'quiz.prefix', ''),
+            ]),
+            quizId: _bank.quiz?.id,
+          },
+          name: '',
+        },
+      })
 
-      const _quizChange = await axios.put(
-        lodash.template(this._fetchBankMeta.quizChange)({bankPrefix: _bank.courseSet.prefix}),
-        undefined,
-        config,
-      )
-
-      if (lodash.isEmpty(lodash.get(_quizChange, 'data.data.easyCourseVOS'))) continue
+      if (lodash.isEmpty(lodash.get(quizData, 'data.easyCourseVOS'))) continue
 
       lodash.remove(_banks, (_b) => lodash.isEqual(_b, _bank))
 
-      const _courses = lodash.get(_quizChange, 'data.data.easyCourseVOS', [])
+      const _courses = lodash.get(quizData, 'data.easyCourseVOS', [])
 
       for (const _course of _courses) {
         if (_course.prefix === _bank.courseSet.prefix) {
@@ -131,7 +138,9 @@ export default class FenbiKaoyan extends Vendor {
    */
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.CATEGORIES)})
   protected async fetchCategories(params: {bank: Bank}): Promise<Category[]> {
-    const reqConfig = await this.login()
+    await this.changeQuiz({bank: params.bank})
+
+    const config = await this.login()
 
     const bankPrefix = params.bank.meta?.bankPrefix
     const getParams = this._fetchCategoryMeta.params
@@ -150,7 +159,7 @@ export default class FenbiKaoyan extends Vendor {
 
     const response = await axios.get(
       lodash.template(_endpoint)({bankPrefix}),
-      lodash.merge({}, reqConfig, {params: getParams}),
+      lodash.merge({}, config, {params: getParams}),
     )
 
     const _convert = async (index: number, category: Record<string, any>): Promise<Category> => {
@@ -193,7 +202,7 @@ export default class FenbiKaoyan extends Vendor {
 
     // prepare.
     const cacheClient = this.getCacheClient()
-    const requestConfig = await this.login()
+    const config = await this.login()
     const bankPrefix = params.bank.meta?.bankPrefix
 
     // cache key.
@@ -234,7 +243,7 @@ export default class FenbiKaoyan extends Vendor {
     ) {
       const exerciseResponse = await axios.get(
         lodash.template(this._fetchQuestionMeta.giantsEndpoint)({bankPrefix}),
-        lodash.merge({}, requestConfig, {
+        lodash.merge({}, config, {
           params: {keypointId: params.sheet.id === '0' ? params.category.id : params.sheet.id},
         }),
       )
@@ -292,7 +301,7 @@ export default class FenbiKaoyan extends Vendor {
               const exerciseResponse = await axios.post(
                 lodash.template(this._fetchQuestionMeta.exercisesEndpoint)({bankPrefix}),
                 undefined,
-                lodash.merge({}, requestConfig, {params: {sheetId: zhyynl.sheetId, type: 26}}),
+                lodash.merge({}, config, {params: {sheetId: zhyynl.sheetId, type: 26}}),
               )
 
               _exerId = lodash.get(exerciseResponse.data, 'id', 0)
@@ -325,7 +334,7 @@ export default class FenbiKaoyan extends Vendor {
         const exerciseResponse = await axios.post(
           lodash.template(this._fetchQuestionMeta.exercisesEndpoint)({bankPrefix}),
           {keypointId: params.sheet.id === '0' ? params.category.id : params.sheet.id, limit: 100, type: 151},
-          lodash.merge({}, requestConfig, {headers: {'Content-Type': 'application/x-www-form-urlencoded'}}),
+          lodash.merge({}, config, {headers: {'Content-Type': 'application/x-www-form-urlencoded'}}),
         )
 
         _exerId = lodash.get(exerciseResponse.data, 'id', 0)
@@ -359,7 +368,7 @@ export default class FenbiKaoyan extends Vendor {
           lodash.template(this._fetchQuestionMeta.universalAuthSolutionsEndpoint)({
             bankPrefix,
           }),
-          lodash.merge({}, requestConfig, {params: {questionIds: _qIds.join(','), type: 9}}),
+          lodash.merge({}, config, {params: {questionIds: _qIds.join(','), type: 9}}),
         )
 
         _questions = lodash.chain(solutionsResponse).get('data.solutions', []).cloneDeep().value()
@@ -370,12 +379,12 @@ export default class FenbiKaoyan extends Vendor {
       else {
         const questionsResponse = await axios.get(
           lodash.template(this._fetchQuestionMeta.questionsEndpoint)({bankPrefix}),
-          lodash.merge({}, requestConfig, {params: {questionIds: _qIds.join(',')}}),
+          lodash.merge({}, config, {params: {questionIds: _qIds.join(',')}}),
         )
 
         const solutionsResponse = await axios.get(
           lodash.template(this._fetchQuestionMeta.solutionsEndpoint)({bankPrefix}),
-          lodash.merge({}, requestConfig, {params: {ids: _qIds.join(',')}}),
+          lodash.merge({}, config, {params: {ids: _qIds.join(',')}}),
         )
 
         _questions = lodash.get(questionsResponse.data, 'questions', [])
@@ -384,31 +393,31 @@ export default class FenbiKaoyan extends Vendor {
       }
 
       // go, go, go...
-      for (const [_questionIdx, _question] of _questions.entries()) {
-        const _questionId = String(_question.id)
+      for (const [_qIdx, _q] of _questions.entries()) {
+        const _qId = String(_q.id)
 
-        _question.solution = lodash.find(_solutions, (solution) => String(solution.id) === _questionId)
-        _question.materials = lodash.map(_question.materialIndexes || [], (materialIndex) => _materials[materialIndex])
+        _q.solution = lodash.find(_solutions, (solution) => String(solution.id) === _qId)
+        _q.materials = lodash.map(_q.materialIndexes || [], (materialIndex) => _materials[materialIndex])
 
-        if (lodash.some(_question.accessories as any, {label: 'relatedMaterialId'})) {
-          throwError('Unknown materials.', {params, question: _question})
+        if (lodash.some(_q.accessories as any, {label: 'relatedMaterialId'})) {
+          throwError('Unknown materials.', {params, question: _q})
         }
 
         await cacheClient.set(
-          lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)({...cacheKeyParams, questionId: _questionId}),
-          _question,
+          lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)({...cacheKeyParams, questionId: _qId}),
+          _q,
         )
 
         // answer.
         if (!String(_exerId).startsWith('_')) {
           const elapsedTime = random({integer: true, max: 100, min: 1})
 
-          let {correctAnswer, id: questionId} = _question
+          let {correctAnswer} = _q
 
           if (!correctAnswer) {
             correctAnswer = {
               answer: lodash.get(
-                lodash.find(lodash.get(_question, 'solution.solutionAccessories', []) as never, {
+                lodash.find(lodash.get(_q, 'solution.solutionAccessories', []) as never, {
                   label: 'reference',
                 }),
                 'content',
@@ -426,18 +435,18 @@ export default class FenbiKaoyan extends Vendor {
                 {
                   answer: correctAnswer,
                   flag: 0,
-                  questionId,
-                  questionIndex: _questionIdx,
+                  questionId: _qId,
+                  questionIndex: _qIdx,
                   time: elapsedTime,
                 },
               ],
-              lodash.merge({}, requestConfig, {params: {forceUpdateAnswer: 1}}),
+              lodash.merge({}, config, {params: {forceUpdateAnswer: 1}}),
             )
           } catch {}
         }
 
         // update.
-        if (!doneQIds.includes(_questionId)) doneQIds.push(_questionId)
+        if (!doneQIds.includes(_qId)) doneQIds.push(_qId)
         emitter.emit('questions.fetch.count', doneQIds.length)
 
         // delay.
@@ -450,7 +459,7 @@ export default class FenbiKaoyan extends Vendor {
           await axios.post(
             lodash.template(this._fetchQuestionMeta.submitEndpoint)({bankPrefix, exerciseId: _exerId}),
             {status: 1},
-            lodash.merge({}, requestConfig, {
+            lodash.merge({}, config, {
               headers: {'Content-Type': 'application/x-www-form-urlencoded'},
               validateStatus: () => true,
             }),
@@ -486,6 +495,8 @@ export default class FenbiKaoyan extends Vendor {
     if (lodash.isEmpty(params.category.children)) {
       return [{count: params.category.count, id: '0', name: '默认'}]
     }
+
+    await this.changeQuiz({bank: params.bank})
 
     const config = await this.login()
 
@@ -611,6 +622,7 @@ export default class FenbiKaoyan extends Vendor {
       emptyMessage: '请前往 <粉笔考研> App 加入题库: 练习 > 右上角+号',
       endpoint: 'https://schoolapi.fenbi.com/kaoyan/iphone/kaoyan/selected_quiz_list',
       path: 'data',
+      quizChange: 'https://schoolapi.fenbi.com/kaoyan/iphone/{{bankPrefix}}/users/quiz/{{quizId}}',
     }
   }
 
@@ -636,5 +648,35 @@ export default class FenbiKaoyan extends Vendor {
       solutionsEndpoint: 'https://schoolapi.fenbi.com/kaoyan/iphone/{{bankPrefix}}/pure/solutions',
       submitEndpoint: 'https://schoolapi.fenbi.com/kaoyan/iphone/{{bankPrefix}}/async/exercises/{{exerciseId}}/submit',
     }
+  }
+
+  /**
+   * Change quiz.
+   * @param params
+   * @returns
+   */
+  protected async changeQuiz(params: {bank: Bank}): Promise<any> {
+    if (!lodash.has(this._fetchBankMeta, 'quizChange')) return
+
+    const _curr = await memory.cache.get<{data: any; hash: string}>('fenbi:current:quiz')
+
+    const _hash = md5(JSON.stringify(params))
+
+    if (_hash === _curr?.hash) return _curr.data
+
+    const config = await this.login()
+
+    const resp = await axios.put(
+      lodash.template(this._fetchBankMeta.quizChange)({
+        bankPrefix: params.bank.meta?.bankPrefix,
+        quizId: params.bank.meta?.quizId,
+      }),
+      undefined,
+      config,
+    )
+
+    await memory.cache.set('fenbi:current:quiz', {data: resp.data, hash: _hash})
+
+    return resp.data
   }
 }
