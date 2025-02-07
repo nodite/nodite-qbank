@@ -19,6 +19,19 @@ export default class Markji extends MarkjiBase {
 
     if (params.bank.meta?.type === 'topic' || params.bank.meta?.type === 'stage') {
       output = await this._processChoice(question, params)
+    } else if (params.bank.meta?.type === 'grammar') {
+      const _content = await html.toText(lodash.trim(lodash.map(question, (c) => c.html_content).join('\n')))
+
+      for (const [key, value] of Object.entries(_content.assets)) {
+        _content.text = _content.text.replaceAll(key, value)
+      }
+
+      output = await markji.parseHtml(_content.text.replaceAll(/\n+/g, '\n\n'), {
+        imgSrcHandler,
+        style: this.HTML_STYLE,
+      })
+
+      output.text = `[P#H2,center#[T#!36b59d#${question[0].title}]]\n${output.text}`
     } else if (params.bank.meta?.type) {
       throwError('Unsupported question type', {params, question})
     }

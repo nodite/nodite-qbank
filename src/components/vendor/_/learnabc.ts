@@ -80,6 +80,22 @@ export default class LearnABC extends Vendor {
       })
     }
 
+    // 语法
+    const _articleResp = await axios.get('http://api.beauty-story.cn/api/learnabc/grammar_list', config)
+
+    for (const [_idx, _grammar] of (_articleResp.data.data || []).entries()) {
+      banks.push({
+        count: _grammar.article_count,
+        id: md5(String(_grammar.id)),
+        meta: {
+          _index: _idx,
+          grammar: _grammar,
+          type: 'grammar',
+        },
+        name: await safeName(`英语习题册 > 文章 > ${_grammar.title}`),
+      })
+    }
+
     // others.
     // TODO
 
@@ -95,27 +111,94 @@ export default class LearnABC extends Vendor {
    */
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.CATEGORIES)})
   protected async fetchCategories(params: {bank: Bank}): Promise<Category[]> {
-    if (params.bank.meta?.type === 'topic') {
-      return [{children: [], count: params.bank.count || 0, id: '0', name: params.bank.meta.topic.topic_name}]
-    }
+    const config = await this.login()
 
-    if (params.bank.meta?.type === 'stage') {
-      const _cats = [] as Category[]
+    const _cats = [] as Category[]
 
-      for (const [_idx, _cat] of params.bank.meta.categories.entries()) {
+    switch (params.bank.meta?.type) {
+      case 'topic': {
         _cats.push({
           children: [],
-          count: _cat.count,
-          id: _cat.key,
-          name: await safeName(_cat.value),
-          order: _idx,
+          count: params.bank.count || 0,
+          id: '0',
+          name: params.bank.meta.topic.topic_name,
         })
+
+        break
       }
 
-      return _cats
+      case 'stage': {
+        for (const [_idx, _cat] of params.bank.meta.categories.entries()) {
+          _cats.push({
+            children: [],
+            count: _cat.count,
+            id: _cat.key,
+            name: await safeName(_cat.value),
+            order: _idx,
+          })
+        }
+
+        break
+      }
+
+      case 'grammar': {
+        _cats.push({
+          children: [],
+          count: params.bank.count || 0,
+          id: '0',
+          meta: {
+            articles: (
+              await axios.get(
+                'http://api.beauty-story.cn/api/learnabc/grammar_article_list',
+                lodash.merge({}, config, {params: {category_name: params.bank.meta?.grammar.title}}),
+              )
+            ).data.data,
+          },
+          name: '默认',
+        })
+        break
+      }
+
+      default: {
+        _cats.push({children: [], count: params.bank.count || 0, id: '0', name: '默认'})
+
+        break
+      }
     }
 
-    return [{children: [], count: params.bank.count || 0, id: '0', name: '默认'}]
+    return _cats
+  }
+
+  /**
+   * Sheet.
+   */
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.SHEETS)})
+  public async fetchSheet(params: {bank: Bank; category: Category}, _options?: FetchOptions): Promise<Sheet[]> {
+    const config = await this.login()
+
+    const _sheets = [] as Sheet[]
+
+    if (params.bank.meta?.type === 'grammar') {
+      const contents = await Promise.all(
+        lodash.map(params.category.meta?.articles, async (art) => {
+          return (
+            await axios.get(
+              'http://api.beauty-story.cn/api/learnabc/grammar_article_content',
+              lodash.merge({}, config, {params: art}),
+            )
+          ).data.data
+        }),
+      )
+
+      _sheets.push({
+        count: params.category.count,
+        id: '0',
+        meta: {contents},
+        name: '默认',
+      })
+    }
+
+    return _sheets
   }
 
   /**
@@ -149,74 +232,96 @@ export default class LearnABC extends Vendor {
     emitter.emit('questions.fetch.count', originQuestionKeys.length)
 
     // fetch questions.
-    let _id = 0
+    switch (params.bank.meta?.type) {
+      case 'topic':
+      case 'stage': {
+        let _id = 0
 
-    do {
-      if (originQuestionKeys.length >= params.sheet.count) break
+        do {
+          if (originQuestionKeys.length >= params.sheet.count) break
 
-      const _respParams: Record<string, any> =
-        _id === 0 ? {firstTimeEnter: true, id: _id} : {id: _id, isNextPaper: true}
+          const _respParams: Record<string, any> =
+            _id === 0 ? {firstTimeEnter: true, id: _id} : {id: _id, isNextPaper: true}
 
-      // topic.
-      if (params.bank.meta?.type === 'topic') {
-        _respParams.topic_id = params.bank.meta?.topic.id
+          // topic.
+          if (params.bank.meta?.type === 'topic') {
+            _respParams.topic_id = params.bank.meta?.topic.id
+          }
+          // stage.
+          else if (params.bank.meta?.type === 'stage') {
+            _respParams.stage = params.bank.meta?.stage.key
+            _respParams.category = params.category.id
+          }
+          // others.
+          else if (params.bank.meta?.type) {
+            throwError('Not implemented', {params})
+          }
+
+          const _qResp = await axios.get(
+            'http://m.beauty-story.cn/api/englishpaper/cq',
+            lodash.merge({}, config, {params: _respParams}),
+          )
+
+          const _qs: Record<string, any>[] = _qResp.data.data
+
+          for (const _q of _qs) {
+            const _qId = String(_q.id)
+
+            const _qCacheKey = lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)({
+              ...cacheKeyParams,
+              questionId: _qId,
+            })
+
+            if (originQuestionKeys.includes(_qCacheKey)) continue
+
+            if (_q.decode_type === '2') {
+              _q.shift_question = learnabc.decryptServer(_q.shift_question)
+              _q.shift_analyzing = learnabc.decryptServer(_q.shift_analyzing)
+            } else {
+              _q.shift_question = learnabc.decryptQuestion(_q.shift_question)
+              _q.shift_analyzing = learnabc.decryptAnalyzing(_q.shift_analyzing)
+            }
+
+            await cacheClient.set(_qCacheKey, _q)
+            originQuestionKeys.push(_qCacheKey)
+            emitter.emit('questions.fetch.count', originQuestionKeys.length)
+
+            await sleep(200)
+          }
+
+          _id = _qs.at(-1)?.id
+        } while (Number(_id) > 0)
+
+        break
       }
-      // stage.
-      else if (params.bank.meta?.type === 'stage') {
-        _respParams.stage = params.bank.meta?.stage.key
-        _respParams.category = params.category.id
-      }
-      // others.
-      else if (params.bank.meta?.type) {
-        throwError('Not implemented', {params})
-      }
 
-      const _qResp = await axios.get(
-        'http://m.beauty-story.cn/api/englishpaper/cq',
-        lodash.merge({}, config, {params: _respParams}),
-      )
+      case 'grammar': {
+        for (const [_idx, _content] of (params.sheet.meta?.contents || []).entries()) {
+          const _qId = String(_idx)
 
-      const _qs: Record<string, any>[] = _qResp.data.data
+          const _qCacheKey = lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)({
+            ...cacheKeyParams,
+            questionId: _qId,
+          })
 
-      for (const _q of _qs) {
-        const _qId = String(_q.id)
+          if (originQuestionKeys.includes(_qCacheKey)) continue
 
-        const _qCacheKey = lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)({
-          ...cacheKeyParams,
-          questionId: _qId,
-        })
-
-        if (originQuestionKeys.includes(_qCacheKey)) continue
-
-        if (_q.decode_type === '2') {
-          _q.shift_question = learnabc.decryptServer(_q.shift_question)
-          _q.shift_analyzing = learnabc.decryptServer(_q.shift_analyzing)
-        } else {
-          _q.shift_question = learnabc.decryptQuestion(_q.shift_question)
-          _q.shift_analyzing = learnabc.decryptAnalyzing(_q.shift_analyzing)
+          await cacheClient.set(_qCacheKey, _content)
+          originQuestionKeys.push(_qCacheKey)
+          emitter.emit('questions.fetch.count', originQuestionKeys.length)
         }
 
-        await cacheClient.set(_qCacheKey, _q)
-        originQuestionKeys.push(_qCacheKey)
-        emitter.emit('questions.fetch.count', originQuestionKeys.length)
-
-        await sleep(500)
+        break
       }
 
-      _id = _qs.at(-1)?.id
-    } while (Number(_id) > 0)
+      default: {
+        throwError('Not implemented', {params})
+      }
+    }
 
     emitter.emit('questions.fetch.count', originQuestionKeys.length)
     await sleep(500)
     emitter.closeListener('questions.fetch.count')
-  }
-
-  /**
-   * Sheet.
-   */
-  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.SHEETS)})
-  public async fetchSheet(params: {bank: Bank; category: Category}, _options?: FetchOptions): Promise<Sheet[]> {
-    return [{count: params.category.count, id: '0', name: '默认'}]
   }
 
   /**

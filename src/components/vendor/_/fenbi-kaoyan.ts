@@ -400,7 +400,7 @@ export default class FenbiKaoyan extends Vendor {
         _q.materials = lodash.map(_q.materialIndexes || [], (materialIndex) => _materials[materialIndex])
 
         if (lodash.some(_q.accessories as any, {label: 'relatedMaterialId'})) {
-          throwError('Unknown materials.', {params, question: _q})
+          // throwError('Unknown materials.', {params, question: _q})
         }
 
         await cacheClient.set(
