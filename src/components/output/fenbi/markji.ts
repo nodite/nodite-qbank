@@ -620,6 +620,9 @@ export default class Markji extends MarkjiBase {
     // 103: 问题求解
     lodash.remove(question.accessories, {type: 103})
 
+    // 181+relatedMaterialId: 关联材料ID
+    lodash.remove(question.accessories, {label: 'relatedMaterialId', type: 181})
+
     // others.
     if (!lodash.isEmpty(question.accessories)) {
       throwError('Unsupported accessories.', {params, question})
@@ -854,6 +857,9 @@ export default class Markji extends MarkjiBase {
 
     // 103: 问题求解
     lodash.remove(question.accessories, {type: 103})
+
+    // 181+relatedMaterialId: 关联材料ID
+    lodash.remove(question.accessories, {label: 'relatedMaterialId', type: 181})
 
     if (!lodash.isEmpty(question.accessories)) {
       throwError('Unsupported accessories.', {params, question})
