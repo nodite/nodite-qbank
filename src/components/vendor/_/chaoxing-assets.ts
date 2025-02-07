@@ -1,8 +1,8 @@
 import path from 'node:path'
 
+import excel2Json from '@boterop/convert-excel-to-json'
 import {Document} from '@langchain/core/documents'
 import type {CacheRequestConfig} from 'axios-cache-interceptor'
-import excel2Json from 'convert-excel-to-json'
 import fs from 'fs-extra'
 import {glob} from 'glob'
 import lodash from 'lodash'
