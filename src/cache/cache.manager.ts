@@ -36,6 +36,7 @@ const initStore = async (vendor: string): Promise<CacheReturn> => {
 
   const store = new KeyvPostgres({
     iterationLimit: 5000,
+    max: 20,
     table: 'qbank_' + vendor.replaceAll('-', '_'),
     uri: `postgres://qbank:qbank@${cacheHost}/qbank`,
   })
