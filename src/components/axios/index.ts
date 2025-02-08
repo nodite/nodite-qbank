@@ -40,6 +40,7 @@ axiosInstance.interceptors.response.use(
   async (error) => {
     console.log('\n')
     console.log('request:', error?.request?.path)
+    console.log('message:', error?.response?.statusText)
     console.log('response:', error?.response?.data)
     throw error
   },

@@ -75,10 +75,10 @@ export function fiindAll<T>(items: T[], substrings: string[], options?: FindOpti
 export function throwError(message: string | unknown, data: unknown): never {
   let errFile = 'tmp/error.json'
 
-  if (lodash.has(data, 'params')) {
-    const _params = data.params as Record<string, any>
-    const _vendor = _params.vendor as Vendor
-    errFile = `tmp/error-${(_vendor.constructor as typeof Vendor).META.key}.json`
+  if (lodash.has(data, 'qbank')) {
+    const qbank = data.qbank as Record<string, any>
+    const vendor = qbank.vendor as Vendor
+    errFile = `tmp/error-${(vendor.constructor as typeof Vendor).META.key}.json`
   }
 
   fs.writeJsonSync(errFile, {data, message}, {spaces: 2})

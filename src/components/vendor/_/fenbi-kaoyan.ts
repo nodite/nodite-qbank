@@ -172,8 +172,8 @@ export default class FenbiKaoyan extends Vendor {
       return {
         children,
         count: category.count as number,
-        id: String(category.id),
-        meta: lodash.omit(category, ['children', 'count', 'id', 'name']),
+        id: md5(String(category.id)),
+        meta: lodash.omit(category, ['children', 'count', 'name']),
         name: await safeName(String(category.name)),
         order: index,
       }
@@ -189,27 +189,89 @@ export default class FenbiKaoyan extends Vendor {
   }
 
   /**
-   * Origin questions.
+   * Sheet.
    */
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.SHEETS)})
+  protected async fetchSheet(params: {bank: Bank; category: Category}): Promise<Sheet[]> {
+    if (lodash.isEmpty(params.category.children)) {
+      return [{count: params.category.count, id: '0', name: '默认'}]
+    }
 
+    await this.changeQuiz({bank: params.bank})
+
+    const config = await this.login()
+
+    const sheets = [] as Sheet[]
+
+    for (const child of params.category.children) {
+      const _meta = child.meta || {}
+
+      if (params.bank.meta?.bankPrefix === 'zhyynl') {
+        _meta.zhyynl = []
+
+        let _page = 0
+
+        do {
+          const _etResp = await axios.get(
+            lodash.template(this._fetchQuestionMeta.etRuleQuestionsEndpoint)({
+              bankPrefix: params.bank.meta.bankPrefix,
+              page: _page,
+              sheetId: child.id,
+            }),
+            lodash.merge({}, config),
+          )
+
+          for (const _etq of lodash.get(_etResp.data, 'list', [])) {
+            _meta.zhyynl.push({
+              exerciseId: lodash.get(_etq, 'exerciseId', 0),
+              questionId: lodash.get(_etq, 'questionId', 0),
+              sheetId: lodash.get(_etq, 'sheetId', 0),
+            })
+          }
+
+          const _pageInfo = lodash.get(_etResp.data, 'pageInfo', {})
+
+          if (_pageInfo.currentPage === _pageInfo.totalPage - 1) break
+
+          _page++
+        } while (true)
+      }
+
+      const _sheet = {
+        count: child.count,
+        id: md5(String(child.id)),
+        meta: _meta,
+        name: await safeName(child.name),
+        order: child.order,
+      }
+
+      sheets.push(_sheet)
+    }
+
+    return sheets
+  }
+
+  /**
+   * Fetch questions.
+   */
   public async fetchQuestions(
-    params: {bank: Bank; category: Category; sheet: Sheet},
+    qbank: {bank: Bank; category: Category; sheet: Sheet},
     options?: FetchOptions,
   ): Promise<void> {
-    lodash.set(params, 'vendor', this)
+    lodash.set(qbank, 'vendor', this)
 
-    if (params.sheet.id === '*') throw new Error('Sheet ID is required.')
+    if (qbank.sheet.id === '*') throw new Error('Sheet ID is required.')
 
     // prepare.
     const cacheClient = this.getCacheClient()
     const config = await this.login()
-    const bankPrefix = params.bank.meta?.bankPrefix
+    const bankPrefix = qbank.bank.meta?.bankPrefix
 
     // cache key.
     const cacheKeyParams = {
-      bankId: params.bank.id,
-      categoryId: params.category.id,
-      sheetId: params.sheet.id,
+      bankId: qbank.bank.id,
+      categoryId: qbank.category.id,
+      sheetId: qbank.sheet.id,
       vendorKey: (this.constructor as typeof Vendor).META.key,
     }
 
@@ -237,14 +299,14 @@ export default class FenbiKaoyan extends Vendor {
     // customize exercises.
     //
     if (
-      doneQIds.length < params.sheet.count &&
+      doneQIds.length < qbank.sheet.count &&
       // giant questions.
-      params.sheet.meta?.giantOnly
+      qbank.sheet.meta?.giantOnly
     ) {
       const exerciseResponse = await axios.get(
         lodash.template(this._fetchQuestionMeta.giantsEndpoint)({bankPrefix}),
         lodash.merge({}, config, {
-          params: {keypointId: params.sheet.id === '0' ? params.category.id : params.sheet.id},
+          params: {keypointId: qbank.sheet.meta?.id || qbank.category.meta?.id},
         }),
       )
 
@@ -270,7 +332,7 @@ export default class FenbiKaoyan extends Vendor {
 
     emitter.emit('questions.fetch.count', doneQIds.length)
 
-    while ((doneQIds.length < params.sheet.count || exerIds.length > 0) && _times < 5) {
+    while ((doneQIds.length < qbank.sheet.count || exerIds.length > 0) && _times < 5) {
       // emit count.
       emitter.emit('questions.fetch.count', doneQIds.length)
 
@@ -280,7 +342,7 @@ export default class FenbiKaoyan extends Vendor {
 
       // zhyynl.
       if (bankPrefix === 'zhyynl') {
-        const zhyynls: any = (await memory.cache.get('zhyynls')) || params.sheet.meta?.zhyynl || []
+        const zhyynls: any = (await memory.cache.get('zhyynls')) || qbank.sheet.meta?.zhyynl || []
 
         if (zhyynls.length === 0) {
           _times = 5
@@ -314,7 +376,7 @@ export default class FenbiKaoyan extends Vendor {
             _exerId = '_0'
             _qIds = [String(zhyynl.questionId)]
           } else {
-            throwError('zhyynl error', {params, zhyynl})
+            throwError('zhyynl error', {qbank, zhyynl})
           }
 
           if (lodash.without(_qIds, ...doneQIds).length > 0) break
@@ -333,7 +395,11 @@ export default class FenbiKaoyan extends Vendor {
       else {
         const exerciseResponse = await axios.post(
           lodash.template(this._fetchQuestionMeta.exercisesEndpoint)({bankPrefix}),
-          {keypointId: params.sheet.id === '0' ? params.category.id : params.sheet.id, limit: 100, type: 151},
+          {
+            keypointId: qbank.sheet.meta?.id || qbank.category.meta?.id,
+            limit: 100,
+            type: 151,
+          },
           lodash.merge({}, config, {headers: {'Content-Type': 'application/x-www-form-urlencoded'}}),
         )
 
@@ -353,7 +419,7 @@ export default class FenbiKaoyan extends Vendor {
             ...exerciseCacheKeyParams,
             processId: _exerId,
           }),
-          params,
+          qbank,
         })
       }
 
@@ -363,7 +429,7 @@ export default class FenbiKaoyan extends Vendor {
       let _solutions: Record<string, unknown>[] = []
 
       // giant
-      if (params.sheet.meta?.giantOnly) {
+      if (qbank.sheet.meta?.giantOnly) {
         const solutionsResponse = await axios.get(
           lodash.template(this._fetchQuestionMeta.universalAuthSolutionsEndpoint)({
             bankPrefix,
@@ -485,72 +551,6 @@ export default class FenbiKaoyan extends Vendor {
   }
 
   /**
-   * Origin questions.
-   */
-  /**
-   * Sheet.
-   */
-  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.SHEETS)})
-  protected async fetchSheet(params: {bank: Bank; category: Category}): Promise<Sheet[]> {
-    if (lodash.isEmpty(params.category.children)) {
-      return [{count: params.category.count, id: '0', name: '默认'}]
-    }
-
-    await this.changeQuiz({bank: params.bank})
-
-    const config = await this.login()
-
-    const sheets = [] as Sheet[]
-
-    for (const child of params.category.children) {
-      const _meta = child.meta || {}
-
-      if (params.bank.meta?.bankPrefix === 'zhyynl') {
-        _meta.zhyynl = []
-
-        let _page = 0
-
-        do {
-          const _etResp = await axios.get(
-            lodash.template(this._fetchQuestionMeta.etRuleQuestionsEndpoint)({
-              bankPrefix: params.bank.meta.bankPrefix,
-              page: _page,
-              sheetId: child.id,
-            }),
-            lodash.merge({}, config),
-          )
-
-          for (const _etq of lodash.get(_etResp.data, 'list', [])) {
-            _meta.zhyynl.push({
-              exerciseId: lodash.get(_etq, 'exerciseId', 0),
-              questionId: lodash.get(_etq, 'questionId', 0),
-              sheetId: lodash.get(_etq, 'sheetId', 0),
-            })
-          }
-
-          const _pageInfo = lodash.get(_etResp.data, 'pageInfo', {})
-
-          if (_pageInfo.currentPage === _pageInfo.totalPage - 1) break
-
-          _page++
-        } while (true)
-      }
-
-      const _sheet = {
-        count: child.count,
-        id: child.id,
-        meta: _meta,
-        name: await safeName(child.name),
-        order: child.order,
-      }
-
-      sheets.push(_sheet)
-    }
-
-    return sheets
-  }
-
-  /**
    * Login.
    */
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN), client: cacheManager.CommonClient})
@@ -573,10 +573,10 @@ export default class FenbiKaoyan extends Vendor {
       kav: 100,
       // kav: 102,
       // nt: 'WIFI',
-      system: '17.5.1',
+      system: '18.3',
       // system: '18.0.1',
       // ua: 'iPhone13,2',
-      version: '6.5.20',
+      version: '6.4.13',
 
       // version: '6.17.43',
     }
@@ -622,7 +622,7 @@ export default class FenbiKaoyan extends Vendor {
       emptyMessage: '请前往 <粉笔考研> App 加入题库: 练习 > 右上角+号',
       endpoint: 'https://schoolapi.fenbi.com/kaoyan/iphone/kaoyan/selected_quiz_list',
       path: 'data',
-      quizChange: 'https://schoolapi.fenbi.com/kaoyan/iphone/{{bankPrefix}}/users/quiz/{{quizId}}',
+      quizChange: 'https://schoolapi.fenbi.com/kaoyan/ipad/{{bankPrefix}}/users/quiz/{{quizId}}',
     }
   }
 
@@ -671,8 +671,10 @@ export default class FenbiKaoyan extends Vendor {
         bankPrefix: params.bank.meta?.bankPrefix,
         quizId: params.bank.meta?.quizId,
       }),
-      undefined,
-      config,
+      {
+        quizId: params.bank.meta?.quizId,
+      },
+      lodash.merge({}, config, {headers: {'Content-Type': 'application/x-www-form-urlencoded'}}),
     )
 
     await memory.cache.set('fenbi:current:quiz', {data: resp.data, hash: _hash})

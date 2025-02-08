@@ -1,6 +1,6 @@
 import lodash from 'lodash'
 
-import {AssetString, Params} from '../../../types/common.js'
+import {AssetString, QBankParams} from '../../../types/common.js'
 import html from '../../../utils/html.js'
 import {throwError} from '../../../utils/index.js'
 import MarkjiBase from '../markji.js'
@@ -9,7 +9,7 @@ export default class Markji extends MarkjiBase {
   /**
    * _output.
    */
-  protected async _output(question: any, params: Params): Promise<AssetString> {
+  protected async _output(question: any, qbank: QBankParams): Promise<AssetString> {
     const _questionType = question.type
 
     let output = {} as AssetString
@@ -41,7 +41,7 @@ export default class Markji extends MarkjiBase {
     }
     // unknown.
     else {
-      throwError('Unsupported question type.', {params, question})
+      throwError('Unsupported question type.', {qbank, question})
     }
 
     return output

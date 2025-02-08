@@ -1,6 +1,6 @@
 import lodash from 'lodash'
 
-import {AssetString, Params} from '../../../types/common.js'
+import {AssetString, QBankParams} from '../../../types/common.js'
 import html from '../../../utils/html.js'
 import {throwError} from '../../../utils/index.js'
 import prompt from '../../../utils/prompt.js'
@@ -11,7 +11,7 @@ export default class Markji extends MarkjiBase {
   /**
    * _output.
    */
-  protected async _output(question: any, params: Params): Promise<AssetString> {
+  protected async _output(question: any, qbank: QBankParams): Promise<AssetString> {
     const _questionType = question.topic_type
 
     let output = {} as AssetString
@@ -24,7 +24,7 @@ export default class Markji extends MarkjiBase {
       case 1:
       case 2:
       case 3: {
-        output = await this._processChoice(question, params)
+        output = await this._processChoice(question, qbank)
         break
       }
 
@@ -88,18 +88,18 @@ export default class Markji extends MarkjiBase {
       case 64:
       case 70:
       case 76: {
-        output = await this._processTranslate(question, params)
+        output = await this._processTranslate(question, qbank)
         break
       }
 
       // 5. 填空题
       case 5: {
-        output = await this._processBlankFilling(question, params)
+        output = await this._processBlankFilling(question, qbank)
         break
       }
 
       default: {
-        throwError('Unsupported question type', {params, question})
+        throwError('Unsupported question type', {qbank, question})
       }
     }
 
@@ -109,7 +109,7 @@ export default class Markji extends MarkjiBase {
   /**
    * _processBlankFilling
    */
-  protected async _processBlankFilling(question: any, params: Params): Promise<AssetString> {
+  protected async _processBlankFilling(question: any, qbank: QBankParams): Promise<AssetString> {
     const _meta = {
       content: {assets: [] as never, text: ''} as AssetString,
       points: {} as Record<string, AssetString>,
@@ -158,7 +158,7 @@ export default class Markji extends MarkjiBase {
 
     // unknown to process.
     if (_inputs.length === 0 || _blanks.length === 0 || _inputs.length !== _blanks.length) {
-      throwError('Unknown to process', {blanks: _blanks, inputs: _inputs, params, question})
+      throwError('Unknown to process', {blanks: _blanks, inputs: _inputs, qbank, question})
     }
 
     for (const [idx, assertKey] of _inputs.entries()) {
@@ -175,7 +175,7 @@ export default class Markji extends MarkjiBase {
     // _points.
     _meta.points['[P#L#[T#B#题目来源]]'] = {
       assets: {},
-      text: `${params.bank.name} - ${params.category.name} - ${question.sheet.name}`,
+      text: `${qbank.bank.name} - ${qbank.category.name} - ${question.sheet.name}`,
     }
 
     _meta.points['[P#L#[T#B#题目类型]]'] = {
@@ -212,7 +212,7 @@ export default class Markji extends MarkjiBase {
   /**
    * _processChoice.
    */
-  protected async _processChoice(question: any, params: Params): Promise<AssetString> {
+  protected async _processChoice(question: any, qbank: QBankParams): Promise<AssetString> {
     const _meta = {
       answers: [] as AssetString[],
       content: {assets: [] as never, text: ''} as AssetString,
@@ -270,7 +270,7 @@ export default class Markji extends MarkjiBase {
     // _points.
     _meta.points['[P#L#[T#B#题目来源]]'] = {
       assets: {},
-      text: `${params.bank.name} - ${params.category.name} - ${question.sheet.name}`,
+      text: `${qbank.bank.name} - ${qbank.category.name} - ${question.sheet.name}`,
     }
 
     _meta.points['[P#L#[T#B#题目类型]]'] = {
@@ -314,7 +314,7 @@ export default class Markji extends MarkjiBase {
   /**
    * _processTranslate
    */
-  protected async _processTranslate(question: any, params: Params): Promise<AssetString> {
+  protected async _processTranslate(question: any, qbank: QBankParams): Promise<AssetString> {
     const _meta = {
       content: {assets: [] as never, text: ''} as AssetString,
       points: {} as Record<string, AssetString>,
@@ -337,7 +337,7 @@ export default class Markji extends MarkjiBase {
     // _points.
     _meta.points['[P#L#[T#B#题目来源]]'] = {
       assets: {},
-      text: `${params.bank.name} - ${params.category.name} - ${question.sheet.name}`,
+      text: `${qbank.bank.name} - ${qbank.category.name} - ${question.sheet.name}`,
     }
 
     _meta.points['[P#L#[T#B#题目类型]]'] = {

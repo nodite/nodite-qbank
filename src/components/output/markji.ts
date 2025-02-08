@@ -1,7 +1,7 @@
 import lodash from 'lodash'
 import sleep from 'sleep-promise'
 
-import {AssetString, ConvertOptions, Params, UploadOptions} from '../../types/common.js'
+import {AssetString, ConvertOptions, QBankParams, UploadOptions} from '../../types/common.js'
 import {emitter} from '../../utils/event.js'
 import {reverseTemplate, throwError} from '../../utils/index.js'
 import markji from '../../utils/vendor/markji.js'
@@ -23,18 +23,18 @@ export default class Markji extends Output {
   /**
    * Convert.
    */
-  public async convert(params: Params, options?: ConvertOptions): Promise<void> {
+  public async convert(qbank: QBankParams, options?: ConvertOptions): Promise<void> {
     // prepare.
     const cacheClient = this.getCacheClient()
-    params.output = this
+    qbank.output = this
 
     // cache key.
     const cacheKeyParams = {
-      bankId: params.bank.id,
-      categoryId: params.category.id,
+      bankId: qbank.bank.id,
+      categoryId: qbank.category.id,
       outputKey: (this.constructor as typeof Output).META.key,
-      sheetId: params.sheet.id,
-      vendorKey: (params.vendor.constructor as typeof Vendor).META.key,
+      sheetId: qbank.sheet.id,
+      vendorKey: (qbank.vendor.constructor as typeof Vendor).META.key,
     }
 
     // check origin questions.
@@ -45,7 +45,7 @@ export default class Markji extends Output {
 
     // check questions.
     if (options?.reconvert) {
-      await params.vendor.invalidate(HashKeyScope.QUESTIONS, {...params, output: this, questionId: '*'})
+      await qbank.vendor.invalidate(HashKeyScope.QUESTIONS, {...qbank, output: this, questionId: '*'})
     }
 
     const doneQuestionParams = lodash.map(
@@ -79,10 +79,10 @@ export default class Markji extends Output {
       const _originQuestion = await cacheClient.get(lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)(_questionParam))
 
       // _output.
-      const output = await this._output(_originQuestion, params)
+      const output = await this._output(_originQuestion, qbank)
 
       if (output.text.length > 2500) {
-        throwError('Output text is too long.', {output: output.text, params, question: _originQuestion})
+        throwError('Output text is too long.', {output: output.text, qbank, question: _originQuestion})
       }
 
       // ===========================
@@ -103,16 +103,16 @@ export default class Markji extends Output {
   /**
    * Upload.
    */
-  public async upload(params: Params, options?: UploadOptions): Promise<void> {
-    params.output = this
+  public async upload(qbank: QBankParams, options?: UploadOptions): Promise<void> {
+    qbank.output = this
 
-    const markjiInfo = await markji.getInfo(params, this.getOutputUsername())
-    markjiInfo.requestConfig = await new (VendorManager.getClass('markji'))(this.getOutputUsername()).login()
+    const markjiInfo = await markji.getInfo(qbank, this.getOutputUsername())
+    markjiInfo.config = await new (VendorManager.getClass('markji'))(this.getOutputUsername()).login()
 
     await markji.bulkUpload({
       cacheClient: this.getCacheClient(),
-      markjiInfo,
-      params,
+      markji: markjiInfo,
+      qbank,
       uploadOptions: options,
     })
   }
@@ -120,7 +120,7 @@ export default class Markji extends Output {
   /**
    *
    */
-  protected async _output(question: any, params: Params): Promise<AssetString> {
-    throwError('Not implemented.', {params, question})
+  protected async _output(question: any, qbank: QBankParams): Promise<AssetString> {
+    throwError('Not implemented.', {qbank, question})
   }
 }

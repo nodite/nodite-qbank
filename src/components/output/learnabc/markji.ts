@@ -1,6 +1,6 @@
 import lodash from 'lodash'
 
-import {AssetString, Params} from '../../../types/common.js'
+import {AssetString, QBankParams} from '../../../types/common.js'
 import html from '../../../utils/html.js'
 import {find, throwError} from '../../../utils/index.js'
 import markji from '../../../utils/vendor/markji.js'
@@ -14,12 +14,12 @@ export default class Markji extends MarkjiBase {
   /**
    * _output.
    */
-  protected async _output(question: any, params: Params): Promise<AssetString> {
+  protected async _output(question: any, qbank: QBankParams): Promise<AssetString> {
     let output = {} as AssetString
 
-    if (params.bank.meta?.type === 'topic' || params.bank.meta?.type === 'stage') {
-      output = await this._processChoice(question, params)
-    } else if (params.bank.meta?.type === 'grammar') {
+    if (qbank.bank.meta?.type === 'topic' || qbank.bank.meta?.type === 'stage') {
+      output = await this._processChoice(question, qbank)
+    } else if (qbank.bank.meta?.type === 'grammar') {
       const _content = await html.toText(lodash.trim(lodash.map(question, (c) => c.html_content).join('\n')))
 
       for (const [key, value] of Object.entries(_content.assets)) {
@@ -32,8 +32,8 @@ export default class Markji extends MarkjiBase {
       })
 
       output.text = `[P#H2,center#[T#!36b59d#${question[0].title}]]\n${output.text}`
-    } else if (params.bank.meta?.type) {
-      throwError('Unsupported question type', {params, question})
+    } else if (qbank.bank.meta?.type) {
+      throwError('Unsupported question type', {qbank, question})
     }
 
     return output
@@ -42,7 +42,7 @@ export default class Markji extends MarkjiBase {
   /**
    * _processChoice
    */
-  protected async _processChoice(question: any, params: Params): Promise<AssetString> {
+  protected async _processChoice(question: any, qbank: QBankParams): Promise<AssetString> {
     const _meta = {
       answers: [] as AssetString[],
       content: {assets: [] as never, text: ''} as AssetString,
@@ -114,7 +114,7 @@ export default class Markji extends MarkjiBase {
     // _points.
     _meta.points['[P#L#[T#B#题目类别]]'] = {
       assets: {},
-      text: `${params.bank.meta?.name} / ${params.category.name} / ${params.sheet.name}`,
+      text: `${qbank.bank.meta?.name} / ${qbank.category.name} / ${qbank.sheet.name}`,
     }
 
     // ===========================

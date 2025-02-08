@@ -39,7 +39,7 @@ type ComponentMeta = {
   name: string
 }
 
-type Params = {
+type QBankParams = {
   bank: Bank
   category: Category
   output?: Output
@@ -47,4 +47,13 @@ type Params = {
   vendor: Vendor
 }
 
-export {AssetString, ComponentMeta, ConvertOptions, FetchOptions, LoginOptions, Params, ParseOptions, UploadOptions}
+export {
+  AssetString,
+  ComponentMeta,
+  ConvertOptions,
+  FetchOptions,
+  LoginOptions,
+  QBankParams,
+  ParseOptions,
+  UploadOptions,
+}

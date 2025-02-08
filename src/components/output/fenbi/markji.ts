@@ -1,6 +1,6 @@
 import lodash from 'lodash'
 
-import {AssetString, Params} from '../../../types/common.js'
+import {AssetString, QBankParams} from '../../../types/common.js'
 import html from '../../../utils/html.js'
 import {throwError} from '../../../utils/index.js'
 import parser from '../../../utils/parser.js'
@@ -119,7 +119,7 @@ export default class Markji extends MarkjiBase {
   /**
    * _output.
    */
-  protected async _output(question: any, params: Params): Promise<AssetString> {
+  protected async _output(question: any, qbank: QBankParams): Promise<AssetString> {
     const _questionType = question.type
 
     let output = {} as AssetString
@@ -130,7 +130,7 @@ export default class Markji extends MarkjiBase {
       case 1: {
         question.typeName = '单选题'
         question.optionsAttr = 'fixed'
-        output = await this._processChoice(question, params)
+        output = await this._processChoice(question, qbank)
         break
       }
 
@@ -139,14 +139,14 @@ export default class Markji extends MarkjiBase {
       case 3: {
         question.typeName = '多选题'
         question.optionsAttr = 'fixed,multi'
-        output = await this._processChoice(question, params)
+        output = await this._processChoice(question, qbank)
         break
       }
 
       // 4. TypeCloze, 完型填空
       case 4: {
         question.typeName = '完型填空'
-        output = await this._processChoice(question, params)
+        output = await this._processChoice(question, qbank)
         break
       }
 
@@ -158,7 +158,7 @@ export default class Markji extends MarkjiBase {
           question.accessories.push({options: ['正确', '错误'], type: 101})
         }
 
-        output = await this._processChoice(question, params)
+        output = await this._processChoice(question, qbank)
 
         break
       }
@@ -166,63 +166,63 @@ export default class Markji extends MarkjiBase {
       // 6. TypeReadingComprehension5In7, 阅读理解7选5
       case 6: {
         question.typeName = '阅读理解7选5'
-        output = await this._processChoice(question, params)
+        output = await this._processChoice(question, qbank)
         break
       }
 
       // 12. TypeEssay, 论述题
       case 12: {
         question.typeName = '论述题'
-        output = await this._processTranslate(question, params)
+        output = await this._processTranslate(question, qbank)
         break
       }
 
       // 21: TypeOnlineCorrect, 在线批改
       case 21: {
         question.typeName = '在线批改'
-        output = await this._processTranslate(question, params)
+        output = await this._processTranslate(question, qbank)
         break
       }
 
       // 22: TypeEssayAnalysis, 作文分析
       case 22: {
         question.typeName = '作文分析'
-        output = await this._processTranslate(question, params)
+        output = await this._processTranslate(question, qbank)
         break
       }
 
       // 23: TypeEssayStrategy, 作文策略
       case 23: {
         question.typeName = '作文策略'
-        output = await this._processTranslate(question, params)
+        output = await this._processTranslate(question, qbank)
         break
       }
 
       // 24: TypeEssayOfficial, 作文范文
       case 24: {
         question.typeName = '作文范文'
-        output = await this._processTranslate(question, params)
+        output = await this._processTranslate(question, qbank)
         break
       }
 
       // 25: TypeEssayWriting, 作文写作
       case 25: {
         question.typeName = '作文写作'
-        output = await this._processTranslate(question, params)
+        output = await this._processTranslate(question, qbank)
         break
       }
 
       // 26: TypeEssayView, 作文观点
       case 26: {
         question.typeName = '作文观点'
-        output = await this._processTranslate(question, params)
+        output = await this._processTranslate(question, qbank)
         break
       }
 
       // 61. BlankFilling, 填空题
       case 61: {
         question.typeName = '填空题'
-        output = await this._processBlankFilling(question, params)
+        output = await this._processBlankFilling(question, qbank)
         break
       }
 
@@ -235,28 +235,28 @@ export default class Markji extends MarkjiBase {
       // 101. 翻译
       case 101: {
         question.typeName = '翻译'
-        output = await this._processTranslate(question, params)
+        output = await this._processTranslate(question, qbank)
         break
       }
 
       // 102. 大作文
       case 102: {
         question.typeName = '大作文'
-        output = await this._processTranslate(question, params)
+        output = await this._processTranslate(question, qbank)
         break
       }
 
       // 103. 小作文
       case 103: {
         question.typeName = '小作文'
-        output = await this._processTranslate(question, params)
+        output = await this._processTranslate(question, qbank)
         break
       }
 
       // 104.
       case 104: {
         question.typeName = '归纳概括'
-        output = await this._processTranslate(question, params)
+        output = await this._processTranslate(question, qbank)
         break
       }
 
@@ -269,12 +269,12 @@ export default class Markji extends MarkjiBase {
       // 2055. BlankFilling, 选句填空
       case 2055: {
         question.typeName = '选句填空'
-        output = await this._processBlankFilling(question, params)
+        output = await this._processBlankFilling(question, qbank)
         break
       }
 
       default: {
-        throwError('Unsupported question type.', {params, question})
+        throwError('Unsupported question type.', {qbank, question})
       }
     }
 
@@ -284,7 +284,7 @@ export default class Markji extends MarkjiBase {
   /**
    * _processBlankFilling
    */
-  protected async _processBlankFilling(question: any, params: Params): Promise<AssetString> {
+  protected async _processBlankFilling(question: any, qbank: QBankParams): Promise<AssetString> {
     const _meta = {
       content: {assets: [] as never, text: ''} as AssetString,
       options: [] as AssetString[],
@@ -320,7 +320,7 @@ export default class Markji extends MarkjiBase {
     }
     // unknown.
     else {
-      throwError('Unsupported correct answer type.', {params, question})
+      throwError('Unsupported correct answer type.', {qbank, question})
     }
 
     // ===========================
@@ -333,7 +333,7 @@ export default class Markji extends MarkjiBase {
     // ===========================
     // points.
     _meta.points['[P#L#[T#B#题目来源]]'] = {assets: {}, text: question.solution.source || ''}
-    _meta.points['[P#L#[T#B#题目类别]]'] = {assets: {}, text: `${params.category.name} / ${params.sheet.name}`}
+    _meta.points['[P#L#[T#B#题目类别]]'] = {assets: {}, text: `${qbank.category.name} / ${qbank.sheet.name}`}
 
     // ===========================
     // _output.
@@ -370,7 +370,7 @@ export default class Markji extends MarkjiBase {
    * _processChoice
    */
 
-  protected async _processChoice(question: any, params: Params): Promise<AssetString> {
+  protected async _processChoice(question: any, qbank: QBankParams): Promise<AssetString> {
     const _meta = {
       answers: [] as AssetString[],
       content: {assets: [] as never, text: ''} as AssetString,
@@ -469,7 +469,7 @@ export default class Markji extends MarkjiBase {
 
         // throw
         if (!lodash.isEmpty(material.accessories)) {
-          throwError('Unsupported material accessories.', {material, params, question})
+          throwError('Unsupported material accessories.', {material, qbank, question})
         }
       }
 
@@ -625,7 +625,7 @@ export default class Markji extends MarkjiBase {
 
     // others.
     if (!lodash.isEmpty(question.accessories)) {
-      throwError('Unsupported accessories.', {params, question})
+      throwError('Unsupported accessories.', {qbank, question})
     }
 
     // ===========================
@@ -641,7 +641,7 @@ export default class Markji extends MarkjiBase {
         text: `${_meta.answers.includes(option) ? '*' : '-'} ${option.text}`,
       }))
     } else {
-      throwError('Unsupported correct answer type.', {params, question})
+      throwError('Unsupported correct answer type.', {qbank, question})
     }
 
     // ===========================
@@ -694,12 +694,12 @@ export default class Markji extends MarkjiBase {
     }
 
     if (!lodash.isEmpty(question.solution.solutionAccessories)) {
-      throwError('Unsupported solution accessories.', {params, question})
+      throwError('Unsupported solution accessories.', {qbank, question})
     }
 
     // ===========================
     // _points.
-    _meta.points['[P#L#[T#B#题目类别]]'] = {assets: {}, text: `${params.category.name} / ${params.sheet.name}`}
+    _meta.points['[P#L#[T#B#题目类别]]'] = {assets: {}, text: `${qbank.category.name} / ${qbank.sheet.name}`}
 
     // ===========================
     // _output.
@@ -739,7 +739,7 @@ export default class Markji extends MarkjiBase {
   /**
    * _processTranslate
    */
-  protected async _processTranslate(question: any, params: Params): Promise<AssetString> {
+  protected async _processTranslate(question: any, qbank: QBankParams): Promise<AssetString> {
     const _meta = {
       content: {assets: [] as never, text: ''} as AssetString,
       materials: [] as AssetString[],
@@ -790,7 +790,7 @@ export default class Markji extends MarkjiBase {
 
         // throw
         if (!lodash.isEmpty(material.accessories)) {
-          throwError('Unsupported material accessories.', {material, params, question})
+          throwError('Unsupported material accessories.', {material, qbank, question})
         }
       }
 
@@ -862,7 +862,7 @@ export default class Markji extends MarkjiBase {
     lodash.remove(question.accessories, {label: 'relatedMaterialId', type: 181})
 
     if (!lodash.isEmpty(question.accessories)) {
-      throwError('Unsupported accessories.', {params, question})
+      throwError('Unsupported accessories.', {qbank, question})
     }
 
     // ===========================
@@ -963,13 +963,13 @@ export default class Markji extends MarkjiBase {
     }
 
     if (!lodash.isEmpty(question.solution.solutionAccessories)) {
-      throwError('Unsupported solution accessories.', {params, question})
+      throwError('Unsupported solution accessories.', {qbank, question})
     }
 
     // ===========================
     // points.
     _meta.points['[P#L#[T#B#题目来源]]'] = {assets: {}, text: question.solution.source || ''}
-    _meta.points['[P#L#[T#B#题目类别]]'] = {assets: {}, text: `${params.category.name} / ${params.sheet.name}`}
+    _meta.points['[P#L#[T#B#题目类别]]'] = {assets: {}, text: `${qbank.category.name} / ${qbank.sheet.name}`}
 
     // ===========================
     // _output.

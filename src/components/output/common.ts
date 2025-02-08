@@ -1,4 +1,4 @@
-import {ConvertOptions, Params, UploadOptions} from '../../types/common.js'
+import {ConvertOptions, QBankParams, UploadOptions} from '../../types/common.js'
 import {Component} from '../common.js'
 
 abstract class Output extends Component {
@@ -9,11 +9,11 @@ abstract class Output extends Component {
     this.outputUsername = outputUsername
   }
 
-  public abstract convert(params: Params, options?: ConvertOptions): Promise<void>
+  public abstract convert(qbank: QBankParams, options?: ConvertOptions): Promise<void>
 
   public getOutputUsername = (): string => this.outputUsername
 
-  public abstract upload(params: Params, options?: UploadOptions): Promise<void>
+  public abstract upload(qbank: QBankParams, options?: UploadOptions): Promise<void>
 }
 
 type OutputClass = new (vendorUsername: string, outputUsername: string) => Output

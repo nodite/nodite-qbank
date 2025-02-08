@@ -9,7 +9,7 @@ import sleep from 'sleep-promise'
 import cacheManager from '../../../cache/cache.manager.js'
 import {Bank} from '../../../types/bank.js'
 import {Category} from '../../../types/category.js'
-import {FetchOptions, Params} from '../../../types/common.js'
+import {FetchOptions, QBankParams} from '../../../types/common.js'
 import {Sheet} from '../../../types/sheet.js'
 import {emitter} from '../../../utils/event.js'
 import {safeName, throwError} from '../../../utils/index.js'
@@ -371,12 +371,12 @@ export default class BiguoReal extends Vendor {
   /**
    * _biguoQuestionBankParam.
    */
-  protected _biguoQuestionBankParam(params?: Params): Record<string, any> {
+  protected _biguoQuestionBankParam(qbank?: QBankParams): Record<string, any> {
     return {
-      code: params?.category?.id,
+      code: qbank?.category?.id,
       mainType: 2,
-      professions_id: params?.bank.meta?.professionId,
-      province_id: params?.bank.meta?.provinceId,
+      professions_id: qbank?.bank.meta?.professionId,
+      province_id: qbank?.bank.meta?.provinceId,
       public_key:
         'LS0tLS1CRUdJTiBSU0EgUFVCTElDIEtFWS0' +
         'tLS0tCk1JR0pBb0dCQUxjNmR2MkFVaWRTR3' +
@@ -388,7 +388,7 @@ export default class BiguoReal extends Vendor {
         'CswRVBlZ2JkNTB3dEpqc2pnZzVZenU4WURP' +
         'ZXg1QWdNQkFBRT0KLS0tLS1FTkQgUlNBIFB' +
         'VQkxJQyBLRVktLS0tLQ==',
-      school_id: params?.bank.meta?.schoolId,
+      school_id: qbank?.bank.meta?.schoolId,
     }
   }
 }

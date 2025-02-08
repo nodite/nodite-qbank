@@ -6,7 +6,7 @@ import lodash from 'lodash'
 
 import {Bank} from '../../../types/bank.js'
 import {Category} from '../../../types/category.js'
-import {LoginOptions, Params} from '../../../types/common.js'
+import {LoginOptions, QBankParams} from '../../../types/common.js'
 import {Sheet} from '../../../types/sheet.js'
 import {safeName} from '../../../utils/index.js'
 import axios from '../../axios/index.js'
@@ -74,12 +74,12 @@ export default class BiguoChapter extends BiguoReal {
   /**
    * _biguoQuestionBankParam.
    */
-  protected _biguoQuestionBankParam(params?: Params): Record<string, any> {
+  protected _biguoQuestionBankParam(qbank?: QBankParams): Record<string, any> {
     return {
-      code: params?.sheet.id,
+      code: qbank?.sheet.id,
       mainType: 5,
-      professions_id: params?.bank.meta?.professionId,
-      province_id: params?.bank.meta?.provinceId,
+      professions_id: qbank?.bank.meta?.professionId,
+      province_id: qbank?.bank.meta?.provinceId,
       public_key:
         'LS0tLS1CRUdJTiBSU0EgUFVCTElDIEtFWS0' +
         'tLS0tCk1JR0pBb0dCQUxjNmR2MkFVaWRTR3' +
@@ -91,7 +91,7 @@ export default class BiguoChapter extends BiguoReal {
         'CswRVBlZ2JkNTB3dEpqc2pnZzVZenU4WURP' +
         'ZXg1QWdNQkFBRT0KLS0tLS1FTkQgUlNBIFB' +
         'VQkxJQyBLRVktLS0tLQ==',
-      school_id: params?.bank.meta?.schoolId,
+      school_id: qbank?.bank.meta?.schoolId,
     }
   }
 }

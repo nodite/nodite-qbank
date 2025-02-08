@@ -5,7 +5,7 @@ import {CacheRequestConfig} from 'axios-cache-interceptor'
 
 import {Bank} from '../../../types/bank.js'
 import {Category} from '../../../types/category.js'
-import {LoginOptions, Params} from '../../../types/common.js'
+import {LoginOptions, QBankParams} from '../../../types/common.js'
 import {cacheKeyBuilder, HashKeyScope} from '../common.js'
 import BiguoReal from './biguo-real.js'
 
@@ -30,12 +30,12 @@ export default class BiguoVip extends BiguoReal {
   /**
    * _biguoQuestionBankParam.
    */
-  protected _biguoQuestionBankParam(params?: Params): Record<string, any> {
+  protected _biguoQuestionBankParam(qbank?: QBankParams): Record<string, any> {
     return {
-      code: params?.bank.meta?.courseCode,
+      code: qbank?.bank.meta?.courseCode,
       mainType: 4,
-      professions_id: params?.bank.meta?.professionId,
-      province_id: params?.bank.meta?.provinceId,
+      professions_id: qbank?.bank.meta?.professionId,
+      province_id: qbank?.bank.meta?.provinceId,
       public_key:
         'LS0tLS1CRUdJTiBSU0EgUFVCTElDIEtFWS0' +
         'tLS0tCk1JR0pBb0dCQUxjNmR2MkFVaWRTR3' +
@@ -47,7 +47,7 @@ export default class BiguoVip extends BiguoReal {
         'CswRVBlZ2JkNTB3dEpqc2pnZzVZenU4WURP' +
         'ZXg1QWdNQkFBRT0KLS0tLS1FTkQgUlNBIFB' +
         'VQkxJQyBLRVktLS0tLQ==',
-      school_id: params?.bank.meta?.schoolId,
+      school_id: qbank?.bank.meta?.schoolId,
     }
   }
 }

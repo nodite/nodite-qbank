@@ -1,6 +1,6 @@
 import lodash from 'lodash'
 
-import {AssetString, Params} from '../../../types/common.js'
+import {AssetString, QBankParams} from '../../../types/common.js'
 import html from '../../../utils/html.js'
 import {find, throwError} from '../../../utils/index.js'
 import prompt from '../../../utils/prompt.js'
@@ -15,7 +15,7 @@ export default class Markji extends MarkjiBase {
   /**
    * _output.
    */
-  protected async _output(question: any, params: Params): Promise<AssetString> {
+  protected async _output(question: any, qbank: QBankParams): Promise<AssetString> {
     const _questionType = question.type
 
     let output = {} as AssetString
@@ -25,7 +25,7 @@ export default class Markji extends MarkjiBase {
       // 1. 单选题
       case '1': {
         question.typeName = '单选题'
-        output = await this._processChoice(question, params)
+        output = await this._processChoice(question, qbank)
         break
       }
 
@@ -33,19 +33,19 @@ export default class Markji extends MarkjiBase {
       case '2': {
         question.typeName = '多选题'
         question.isMultipleChoice = true
-        output = await this._processChoice(question, params)
+        output = await this._processChoice(question, qbank)
         break
       }
 
       // 5. 名词解释/问答题
       case '5': {
         question.typeName = '名词解释/问答题'
-        output = await this._processTranslate(question, params)
+        output = await this._processTranslate(question, qbank)
         break
       }
 
       default: {
-        throwError('Unsupported question type.', {params, question})
+        throwError('Unsupported question type.', {qbank, question})
       }
     }
 
@@ -55,7 +55,7 @@ export default class Markji extends MarkjiBase {
   /**
    * _processChoice.
    */
-  protected async _processChoice(question: any, params: Params): Promise<AssetString> {
+  protected async _processChoice(question: any, qbank: QBankParams): Promise<AssetString> {
     const _meta = {
       answers: [] as AssetString[],
       content: {assets: [] as never, text: ''} as AssetString,
@@ -68,7 +68,7 @@ export default class Markji extends MarkjiBase {
     // ===========================
     // _context.
     if (question.stemMediaId > 0) {
-      throwError('Not Implemented stemMediaId.', {params, question})
+      throwError('Not Implemented stemMediaId.', {qbank, question})
     }
     // _meta.context = await markji.parseHtml(question.context || '', {imgSrcHandler, style: this.HTML_STYLE})
     // _meta.context.text += '\n'
@@ -117,7 +117,7 @@ export default class Markji extends MarkjiBase {
     }))
 
     if (lodash.isEmpty(_meta.answers)) {
-      throwError('Empty answers.', {params, question})
+      throwError('Empty answers.', {qbank, question})
     } else if (_meta.answers.length > 1) {
       _meta.optionsAttr = 'fixed,multi'
     }
@@ -173,7 +173,7 @@ export default class Markji extends MarkjiBase {
   /**
    * _processTranslate.
    */
-  protected async _processTranslate(question: any, params: Params): Promise<AssetString> {
+  protected async _processTranslate(question: any, qbank: QBankParams): Promise<AssetString> {
     const _meta = {
       content: {assets: [] as never, text: ''} as AssetString,
       context: {assets: [] as never, text: ''} as AssetString,
@@ -184,7 +184,7 @@ export default class Markji extends MarkjiBase {
     // ===========================
     // _context.
     if (question.stemMediaId > 0) {
-      throwError('Not Implemented stemMediaId.', {params, question})
+      throwError('Not Implemented stemMediaId.', {qbank, question})
     }
     // _meta.context = await markji.parseHtml(question.context || '', {imgSrcHandler, style: this.HTML_STYLE})
     // _meta.context.text += '\n'
