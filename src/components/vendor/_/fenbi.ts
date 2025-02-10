@@ -42,7 +42,7 @@ export default class Fenbi extends FenbiKaoyan {
       endpoint: 'https://tiku.fenbi.com/activity/userquiz/getFavoriteQuizList',
       path: 'data.data.favoriteQuizVO',
       // quizChange: 'https://tiku.fenbi.com/activity/userquiz/courseSetChange?courseSetPrefix={{bankPrefix}}',
-      quizChange: 'https://tiku.fenbi.com/iphone/{{bankPrefix}}/users/quizChange/0',
+      quizChange: 'https://tiku.fenbi.com/iphone/{{bankPrefix}}/users/quizChange/{{quizId}}',
     }
   }
 

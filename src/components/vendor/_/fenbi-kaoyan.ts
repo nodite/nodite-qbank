@@ -64,7 +64,7 @@ export default class FenbiKaoyan extends Vendor {
               lodash.get(_bank, 'course.prefix', ''),
               lodash.get(_bank, 'quiz.prefix', ''),
             ]),
-            quizId: _bank.quiz?.id,
+            quizId: lodash.get(_bank, 'quiz.id', 0),
           },
           name: '',
         },
@@ -111,7 +111,7 @@ export default class FenbiKaoyan extends Vendor {
           coursePrefix: lodash.get(bank, 'course.prefix', ''),
           courseSetId: lodash.get(bank, 'courseSet.id', ''),
           courseSetPrefix: lodash.get(bank, 'courseSet.prefix', ''),
-          quizId: lodash.get(bank, 'quiz.id', ''),
+          quizId: lodash.get(bank, 'quiz.id', 0),
           quizPrefix: lodash.get(bank, 'quiz.prefix', ''),
         },
         name: await safeName(
@@ -159,7 +159,7 @@ export default class FenbiKaoyan extends Vendor {
 
     const response = await axios.get(
       lodash.template(_endpoint)({bankPrefix}),
-      lodash.merge({}, config, {params: getParams}),
+      lodash.merge({}, config, {cache: false, params: getParams}),
     )
 
     const _convert = async (index: number, category: Record<string, any>): Promise<Category> => {
@@ -652,18 +652,16 @@ export default class FenbiKaoyan extends Vendor {
 
   /**
    * Change quiz.
-   * @param params
-   * @returns
    */
   protected async changeQuiz(params: {bank: Bank}): Promise<any> {
-    if (!lodash.has(this._fetchBankMeta, 'quizChange')) return
-
-    const _curr = await memory.cache.get<{data: any; hash: string}>('fenbi:current:quiz')
+    // changed.
+    const _obj = await memory.cache.get<{data: any; hash: string}>('fenbi:quiz:object')
 
     const _hash = md5(JSON.stringify(params))
 
-    if (_hash === _curr?.hash) return _curr.data
+    if (_hash === _obj?.hash) return _obj.data
 
+    // wait complete.
     const config = await this.login()
 
     const resp = await axios.put(
@@ -677,7 +675,7 @@ export default class FenbiKaoyan extends Vendor {
       lodash.merge({}, config, {headers: {'Content-Type': 'application/x-www-form-urlencoded'}}),
     )
 
-    await memory.cache.set('fenbi:current:quiz', {data: resp.data, hash: _hash})
+    await memory.cache.set('fenbi:quiz:object', {data: resp.data, hash: _hash})
 
     return resp.data
   }
