@@ -20,7 +20,7 @@ $ npm install -g qbank
 $ qbank COMMAND
 running command...
 $ qbank (--version)
-qbank/0.0.0 darwin-arm64 node-v20.15.0
+qbank/0.0.0 darwin-arm64 node-v20.18.1
 $ qbank --help [COMMAND]
 USAGE
   $ qbank COMMAND
@@ -46,12 +46,17 @@ USAGE
 
 ```
 USAGE
-  $ qbank bank list [-r] [-u <value>] [-v <value>]
+  $ qbank bank list [-r] [-u <value>] [-v
+    biguo-chapter|biguo-free|biguo-real|biguo-vip|chaoxing-assets|chaoxing-exam|chaoxing-work|demo|fenbi|fenbi-kaoyan|js
+    on-file|learnabc|markji|mytodo-aws|shangfen|wantiku|wantiku-chapter|wx233|yiguo]
 
 FLAGS
   -r, --clean             清除缓存
   -u, --username=<value>  用户名/邮箱/手机号
-  -v, --vendor=<value>    题库供应商
+  -v, --vendor=<option>   题库供应商
+                          <options: biguo-chapter|biguo-free|biguo-real|biguo-vip|chaoxing-assets|chaoxing-exam|chaoxing
+                          -work|demo|fenbi|fenbi-kaoyan|json-file|learnabc|markji|mytodo-aws|shangfen|wantiku|wantiku-ch
+                          apter|wx233|yiguo>
 
 DESCRIPTION
   题库列表
@@ -69,13 +74,18 @@ _See code: [src/commands/bank/list.ts](https://github.com/oscaner/qbank/blob/v0.
 
 ```
 USAGE
-  $ qbank category list [-r] [-u <value>] [-v <value>] [-b <value>] [--rich]
+  $ qbank category list [-r] [-u <value>] [-v
+    biguo-chapter|biguo-free|biguo-real|biguo-vip|chaoxing-assets|chaoxing-exam|chaoxing-work|demo|fenbi|fenbi-kaoyan|js
+    on-file|learnabc|markji|mytodo-aws|shangfen|wantiku|wantiku-chapter|wx233|yiguo] [-b <value>] [--rich]
 
 FLAGS
   -b, --bank=<value>      题库ID/名称/Key
   -r, --clean             清除缓存
   -u, --username=<value>  用户名/邮箱/手机号
-  -v, --vendor=<value>    题库供应商
+  -v, --vendor=<option>   题库供应商
+                          <options: biguo-chapter|biguo-free|biguo-real|biguo-vip|chaoxing-assets|chaoxing-exam|chaoxing
+                          -work|demo|fenbi|fenbi-kaoyan|json-file|learnabc|markji|mytodo-aws|shangfen|wantiku|wantiku-ch
+                          apter|wx233|yiguo>
       --rich              详细信息
 
 DESCRIPTION
@@ -95,19 +105,22 @@ _See code: [src/commands/category/list.ts](https://github.com/oscaner/qbank/blob
 ```
 USAGE
   $ qbank chain [-r *|bank.list|category.list|sheet.list|question.fetch|output.convert|output.upload...]
-    [-u <value>] [-v <value>] [--bank-list <value>...] [--category-list <value>...] [--delay <value>] [--output <value>]
-    [--output-username <value>] [--sheet-list <value>...]
+    [-u <value>] [-v biguo-chapter|biguo-free|biguo-real|biguo-vip|chaoxing-assets|chaoxing-exam|chaoxing-work|demo|fenb
+    i|fenbi-kaoyan|json-file|learnabc|markji|mytodo-aws|shangfen|wantiku|wantiku-chapter|wx233|yiguo] [--bank-list
+    <value>...] [--category-list <value>...] [-o <value>] [--output-username <value>] [--sheet-list <value>...]
 
 FLAGS
+  -o, --output=<value>            接收方
   -r, --clean=<option>...         [default: ] 清除缓存/重新转换
                                   <options:
                                   *|bank.list|category.list|sheet.list|question.fetch|output.convert|output.upload>
   -u, --username=<value>          用户名/邮箱/手机号
-  -v, --vendor=<value>            题库供应商
+  -v, --vendor=<option>           题库供应商
+                                  <options: biguo-chapter|biguo-free|biguo-real|biguo-vip|chaoxing-assets|chaoxing-exam|
+                                  chaoxing-work|demo|fenbi|fenbi-kaoyan|json-file|learnabc|markji|mytodo-aws|shangfen|wa
+                                  ntiku|wantiku-chapter|wx233|yiguo>
       --bank-list=<value>...      [default: *] 题库
       --category-list=<value>...  [default: *] 分类
-      --delay=<value>             延迟(ms)
-      --output=<value>            接收方
       --output-username=<value>   接收方用户名
       --sheet-list=<value>...     [default: *] 试卷
 
@@ -139,7 +152,7 @@ DESCRIPTION
   Display help for qbank.
 ```
 
-_See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v6.2.18/src/commands/help.ts)_
+_See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v6.2.24/src/commands/help.ts)_
 
 ## `qbank output convert`
 
@@ -147,8 +160,10 @@ _See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v6.2.1
 
 ```
 USAGE
-  $ qbank output convert [-r] [-u <value>] [-v <value>] [-b <value>] [-c <value>] [-o <value>] [--output-username
-    <value>] [-s <value>]
+  $ qbank output convert [-r] [-u <value>] [-v
+    biguo-chapter|biguo-free|biguo-real|biguo-vip|chaoxing-assets|chaoxing-exam|chaoxing-work|demo|fenbi|fenbi-kaoyan|js
+    on-file|learnabc|markji|mytodo-aws|shangfen|wantiku|wantiku-chapter|wx233|yiguo] [-b <value>] [-c <value>] [-o
+    <value>] [--output-username <value>] [-s <value>]
 
 FLAGS
   -b, --bank=<value>             题库ID/名称/Key
@@ -157,7 +172,10 @@ FLAGS
   -r, --clean                    清除缓存
   -s, --sheet=<value>            试卷ID/名称
   -u, --username=<value>         用户名/邮箱/手机号
-  -v, --vendor=<value>           题库供应商
+  -v, --vendor=<option>          题库供应商
+                                 <options: biguo-chapter|biguo-free|biguo-real|biguo-vip|chaoxing-assets|chaoxing-exam|c
+                                 haoxing-work|demo|fenbi|fenbi-kaoyan|json-file|learnabc|markji|mytodo-aws|shangfen|want
+                                 iku|wantiku-chapter|wx233|yiguo>
       --output-username=<value>  接收方用户名
 
 DESCRIPTION
@@ -176,8 +194,10 @@ _See code: [src/commands/output/convert.ts](https://github.com/oscaner/qbank/blo
 
 ```
 USAGE
-  $ qbank output upload [-r] [-u <value>] [-v <value>] [-b <value>] [-c <value>] [-o <value>] [--output-username
-    <value>] [-s <value>]
+  $ qbank output upload [-r] [-u <value>] [-v
+    biguo-chapter|biguo-free|biguo-real|biguo-vip|chaoxing-assets|chaoxing-exam|chaoxing-work|demo|fenbi|fenbi-kaoyan|js
+    on-file|learnabc|markji|mytodo-aws|shangfen|wantiku|wantiku-chapter|wx233|yiguo] [-b <value>] [-c <value>] [-o
+    <value>] [--output-username <value>] [-s <value>]
 
 FLAGS
   -b, --bank=<value>             题库ID/名称/Key
@@ -186,7 +206,10 @@ FLAGS
   -r, --clean                    清除缓存
   -s, --sheet=<value>            试卷ID/名称
   -u, --username=<value>         用户名/邮箱/手机号
-  -v, --vendor=<value>           题库供应商
+  -v, --vendor=<option>          题库供应商
+                                 <options: biguo-chapter|biguo-free|biguo-real|biguo-vip|chaoxing-assets|chaoxing-exam|c
+                                 haoxing-work|demo|fenbi|fenbi-kaoyan|json-file|learnabc|markji|mytodo-aws|shangfen|want
+                                 iku|wantiku-chapter|wx233|yiguo>
       --output-username=<value>  接收方用户名
 
 DESCRIPTION
@@ -205,7 +228,10 @@ _See code: [src/commands/output/upload.ts](https://github.com/oscaner/qbank/blob
 
 ```
 USAGE
-  $ qbank question fetch [-r] [-u <value>] [-v <value>] [-b <value>] [-c <value>] [-s <value>]
+  $ qbank question fetch [-r] [-u <value>] [-v
+    biguo-chapter|biguo-free|biguo-real|biguo-vip|chaoxing-assets|chaoxing-exam|chaoxing-work|demo|fenbi|fenbi-kaoyan|js
+    on-file|learnabc|markji|mytodo-aws|shangfen|wantiku|wantiku-chapter|wx233|yiguo] [-b <value>] [-c <value>] [-s
+    <value>]
 
 FLAGS
   -b, --bank=<value>      题库ID/名称/Key
@@ -213,7 +239,10 @@ FLAGS
   -r, --clean             清除缓存
   -s, --sheet=<value>     试卷ID/名称
   -u, --username=<value>  用户名/邮箱/手机号
-  -v, --vendor=<value>    题库供应商
+  -v, --vendor=<option>   题库供应商
+                          <options: biguo-chapter|biguo-free|biguo-real|biguo-vip|chaoxing-assets|chaoxing-exam|chaoxing
+                          -work|demo|fenbi|fenbi-kaoyan|json-file|learnabc|markji|mytodo-aws|shangfen|wantiku|wantiku-ch
+                          apter|wx233|yiguo>
 
 DESCRIPTION
   爬取题目
@@ -231,14 +260,19 @@ _See code: [src/commands/question/fetch.ts](https://github.com/oscaner/qbank/blo
 
 ```
 USAGE
-  $ qbank sheet list [-r] [-u <value>] [-v <value>] [-b <value>] [-c <value>]
+  $ qbank sheet list [-r] [-u <value>] [-v
+    biguo-chapter|biguo-free|biguo-real|biguo-vip|chaoxing-assets|chaoxing-exam|chaoxing-work|demo|fenbi|fenbi-kaoyan|js
+    on-file|learnabc|markji|mytodo-aws|shangfen|wantiku|wantiku-chapter|wx233|yiguo] [-b <value>] [-c <value>]
 
 FLAGS
   -b, --bank=<value>      题库ID/名称/Key
   -c, --category=<value>  分类ID/名称/Key
   -r, --clean             清除缓存
   -u, --username=<value>  用户名/邮箱/手机号
-  -v, --vendor=<value>    题库供应商
+  -v, --vendor=<option>   题库供应商
+                          <options: biguo-chapter|biguo-free|biguo-real|biguo-vip|chaoxing-assets|chaoxing-exam|chaoxing
+                          -work|demo|fenbi|fenbi-kaoyan|json-file|learnabc|markji|mytodo-aws|shangfen|wantiku|wantiku-ch
+                          apter|wx233|yiguo>
 
 DESCRIPTION
   章节/篇章/试卷列表
@@ -274,13 +308,18 @@ _See code: [src/commands/vendor/list.ts](https://github.com/oscaner/qbank/blob/v
 
 ```
 USAGE
-  $ qbank vendor login [-r] [-u <value>] [-v <value>] [-p <value>]
+  $ qbank vendor login [-r] [-u <value>] [-v
+    biguo-chapter|biguo-free|biguo-real|biguo-vip|chaoxing-assets|chaoxing-exam|chaoxing-work|demo|fenbi|fenbi-kaoyan|js
+    on-file|learnabc|markji|mytodo-aws|shangfen|wantiku|wantiku-chapter|wx233|yiguo] [-p <value>]
 
 FLAGS
   -p, --password=<value>  密码
   -r, --clean             清除缓存
   -u, --username=<value>  用户名/邮箱/手机号
-  -v, --vendor=<value>    题库供应商
+  -v, --vendor=<option>   题库供应商
+                          <options: biguo-chapter|biguo-free|biguo-real|biguo-vip|chaoxing-assets|chaoxing-exam|chaoxing
+                          -work|demo|fenbi|fenbi-kaoyan|json-file|learnabc|markji|mytodo-aws|shangfen|wantiku|wantiku-ch
+                          apter|wx233|yiguo>
 
 DESCRIPTION
   登录供应商

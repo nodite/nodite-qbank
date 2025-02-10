@@ -14,7 +14,12 @@ export default abstract class BaseCommand extends Command {
   static baseFlags = {
     clean: Flags.boolean({char: 'r', default: false, description: '清除缓存'}),
     username: Flags.string({char: 'u', default: '', description: '用户名/邮箱/手机号'}),
-    vendor: Flags.string({char: 'v', default: '', description: '题库供应商'}),
+    vendor: Flags.string({
+      char: 'v',
+      default: '',
+      description: '题库供应商',
+      options: VendorManager.getMetas().map((meta) => meta.key),
+    }),
   }
 
   /**
