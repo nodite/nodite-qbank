@@ -24,9 +24,6 @@ type Options = {
 
 /**
  * Hash key builder
- * @param scope
- * @param builder
- * @returns
  */
 const cacheKeyBuilder = (scope: HashKeyScope): CacheKeyBuilder => {
   return (args: any[], context: Vendor): string => {

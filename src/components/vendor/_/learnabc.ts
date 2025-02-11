@@ -116,14 +116,21 @@ export default class LearnABC extends Vendor {
     const _cats = [] as Category[]
 
     switch (params.bank.meta?.type) {
-      case 'topic': {
+      case 'grammar': {
         _cats.push({
           children: [],
           count: params.bank.count || 0,
           id: '0',
-          name: params.bank.meta.topic.topic_name,
+          meta: {
+            articles: (
+              await axios.get(
+                'http://api.beauty-story.cn/api/learnabc/grammar_article_list',
+                lodash.merge({}, config, {params: {category_name: params.bank.meta?.grammar.title}}),
+              )
+            ).data.data,
+          },
+          name: '默认',
         })
-
         break
       }
 
@@ -141,21 +148,14 @@ export default class LearnABC extends Vendor {
         break
       }
 
-      case 'grammar': {
+      case 'topic': {
         _cats.push({
           children: [],
           count: params.bank.count || 0,
           id: '0',
-          meta: {
-            articles: (
-              await axios.get(
-                'http://api.beauty-story.cn/api/learnabc/grammar_article_list',
-                lodash.merge({}, config, {params: {category_name: params.bank.meta?.grammar.title}}),
-              )
-            ).data.data,
-          },
-          name: '默认',
+          name: params.bank.meta.topic.topic_name,
         })
+
         break
       }
 
@@ -233,8 +233,27 @@ export default class LearnABC extends Vendor {
 
     // fetch questions.
     switch (params.bank.meta?.type) {
-      case 'topic':
-      case 'stage': {
+      case 'grammar': {
+        for (const [_idx, _content] of (params.sheet.meta?.contents || []).entries()) {
+          const _qId = String(_idx)
+
+          const _qCacheKey = lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)({
+            ...cacheKeyParams,
+            questionId: _qId,
+          })
+
+          if (originQuestionKeys.includes(_qCacheKey)) continue
+
+          await cacheClient.set(_qCacheKey, _content)
+          originQuestionKeys.push(_qCacheKey)
+          emitter.emit('questions.fetch.count', originQuestionKeys.length)
+        }
+
+        break
+      }
+
+      case 'stage':
+      case 'topic': {
         let _id = 0
 
         do {
@@ -291,25 +310,6 @@ export default class LearnABC extends Vendor {
 
           _id = _qs.at(-1)?.id
         } while (Number(_id) > 0)
-
-        break
-      }
-
-      case 'grammar': {
-        for (const [_idx, _content] of (params.sheet.meta?.contents || []).entries()) {
-          const _qId = String(_idx)
-
-          const _qCacheKey = lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)({
-            ...cacheKeyParams,
-            questionId: _qId,
-          })
-
-          if (originQuestionKeys.includes(_qCacheKey)) continue
-
-          await cacheClient.set(_qCacheKey, _content)
-          originQuestionKeys.push(_qCacheKey)
-          emitter.emit('questions.fetch.count', originQuestionKeys.length)
-        }
 
         break
       }

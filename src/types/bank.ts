@@ -7,7 +7,7 @@ export type Bank = {
   orgName?: string
 }
 
-export type MarkjiFolder = {
+export type MarkjiFolder = Bank & {
   items?: {object_class: string; object_id: string}[]
   updated_time?: string
-} & Bank
+}

@@ -25,34 +25,34 @@ export default class Markji extends MarkjiBase {
 
     // ====================
     switch (_questionType) {
+      case '作文题':
+      case '写作题':
+      case '句型判断题':
+      case '句型转换题':
+      case '简答题':
+      case '补全对话':
+      case '补全对话题':
+      case '解答题':
+      case '论述题':
+      case '词汇题':
+      case '音节题': {
+        output = await this._processTranslate(question, qbank)
+        break
+      }
+
       case '单选': {
         output = await this._processChoice(question, qbank)
+        break
+      }
+
+      case '填空题': {
+        output = await this._processBlankFilling(question, qbank)
         break
       }
 
       case '多选': {
         question.IsMultipleChoice = true
         output = await this._processChoice(question, qbank)
-        break
-      }
-
-      case '简答题':
-      case '论述题':
-      case '写作题':
-      case '词汇题':
-      case '补全对话题':
-      case '补全对话':
-      case '音节题':
-      case '句型转换题':
-      case '解答题':
-      case '作文题':
-      case '句型判断题': {
-        output = await this._processTranslate(question, qbank)
-        break
-      }
-
-      case '填空题': {
-        output = await this._processBlankFilling(question, qbank)
         break
       }
 

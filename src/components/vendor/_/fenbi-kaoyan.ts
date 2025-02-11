@@ -508,7 +508,9 @@ export default class FenbiKaoyan extends Vendor {
               ],
               lodash.merge({}, config, {params: {forceUpdateAnswer: 1}}),
             )
-          } catch {}
+          } catch {
+            /* empty */
+          }
         }
 
         // update.
@@ -530,7 +532,9 @@ export default class FenbiKaoyan extends Vendor {
               validateStatus: () => true,
             }),
           )
-        } catch {}
+        } catch {
+          /* empty */
+        }
       }
 
       await cacheClient.del(
