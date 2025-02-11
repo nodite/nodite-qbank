@@ -7,8 +7,8 @@ export type Sheet = {
   orgName?: string
 }
 
-export type MarkjiChapter = {
+export type MarkjiChapter = Sheet & {
   cardIds: string[]
   revision: number
   setRevision: number
-} & Sheet
+}

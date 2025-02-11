@@ -4,11 +4,14 @@ import {fileURLToPath} from 'node:url'
 import {FlatCompat} from '@eslint/eslintrc'
 import js from '@eslint/js'
 import tsParser from '@typescript-eslint/parser'
-import perfectionist from 'eslint-plugin-perfectionist'
+import oclif from 'eslint-config-oclif'
+import nodePlugin from 'eslint-plugin-n'
 import globals from 'globals'
 
 const __filename = fileURLToPath(import.meta.url)
+
 const __dirname = path.dirname(__filename)
+
 const compat = new FlatCompat({
   allConfig: js.configs.all,
   baseDirectory: __dirname,
@@ -18,20 +21,19 @@ const compat = new FlatCompat({
 /** @type { import("eslint").Linter.Config[] } */
 export default [
   js.configs.recommended,
+  ...oclif,
+  ...compat.extends(
+    'eslint:recommended',
+    'plugin:@typescript-eslint/recommended',
+    'prettier',
+    'plugin:prettier/recommended',
+  ),
   {
     ignores: ['dist', 'node_modules', 'src/assets/*.js', 'tmp'],
   },
   {
     files: ['*.ts', '*.tsx'],
   },
-  ...compat.extends(
-    'oclif',
-    // "oclif-typescript",
-    'eslint:recommended',
-    'plugin:@typescript-eslint/recommended',
-    'prettier',
-    'plugin:prettier/recommended',
-  ),
   {
     languageOptions: {
       ecmaVersion: 2017,
@@ -44,9 +46,12 @@ export default [
       sourceType: 'module',
     },
 
-    plugins: {perfectionist},
+    plugins: {
+      n: nodePlugin,
+    },
 
     rules: {
+      '@stylistic/lines-between-class-members': ['error', 'always'],
       '@typescript-eslint/adjacent-overload-signatures': 'off',
       '@typescript-eslint/ban-ts-comment': 'off',
       '@typescript-eslint/no-explicit-any': 'off',

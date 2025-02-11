@@ -53,7 +53,7 @@ export {
   ConvertOptions,
   FetchOptions,
   LoginOptions,
-  QBankParams,
   ParseOptions,
+  QBankParams,
   UploadOptions,
 }

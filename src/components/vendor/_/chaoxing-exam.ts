@@ -4,7 +4,7 @@ import {Cacheable} from '@type-cacheable/core'
 import {CacheRequestConfig} from 'axios-cache-interceptor'
 import lodash from 'lodash'
 import md5 from 'md5'
-import {parse, HTMLElement} from 'node-html-parser'
+import {HTMLElement, parse} from 'node-html-parser'
 
 import {Bank} from '../../../types/bank.js'
 import {Category} from '../../../types/category.js'
