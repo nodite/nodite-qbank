@@ -34,7 +34,7 @@
     "cli-progress": "^3",
     "crypto-js": "^4.2.0",
     "data-uri-to-buffer": "^6",
-    "docker-compose": "^1.1.0",
+    "docker-compose": "^1.1.1",
     "dotenv": "^16",
     "form-data": "^4",
     "fs-extra": "^11",
