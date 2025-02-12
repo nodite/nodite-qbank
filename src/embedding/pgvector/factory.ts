@@ -6,7 +6,10 @@ import {OllamaEmbeddings} from '@langchain/ollama'
 import lodash from 'lodash'
 import {PoolConfig} from 'pg'
 
+import docker from '../../utils/docker.js'
 import BaseFactory, {SearchOptions} from '../factory.js'
+
+const cacheHost = await docker.host()
 
 export default class Factory extends BaseFactory {
   public get model(): Embeddings {
@@ -14,7 +17,7 @@ export default class Factory extends BaseFactory {
   }
 
   protected _model = new OllamaEmbeddings({
-    model: 'paraphrase-multilingual',
+    model: 'bge-m3',
   })
 
   /**
@@ -43,7 +46,7 @@ export default class Factory extends BaseFactory {
       },
       distanceStrategy: 'cosine',
       postgresConnectionOptions: {
-        connectionString: 'postgres://qbank:qbank@localhost:5432/qbank',
+        connectionString: `postgres://qbank:qbank@${cacheHost}/qbank`,
       } as PoolConfig,
       tableName: 'langchain_pg_embedding',
     })

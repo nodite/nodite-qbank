@@ -488,7 +488,7 @@ const pruneDirty = async (
   )
 
   const todoChapters = lodash.filter(
-    (await markji.vendor.sheets({bank: markji.folder, category: markji.deck})) as MarkjiChapter[],
+    (await markji.vendor.sheets({bank: markji.folder, category: markji.deck}, {excludeTtl: true})) as MarkjiChapter[],
     (chapter) => {
       if (chapter.name === '默认章节') return false
       return !allChapterNames.has(chapter.name)
