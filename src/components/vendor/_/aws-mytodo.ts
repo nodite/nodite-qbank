@@ -3,6 +3,7 @@ import path from 'node:path'
 import {Cacheable} from '@type-cacheable/core'
 import type {CacheRequestConfig} from 'axios-cache-interceptor'
 import lodash from 'lodash'
+import md5 from 'md5'
 import sleep from 'sleep-promise'
 
 import cacheManager from '../../../cache/cache.manager.js'
@@ -11,6 +12,7 @@ import {Category} from '../../../types/category.js'
 import {FetchOptions} from '../../../types/common.js'
 import {Sheet} from '../../../types/sheet.js'
 import {emitter} from '../../../utils/event.js'
+import {safeName} from '../../../utils/index.js'
 import puppeteer from '../../../utils/puppeteer.js'
 import cookie from '../../axios/plugin/cookie.js'
 import {CACHE_KEY_ORIGIN_QUESTION_ITEM} from '../../cache-pattern.js'
@@ -18,7 +20,7 @@ import {OutputClass} from '../../output/common.js'
 import Markji from '../../output/mytodo/markji.js'
 import {cacheKeyBuilder, HashKeyScope, Vendor} from '../common.js'
 
-export default class MyTodoAws extends Vendor {
+export default class AwsMytodo extends Vendor {
   public static META = {key: path.parse(import.meta.url).name, name: 'AWS'}
 
   public get allowedOutputs(): Record<string, OutputClass> {
@@ -34,18 +36,27 @@ export default class MyTodoAws extends Vendor {
   protected async fetchBanks(): Promise<Bank[]> {
     const config = await this.login()
 
+    const banks = [] as Bank[]
+
     const page = await puppeteer.page('mytodo', 'https://mytodo.vip/', config)
 
     await page.waitForSelector('.card-body')
 
-    const banks: Bank[] = await page.$$eval('.card-body', (elements) =>
-      elements.map((element, index): Bank => {
-        const id = element.querySelector('.card-title')?.textContent?.trim()
-        const name = element.querySelector('.card-text')?.textContent?.trim()
+    const elements = await page.$$('.card-body')
 
-        return {id: String(id?.toLowerCase()), name: String(name), order: index}
-      }),
-    )
+    for (const [index, element] of elements.entries()) {
+      const category = await (await element.$('.card-title'))?.evaluate((element) => element.textContent?.trim())
+      const name = await (await element.$('.card-text'))?.evaluate((element) => element.textContent?.trim())
+
+      banks.push({
+        id: md5(String(category?.toLowerCase())),
+        meta: {
+          category: String(category?.toLowerCase()),
+        },
+        name: await safeName(String(name), 20),
+        order: index,
+      })
+    }
 
     return banks
   }
@@ -61,7 +72,7 @@ export default class MyTodoAws extends Vendor {
 
     await Promise.all([
       page.waitForSelector('a[id^=sheet]'),
-      page.goto(`https://mytodo.vip/subjects/detail?type=1&category=${params.bank.id}`),
+      page.goto(`https://mytodo.vip/subjects/detail?type=1&category=${params.bank.meta?.category}`),
     ])
 
     // a id="sheet*", * is count
@@ -72,7 +83,7 @@ export default class MyTodoAws extends Vendor {
         ),
       ) || 0
 
-    return [{children: [], count, id: '0', name: 'mytodo', order: 0}]
+    return [{children: [], count, id: md5('0'), name: 'mytodo', order: 0}]
   }
 
   /**
@@ -120,7 +131,7 @@ export default class MyTodoAws extends Vendor {
 
         const page = await puppeteer.page(
           'mytodo',
-          `https://mytodo.vip/subjects/detail?type=1&category=${params.bank.id}&sid=${_questionId}`,
+          `https://mytodo.vip/subjects/detail?type=1&category=${params.bank.meta?.category}&sid=${_questionId}`,
           config,
         )
 
@@ -154,7 +165,7 @@ export default class MyTodoAws extends Vendor {
    */
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.SHEETS)})
   public async fetchSheet(params: {bank: Bank; category: Category}, _options?: FetchOptions): Promise<Sheet[]> {
-    return [{count: params.category.count, id: '0', name: '默认'}]
+    return [{count: params.category.count, id: md5('0'), name: '默认'}]
   }
 
   /**

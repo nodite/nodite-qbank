@@ -1,3 +1,5 @@
+import AwsExamtopics from './_/aws-examtopics.js'
+import AwsMytodo from './_/aws-mytodo.js'
 import BiguoChapter from './_/biguo-chapter.js'
 import BiguoFree from './_/biguo-free.js'
 import BiguoReal from './_/biguo-real.js'
@@ -12,7 +14,6 @@ import _ from './_/index.js'
 import JsonFile from './_/json-file.js'
 import LearnABC from './_/learnabc.js'
 import Markji from './_/markji.js'
-import MyTodoAws from './_/mytodo-aws.js'
 import Shangfen from './_/shangfen.js'
 import WantikuChapter from './_/wantiku-chapter.js'
 import Wantiku from './_/wantiku.js'
@@ -21,6 +22,8 @@ import Yiguo from './_/yiguo.js'
 
 export default class VendorManager {
   protected static components = {
+    [AwsExamtopics.META.key]: AwsExamtopics,
+    [AwsMytodo.META.key]: AwsMytodo,
     [BiguoChapter.META.key]: BiguoChapter,
     [BiguoFree.META.key]: BiguoFree,
     [BiguoReal.META.key]: BiguoReal,
@@ -34,12 +37,11 @@ export default class VendorManager {
     [JsonFile.META.key]: JsonFile,
     [LearnABC.META.key]: LearnABC,
     [Markji.META.key]: Markji,
-    [MyTodoAws.META.key]: MyTodoAws,
-    [Shangfen.META.key]: Shangfen, // implement
+    [Shangfen.META.key]: Shangfen,
     [Wantiku.META.key]: Wantiku,
     [WantikuChapter.META.key]: WantikuChapter,
     [Wx233.META.key]: Wx233,
-    [Yiguo.META.key]: Yiguo, // implement
+    [Yiguo.META.key]: Yiguo,
   }
 
   public static getClass(name: string) {

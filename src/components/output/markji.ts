@@ -1,4 +1,5 @@
 import lodash from 'lodash'
+import {natsort} from 'natsort-esm'
 import sleep from 'sleep-promise'
 
 import {AssetString, ConvertOptions, QBankParams, UploadOptions} from '../../types/common.js'
@@ -63,7 +64,7 @@ export default class Markji extends Output {
           a.sheetId === b.sheetId &&
           a.questionId === b.questionId,
       )
-      .sort((a, b) => Number(a.questionId) - Number(b.questionId))
+      .sort(natsort({insensitive: true}))
 
     // convert.
     emitter.emit('output.convert.count', doneQuestionParams.length)
