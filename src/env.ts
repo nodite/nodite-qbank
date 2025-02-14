@@ -13,6 +13,10 @@ export const PKG_ASSETS_DIR = path.join(PKG_ROOT_DIR, 'src', 'assets')
 
 export const CLI_ASSETS_DIR = path.join(CLI_ROOT_DIR, 'assets')
 
+export const TMP_DIR = path.join(CLI_ROOT_DIR, 'tmp')
+
 fs.ensureDirSync(PKG_ASSETS_DIR)
 
 fs.ensureDirSync(CLI_ASSETS_DIR)
+
+fs.ensureDirSync(TMP_DIR)

@@ -8,6 +8,7 @@ import {Keyv} from 'keyv'
 import lodash from 'lodash'
 
 import vendors from '../components/vendor/_/index.js'
+import console from '../utils/console.js'
 import docker from '../utils/docker.js'
 import memory from './memory.manager.js'
 

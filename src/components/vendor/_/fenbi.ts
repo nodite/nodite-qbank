@@ -53,6 +53,7 @@ export default class Fenbi extends FenbiKaoyan {
     return {
       endpoint: 'https://tiku.fenbi.com/api/{{bankPrefix}}/categories',
       etRuleEndpoint: 'https://tiku.fenbi.com/api/{{bankPrefix}}/etRuleQuestion/categories',
+      paperEndpoint: 'https://tiku.fenbi.com/api/{{bankPrefix}}/papers',
       params: {filter: 'keypoint'},
       pdpgEndpoint: 'https://tiku.fenbi.com/api/{{bankPrefix}}/pdpg/categories',
     }

@@ -8,6 +8,7 @@ import OutputManager from './components/output/index.js'
 import VendorManager from './components/vendor/index.js'
 import {Bank} from './types/bank.js'
 import {Category} from './types/category.js'
+import console from './utils/console.js'
 import {fiindAll, find} from './utils/index.js'
 
 export default abstract class BaseCommand extends Command {

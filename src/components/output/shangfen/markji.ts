@@ -7,7 +7,7 @@ import prompt from '../../../utils/prompt.js'
 import markji from '../../../utils/vendor/markji.js'
 import MarkjiBase from '../markji.js'
 
-const imgSrcHandler = (src: string): string => {
+const srcHandler = (src: string): string => {
   return src
 }
 
@@ -70,18 +70,18 @@ export default class Markji extends MarkjiBase {
     if (question.stemMediaId > 0) {
       throwError('Not Implemented stemMediaId.', {qbank, question})
     }
-    // _meta.context = await markji.parseHtml(question.context || '', {imgSrcHandler, style: this.HTML_STYLE})
+    // _meta.context = await markji.parseHtml(question.context || '', {srcHandler, style: this.HTML_STYLE})
     // _meta.context.text += '\n'
 
     // ===========================
     // _content.
-    _meta.content = await markji.parseHtml(question.stem || '', {imgSrcHandler, style: this.HTML_STYLE})
+    _meta.content = await markji.parseHtml(question.stem || '', {srcHandler, style: this.HTML_STYLE})
 
     // ===========================
     // _options.
     _meta.options = await Promise.all(
       lodash.map(question.options, (option) =>
-        markji.parseHtml(lodash.trim(option), {imgSrcHandler, style: this.HTML_STYLE}),
+        markji.parseHtml(lodash.trim(option), {srcHandler, style: this.HTML_STYLE}),
       ),
     )
 
@@ -124,7 +124,7 @@ export default class Markji extends MarkjiBase {
 
     // ===========================
     // _explain.
-    _meta.explain = await markji.parseHtml(question.analysis || '', {imgSrcHandler, style: this.HTML_STYLE})
+    _meta.explain = await markji.parseHtml(question.analysis || '', {srcHandler, style: this.HTML_STYLE})
 
     // format by ai.
     if (lodash.isEmpty(_meta.explain.assets) && _meta.explain.text) {
@@ -186,17 +186,17 @@ export default class Markji extends MarkjiBase {
     if (question.stemMediaId > 0) {
       throwError('Not Implemented stemMediaId.', {qbank, question})
     }
-    // _meta.context = await markji.parseHtml(question.context || '', {imgSrcHandler, style: this.HTML_STYLE})
+    // _meta.context = await markji.parseHtml(question.context || '', {srcHandler, style: this.HTML_STYLE})
     // _meta.context.text += '\n'
 
     // ===========================
     // _content.
-    _meta.content = await markji.parseHtml(question.stem || '', {imgSrcHandler, style: this.HTML_STYLE})
+    _meta.content = await markji.parseHtml(question.stem || '', {srcHandler, style: this.HTML_STYLE})
 
     // ===========================
     // _translation.
     _meta.translation = await markji.parseHtml((question.answer || []).join('\n'), {
-      imgSrcHandler,
+      srcHandler,
       style: this.HTML_STYLE,
     })
 
