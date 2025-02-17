@@ -12,9 +12,9 @@ const PUBLIC_KEY =
 const encrypt = async (data1: any | null, data2: any | null): Promise<null | string> => {
   const page = await puppeteer.page('fenbi', 'https://www.fenbi.com')
 
-  // wait window.encrypt
   await page.waitForFunction(
     () => {
+      // eslint-disable-next-line no-undef
       return (window as any).encrypt
     },
     {timeout: 0},
@@ -22,6 +22,7 @@ const encrypt = async (data1: any | null, data2: any | null): Promise<null | str
 
   const encrypt = await page.evaluate(
     (data) => {
+      // eslint-disable-next-line no-undef
       return (window as any).encrypt(data.data1, data.data2)
     },
     {data1, data2},

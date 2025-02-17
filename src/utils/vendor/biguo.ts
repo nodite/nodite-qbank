@@ -8,9 +8,9 @@ const showQuestionAsk = async (data1: any | null, data2: any | null): Promise<nu
     'https://www.biguotk.com/web/topic/question_bank_answer/2/15841/1?sub=666489',
   )
 
-  // wait window.showQuestionAsk.
   await page.waitForFunction(
     () => {
+      // eslint-disable-next-line no-undef
       return (window as any).showQuestionAsk
     },
     {timeout: 0},
@@ -18,6 +18,7 @@ const showQuestionAsk = async (data1: any | null, data2: any | null): Promise<nu
 
   const decrypt = await page.evaluate(
     (data) => {
+      // eslint-disable-next-line no-undef
       return (window as any).showQuestionAsk(data.data1, data.data2)
     },
     {data1, data2},

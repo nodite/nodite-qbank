@@ -3,15 +3,16 @@ import puppeteer from '../puppeteer.js'
 const sid = async (): Promise<string> => {
   const page = await puppeteer.page('wx233', 'https://v.233.com/?do=notr')
 
-  // wait window._japi.getSid
   await page.waitForFunction(
     () => {
+      // eslint-disable-next-line no-undef
       return (window as any)._japi
     },
     {timeout: 0},
   )
 
   const _sid = await page.evaluate(() => {
+    // eslint-disable-next-line no-undef
     return (window as any)._japi.getSid('ucpage')
   })
 
@@ -24,6 +25,7 @@ const sign = async (params: any, sid: string, type: string): Promise<string> => 
   // wait window._japi
   await page.waitForFunction(
     () => {
+      // eslint-disable-next-line no-undef
       return (window as any)._japi
     },
     {timeout: 0},
@@ -33,6 +35,7 @@ const sign = async (params: any, sid: string, type: string): Promise<string> => 
 
   const _sign = await page.evaluate(
     (data) => {
+      // eslint-disable-next-line no-undef
       return (window as any)._japi.getSign(data.params || {}, 'RZRRNN9RXYCP', data.sid, data.type.toLowerCase())
     },
     {params, sid, type},

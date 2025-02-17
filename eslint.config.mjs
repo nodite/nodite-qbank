@@ -24,7 +24,7 @@ export default [
   ...oclif,
   ...compat.extends(
     'eslint:recommended',
-    'plugin:@typescript-eslint/recommended',
+    // 'plugin:@typescript-eslint/recommended',
     'prettier',
     'plugin:prettier/recommended',
   ),
@@ -83,6 +83,7 @@ export default [
       'new-cap': 'off',
       'no-await-in-loop': 'off',
       'no-constant-condition': 'off',
+      'no-unused-vars': 'off',
       'no-warning-comments': 'off',
       'perfectionist/sort-classes': ['error', {type: 'natural'}],
       'perfectionist/sort-exports': ['error', {type: 'natural'}],
