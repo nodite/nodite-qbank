@@ -97,7 +97,7 @@
     "eslint-plugin-n": "^17",
     "eslint-plugin-perfectionist": "^4",
     "eslint-plugin-prettier": "^5",
-    "eslint-plugin-unicorn": "^56",
+    "eslint-plugin-unicorn": "^57",
     "globals": "^15",
     "husky": "^9",
     "mocha": "^11",

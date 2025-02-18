@@ -314,6 +314,7 @@ export default class Wx233 extends Vendor {
         'Content-Type': 'application/json',
         'set-cookie': cookies.map((_ck) => cookie.toString(_ck)),
         Token: lodash.find(cookies, {name: 'clientauthentication'})?.value,
+        // eslint-disable-next-line no-undef
         'User-Agent': await page.evaluate(() => window.navigator.userAgent),
       },
     }
