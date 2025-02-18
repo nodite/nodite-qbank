@@ -15,6 +15,8 @@ const srcHandler = (src: string): string | string[] => {
     srcs.push('https://fb.fenbike.cn' + src, 'https://fb.fbstatic.cn' + src)
   } else if (src.startsWith('//')) {
     srcs.push('https:' + src)
+  } else {
+    srcs.push(src)
   }
 
   return srcs
