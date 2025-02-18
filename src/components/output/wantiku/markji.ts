@@ -1,7 +1,7 @@
 import lodash from 'lodash'
 import {parse} from 'node-html-parser'
 
-import {AssetString, QBankParams} from '../../../types/common.js'
+import {AssetString, QBankParams} from '../../../@types/common.js'
 import html from '../../../utils/html.js'
 import {find, throwError} from '../../../utils/index.js'
 import markji from '../../../utils/vendor/markji.js'

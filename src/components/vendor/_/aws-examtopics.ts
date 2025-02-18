@@ -4,11 +4,11 @@ import {Cacheable} from '@type-cacheable/core'
 import type {CacheRequestConfig} from 'axios-cache-interceptor'
 import md5 from 'md5'
 
+import {Bank} from '../../../@types/bank.js'
+import {Category} from '../../../@types/category.js'
+import {FetchOptions} from '../../../@types/common.js'
+import {Sheet} from '../../../@types/sheet.js'
 import cache from '../../../cache/cache.manager.js'
-import {Bank} from '../../../types/bank.js'
-import {Category} from '../../../types/category.js'
-import {FetchOptions} from '../../../types/common.js'
-import {Sheet} from '../../../types/sheet.js'
 import {safeName} from '../../../utils/index.js'
 import puppeteer from '../../../utils/puppeteer.js'
 import {OutputClass} from '../../output/common.js'
@@ -40,7 +40,7 @@ export default class AwsExamtopics extends Vendor {
 
     const elements = await page.$$('body > div.sec-spacer > div > div > div:nth-child(1) li')
 
-    for (const [index, element] of elements.entries()) {
+    for (const element of elements) {
       const a = await element.$('a')
       const name = await a?.evaluate((element) => element.textContent?.trim())
       const href = await a?.evaluate((element) => element.getAttribute('href'))
@@ -51,8 +51,7 @@ export default class AwsExamtopics extends Vendor {
           href: `https://www.examtopics.cn${href}`,
           name,
         },
-        name: await safeName(String(name), 20),
-        order: index,
+        name: await safeName(String(name)),
       })
     }
 
@@ -108,9 +107,6 @@ export default class AwsExamtopics extends Vendor {
    */
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN), client: cache.CommonClient})
   protected async toLogin(_password: string): Promise<CacheRequestConfig> {
-    return {
-      // headers: {password},
-      // params: {username: this.getUsername()},
-    }
+    return {}
   }
 }

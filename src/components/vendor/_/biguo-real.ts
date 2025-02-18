@@ -6,11 +6,11 @@ import lodash from 'lodash'
 import md5 from 'md5'
 import sleep from 'sleep-promise'
 
+import {Bank} from '../../../@types/bank.js'
+import {Category} from '../../../@types/category.js'
+import {FetchOptions, QBankParams} from '../../../@types/common.js'
+import {Sheet} from '../../../@types/sheet.js'
 import cacheManager from '../../../cache/cache.manager.js'
-import {Bank} from '../../../types/bank.js'
-import {Category} from '../../../types/category.js'
-import {FetchOptions, QBankParams} from '../../../types/common.js'
-import {Sheet} from '../../../types/sheet.js'
 import {emitter} from '../../../utils/event.js'
 import {safeName, throwError} from '../../../utils/index.js'
 import biguo from '../../../utils/vendor/biguo.js'
@@ -36,9 +36,9 @@ export default class BiguoReal extends Vendor {
   protected async fetchBanks(): Promise<Bank[]> {
     const LIMIT = [{profession_names: ['应用心理学（新）'], school_name: '福州大学'}]
 
-    const requestConfig = await this.login()
+    const config = await this.login()
 
-    const cityResponse = await axios.get('https://www.biguotk.com//api/v5/getZkCity', requestConfig)
+    const cityResponse = await axios.get('https://www.biguotk.com/api/v5/getZkCity', config)
 
     const provinces = lodash
       .chain(cityResponse.data.data)
@@ -55,9 +55,9 @@ export default class BiguoReal extends Vendor {
       const provinceId = province.province_id
 
       const schoolResponse = await axios.post(
-        'https://www.biguotk.com//api/schoolList',
+        'https://www.biguotk.com/api/schoolList',
         {province_id: provinceId},
-        requestConfig,
+        config,
       )
 
       const schools = lodash
@@ -72,7 +72,7 @@ export default class BiguoReal extends Vendor {
         const professionResponse = await axios.post(
           'https://www.biguotk.com//api/v2/professions',
           {province_id: provinceId, school_id: schoolId, schoolName: school.name},
-          requestConfig,
+          config,
         )
 
         // professions.
@@ -92,7 +92,7 @@ export default class BiguoReal extends Vendor {
 
           const courseResponse = await axios.get(
             'https://www.biguotk.com/api/v4/study/user_courses',
-            lodash.merge({}, requestConfig, {
+            lodash.merge({}, config, {
               params: {professions_id: professionId, province_id: provinceId, school_id: schoolId},
             }),
           )
@@ -107,7 +107,7 @@ export default class BiguoReal extends Vendor {
           for (const course of courses) {
             const homeResponse = await axios.get(
               'https://www.biguotk.com/api/v4/study/home',
-              lodash.merge({}, requestConfig, {
+              lodash.merge({}, config, {
                 params: {
                   courses_id: course.courses_id,
                   professions_id: professionId,

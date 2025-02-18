@@ -1,10 +1,26 @@
 import {AxiosRequestConfig} from 'axios'
 import md5 from 'md5'
-import * as puppeteer from 'puppeteer'
+import puppeteer from 'puppeteer-extra'
+import RecaptchaPlugin from 'puppeteer-extra-plugin-recaptcha'
+import StealthPlugin from 'puppeteer-extra-plugin-stealth'
 import {Cookie} from 'tough-cookie'
 
 import memory from '../cache/memory.manager.js'
 import cookie from '../components/axios/plugin/cookie.js'
+import {TWOCAPTCHA_API_KEY} from '../env.js'
+
+puppeteer.use(StealthPlugin())
+
+// @see https://github.com/berstend/puppeteer-extra/issues/916
+puppeteer.use(
+  RecaptchaPlugin({
+    provider: {
+      id: '2captcha',
+      token: TWOCAPTCHA_API_KEY,
+    },
+    visualFeedback: true,
+  }),
+)
 
 /**
  * Browser.
@@ -40,11 +56,7 @@ const page = async (name: string, url: string, config?: AxiosRequestConfig) => {
 
     _page = await _browser.newPage()
 
-    await _page!.setUserAgent(
-      config?.headers?.['user-agent'] ??
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) ' +
-          'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36 Edg/128.0.0.0',
-    )
+    await _page!.setUserAgent(config?.headers?.['user-agent'] ?? (await _page.browser().userAgent()))
 
     await _page!.setExtraHTTPHeaders({
       'Accept-Language': config?.headers?.['accept-language'] ?? 'zh-CN,zh;q=0.9',

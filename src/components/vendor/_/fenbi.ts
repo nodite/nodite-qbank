@@ -3,7 +3,7 @@ import path from 'node:path'
 import type {CacheRequestConfig} from 'axios-cache-interceptor'
 import lodash from 'lodash'
 
-import {LoginOptions} from '../../../types/common.js'
+import {LoginOptions} from '../../../@types/common.js'
 import {OutputClass} from '../../output/common.js'
 import Markji from '../../output/fenbi/markji.js'
 import FenbiKaoyan from './fenbi-kaoyan.js'

@@ -18,6 +18,11 @@ const setup = (axios: AxiosInstance): AxiosInstance => {
   axios.interceptors.request.use(async (config) => {
     for (const c of config.headers['set-cookie'] ?? []) {
       const _cookie = Cookie.parse(c) as Cookie
+
+      const _url = new URL(config.url!)
+      _cookie.domain = _cookie.domain || _url.hostname
+      _cookie.path = _cookie.path || _url.pathname || '/'
+
       jar.setCookieSync(_cookie, `https://${_cookie.domain}${_cookie.path}`)
     }
 
@@ -35,6 +40,16 @@ const setup = (axios: AxiosInstance): AxiosInstance => {
       // store cookies to jar.
       for (const c of response.headers['set-cookie'] ?? []) {
         const _cookie = Cookie.parse(c) as Cookie
+
+        if (lodash.has(response, 'headers.location')) {
+          const _url = new URL(response.headers.location)
+          _cookie.domain = _cookie.domain || _url.hostname
+          _cookie.path = _cookie.path || _url.pathname || '/'
+        } else {
+          _cookie.domain = _cookie.domain || response.request?.host
+          _cookie.path = _cookie.path || response.request?.path || '/'
+        }
+
         jar.setCookieSync(_cookie, `https://${_cookie.domain}${_cookie.path}`)
       }
 

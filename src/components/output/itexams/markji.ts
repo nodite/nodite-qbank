@@ -1,11 +1,15 @@
 import lodash from 'lodash'
-import {parse} from 'node-html-parser'
+import {HTMLElement, parse} from 'node-html-parser'
 
 import {AssetString, QBankParams} from '../../../@types/common.js'
 import html from '../../../utils/html.js'
 import {find, throwError} from '../../../utils/index.js'
 import markji from '../../../utils/vendor/markji.js'
 import MarkjiBase from '../markji.js'
+
+const srcHandler = (src: string): string => {
+  return src
+}
 
 export default class Markji extends MarkjiBase {
   /**
@@ -20,28 +24,21 @@ export default class Markji extends MarkjiBase {
       points: {} as Record<string, AssetString>,
     }
 
-    const _html = parse(question)
+    const root = parse(question)
 
     // ===========================
     // _content.
-    _meta.content = await markji.parseHtml(
-      lodash
-        .chain(_html.querySelector('div:first-of-type > div:first-of-type > p:first-of-type')?.innerHTML || '')
-        .trim()
-        .replace(/^【所有题目】/, '')
-        .value(),
-      {style: this.HTML_STYLE},
-    )
+    _meta.content = await markji.parseHtml(root.querySelector('.question_text')?.textContent.trim() || '', {
+      srcHandler,
+      style: this.HTML_STYLE,
+    })
 
     // ===========================
     // _options.
     _meta.options = await Promise.all(
-      lodash.map(_html.querySelectorAll('div[id^=choiceDiv]'), async (element) => {
-        const choice = lodash.trim(element.querySelector('label')?.innerHTML || '')
-        const content = markji.parseHtml(choice, {style: this.HTML_STYLE})
-
-        return content
-      }),
+      lodash.map(root.querySelectorAll('.choices-list > li'), async (li: HTMLElement) =>
+        markji.parseHtml(li.textContent.trim(), {srcHandler, style: this.HTML_STYLE}),
+      ),
     )
 
     // 富文本选项
@@ -55,15 +52,15 @@ export default class Markji extends MarkjiBase {
 
       const _options: string[] = []
 
-      for (const option of _html.querySelectorAll('div[id^=choiceDiv]')) {
-        _options.push(lodash.trim(option.querySelector('label')?.outerHTML || ''))
-        _meta.options.push({
-          assets: [] as never,
-          text: lodash.trim(option.querySelector('label')?.querySelector('strong')?.textContent || ''),
-        })
+      for (const _li of root.querySelectorAll('.choices-list > li')) {
+        _options.push(_li.textContent.trim())
+        _meta.options.push({assets: [] as never, text: _li.getAttribute('data-choice') || ''})
       }
 
-      const _optionsContent = await html.toImage(_options.join('<br>'), {style: `${this.HTML_STYLE}${_htmlStyle}`})
+      const _optionsContent = await html.toImage(_options.join('<br>'), {
+        srcHandler,
+        style: `${this.HTML_STYLE}${_htmlStyle}`,
+      })
 
       _meta.content.text += `\n${_optionsContent.text}`
       _meta.content.assets = lodash.merge({}, _meta.content.assets, _optionsContent.assets)
@@ -71,10 +68,12 @@ export default class Markji extends MarkjiBase {
 
     // ===========================
     // _answers.
+    const answerBlock = root.querySelector('.answer_block')
+
     _meta.answers = lodash
-      .chain(lodash.trim(_html.querySelector('p[id=answerConcatenateStr]')?.innerHTML || ''))
-      .split(',')
-      .map((answer) => lodash.find(_meta.options, (option) => option.text.startsWith(answer.trim())) as AssetString)
+      .chain(answerBlock?.getAttribute('data-answer') || '')
+      .split()
+      .map((answer) => lodash.find(_meta.options, (op) => op.text.startsWith(answer.trim())) as AssetString)
       .value()
 
     if (lodash.isEmpty(_meta.answers)) {
@@ -89,16 +88,21 @@ export default class Markji extends MarkjiBase {
     }))
 
     // ===========================
-    // _explain.
-    _meta.points['[P#L#[T#B#解析]]'] = await markji.parseHtml(
-      lodash
-        .chain(_html.querySelectorAll('div#answerExplanation > p') || [])
-        .map((p) => lodash.trim(p.innerHTML))
-        .join('\n')
-        .trim()
-        .value(),
-      {style: this.HTML_STYLE},
-    )
+    // _points.
+    const _ps = answerBlock?.querySelectorAll('p')
+
+    for (const _p of _ps || []) {
+      const _parts = _p.textContent.trim().split(':', 2)
+
+      if (_parts.length <= 1) {
+        throwError('Unknown point found.', {p: _p.toString(), qbank, question})
+      }
+
+      _meta.points[`[P#L#[T#B#${_parts[0].trim()}]]`] = await markji.parseHtml(_parts[1].trim(), {
+        srcHandler,
+        style: this.HTML_STYLE,
+      })
+    }
 
     // ===========================
     // _output.

@@ -4,11 +4,11 @@ import {input} from '@inquirer/prompts'
 import fs from 'fs-extra'
 import lodash from 'lodash'
 
+import {ParseOptions, SafeNameOptions} from '../@types/common.js'
 import cacheManager from '../cache/cache.manager.js'
 import axios from '../components/axios/index.js'
 import {Vendor} from '../components/vendor/common.js'
 import {TMP_DIR} from '../env.js'
-import {ParseOptions} from '../types/common.js'
 import console from './console.js'
 
 export type FindOptions<T = object> = {
@@ -110,21 +110,23 @@ export function reverseTemplate(template: string, result: string): Record<string
 /**
  * Safe name.
  */
-export async function safeName(name: string, length: number = 48): Promise<string> {
-  if (name.length <= length) return name
+export async function safeName(name: string, options: SafeNameOptions = {}): Promise<string> {
+  if (!options?.length) options.length = 48
 
   const cacheClient = cacheManager.CommonClient
 
   let _safeName = await cacheClient.get<string>(`safe-name:${name}`)
 
-  if (_safeName && _safeName.length <= length) return _safeName
+  if (_safeName && _safeName.length <= options.length) return _safeName
+
+  if (name.length <= options.length) return name
 
   _safeName = name
 
-  while (_safeName.length > length) {
+  while (_safeName.length > options.length) {
     _safeName = await input({
       default: _safeName,
-      message: `Safe name (max ${length} chars):\n`,
+      message: `Safe name (max ${options.length} chars):\n`,
     })
   }
 

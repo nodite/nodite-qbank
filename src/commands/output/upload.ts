@@ -1,11 +1,11 @@
 import {Flags} from '@oclif/core'
 import {Presets, SingleBar} from 'cli-progress'
 
+import {Bank} from '../../@types/bank.js'
+import {Category} from '../../@types/category.js'
+import {Sheet} from '../../@types/sheet.js'
 import BaseCommand from '../../base.js'
 import VendorManager from '../../components/vendor/index.js'
-import {Bank} from '../../types/bank.js'
-import {Category} from '../../types/category.js'
-import {Sheet} from '../../types/sheet.js'
 import {emitter} from '../../utils/event.js'
 import {find} from '../../utils/index.js'
 

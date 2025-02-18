@@ -1,6 +1,6 @@
 import lodash from 'lodash'
 
-import {AssetString, QBankParams} from '../../../types/common.js'
+import {AssetString, QBankParams} from '../../../@types/common.js'
 import html from '../../../utils/html.js'
 import {find, throwError} from '../../../utils/index.js'
 import prompt from '../../../utils/prompt.js'

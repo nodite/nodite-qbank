@@ -1,6 +1,6 @@
 import lodash from 'lodash'
 
-import {AssetString, QBankParams} from '../../../types/common.js'
+import {AssetString, QBankParams} from '../../../@types/common.js'
 import html from '../../../utils/html.js'
 import {throwError} from '../../../utils/index.js'
 import parser from '../../../utils/parser.js'

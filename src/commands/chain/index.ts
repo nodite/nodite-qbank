@@ -2,12 +2,12 @@ import {Flags} from '@oclif/core'
 import colors from 'ansi-colors'
 import lodash from 'lodash'
 
+import {Bank} from '../../@types/bank.js'
+import {Category} from '../../@types/category.js'
+import {Sheet} from '../../@types/sheet.js'
 import BaseCommand from '../../base.js'
 import {Vendor} from '../../components/vendor/common.js'
 import VendorManager from '../../components/vendor/index.js'
-import {Bank} from '../../types/bank.js'
-import {Category} from '../../types/category.js'
-import {Sheet} from '../../types/sheet.js'
 import {fiindAll, getMemoryUsage} from '../../utils/index.js'
 
 export default class Index extends BaseCommand {
