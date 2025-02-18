@@ -1,3 +1,5 @@
+import path from 'node:path'
+
 import fs from 'fs-extra'
 import {convert} from 'html-to-text'
 import lodash from 'lodash'
@@ -5,8 +7,9 @@ import md5 from 'md5'
 import {parse} from 'node-html-parser'
 
 import axios from '../components/axios/index.js'
+import {TMP_DIR} from '../env.js'
 import {AssetString, ParseOptions} from '../types/common.js'
-import {throwError} from './index.js'
+import {handleImageSrc, throwError} from './index.js'
 import parser from './parser.js'
 import puppeteer from './puppeteer.js'
 
@@ -18,12 +21,12 @@ const toImage = async (html: string, options?: ParseOptions): Promise<AssetStrin
   // image handler
   const _root = parse(_htmlPreprocess(html))
 
-  if (options?.imgSrcHandler) {
-    for (const _img of _root.querySelectorAll('img')) {
-      const src = _img.getAttribute('src')
-      if (!src) continue
-      _img.setAttribute('src', options.imgSrcHandler(src))
-    }
+  for (const _img of _root.querySelectorAll('img')) {
+    const src = _img.getAttribute('src')
+
+    if (!src) continue
+
+    _img.setAttribute('src', await handleImageSrc(src, options?.srcHandler))
   }
 
   html = _root.toString()
@@ -65,7 +68,7 @@ const toImage = async (html: string, options?: ParseOptions): Promise<AssetStrin
       base64String = await page.screenshot({clip: viewport, encoding: 'base64', type: 'jpeg'})
     }
 
-    fs.writeFileSync('tmp/image.jpeg', base64String, {encoding: 'base64'})
+    await fs.writeFile(path.join(TMP_DIR, 'image.jpeg'), base64String, {encoding: 'base64'})
 
     const hash = md5(html).slice(0, 8)
 
@@ -91,4 +94,4 @@ const toText = async (html: string, options?: ParseOptions): Promise<AssetString
   return _text
 }
 
-export default {toImage, toText}
+export default {handleImageSrc, toImage, toText}

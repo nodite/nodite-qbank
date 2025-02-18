@@ -3,6 +3,7 @@ import {AxiosCacheInstance, buildMemoryStorage, setupCache} from 'axios-cache-in
 import axiosRetry from 'axios-retry'
 import lodash from 'lodash'
 
+import console from '../../utils/console.js'
 import cookie from './plugin/cookie.js'
 import vendor from './plugin/vendor.js'
 
@@ -38,10 +39,10 @@ vendor.setup(axiosInstance)
 axiosInstance.interceptors.response.use(
   async (response) => response,
   async (error) => {
-    console.log('\n')
-    console.log('request:', error?.request?.path)
-    console.log('message:', error?.response?.statusText)
-    console.log('response:', error?.response?.data)
+    console.error('\n')
+    console.error('request:', error?.request?.path)
+    console.error('message:', error?.response?.statusText)
+    console.error('response:', error?.response?.data)
     throw error
   },
 )

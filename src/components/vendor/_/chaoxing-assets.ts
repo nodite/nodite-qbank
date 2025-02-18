@@ -136,7 +136,7 @@ export default class ChaoXingAssets extends ChaoXingExam {
             excel2Json({
               columnToKey: {'*': '{{columnHeader}}'},
               header: {rows: 1},
-              source: fs.readFileSync(filepath),
+              source: await fs.readFile(filepath),
             }).Sheet0,
           )
           .map((q) => {

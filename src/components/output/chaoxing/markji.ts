@@ -6,7 +6,7 @@ import {find, throwError} from '../../../utils/index.js'
 import markji from '../../../utils/vendor/markji.js'
 import MarkjiBase from '../markji.js'
 
-const imgSrcHandler = (src: string): string => {
+const srcHandler = (src: string): string => {
   if (src.startsWith('/')) {
     src = 'http://ppt.beegoedu.com' + src
   }
@@ -75,7 +75,7 @@ export default class Markji extends MarkjiBase {
 
     // ====================
     // _content.
-    _meta.content = await markji.parseHtml(question.Title || '', {imgSrcHandler, style: this.HTML_STYLE})
+    _meta.content = await markji.parseHtml(question.Title || '', {srcHandler, style: this.HTML_STYLE})
 
     // ====================
     // _blanks.
@@ -107,7 +107,10 @@ export default class Markji extends MarkjiBase {
       text: lodash.filter([question['一级目录'], question['二级目录'], question['三级目录']]).join('\n'),
     }
 
-    _meta.points['[P#L#[T#B#题目解析]]'] = await markji.parseHtml('', {imgSrcHandler, style: this.HTML_STYLE})
+    _meta.points['[P#L#[T#B#题目解析]]'] = await markji.parseHtml('', {
+      srcHandler,
+      style: this.HTML_STYLE,
+    })
 
     // ===========================
     // _output.
@@ -146,7 +149,7 @@ export default class Markji extends MarkjiBase {
 
     // ===========================
     // _context.
-    _meta.content = await markji.parseHtml(question.Title || '', {imgSrcHandler, style: this.HTML_STYLE})
+    _meta.content = await markji.parseHtml(question.Title || '', {srcHandler, style: this.HTML_STYLE})
 
     // ===========================
     // _options.
@@ -158,7 +161,7 @@ export default class Markji extends MarkjiBase {
     _meta.options = await Promise.all(
       lodash
         .chain(_options)
-        .map((value, key) => markji.parseHtml(`${key}. ${value}`, {imgSrcHandler, style: this.HTML_STYLE}))
+        .map((value, key) => markji.parseHtml(`${key}. ${value}`, {srcHandler, style: this.HTML_STYLE}))
         .value(),
     )
 
@@ -176,7 +179,7 @@ export default class Markji extends MarkjiBase {
       }
 
       const _optsContent = await html.toImage(_opts.join('<br>'), {
-        imgSrcHandler,
+        srcHandler,
         style: `${this.HTML_STYLE}${_htmlStyle}`,
       })
 
@@ -204,7 +207,7 @@ export default class Markji extends MarkjiBase {
     }
 
     _meta.points['[P#L#[T#B#题目解析]]'] = await markji.parseHtml(question.Analyze || '', {
-      imgSrcHandler,
+      srcHandler,
       style: this.HTML_STYLE,
     })
 
@@ -253,11 +256,14 @@ export default class Markji extends MarkjiBase {
 
     // ===========================
     // _content.
-    _meta.content = await markji.parseHtml(question.Title || '', {imgSrcHandler, style: this.HTML_STYLE})
+    _meta.content = await markji.parseHtml(question.Title || '', {srcHandler, style: this.HTML_STYLE})
 
     // ===========================
     // _translation.
-    _meta.translation = await markji.parseHtml(question.Analyze || '', {imgSrcHandler, style: this.HTML_STYLE})
+    _meta.translation = await markji.parseHtml(question.Analyze || '', {
+      srcHandler,
+      style: this.HTML_STYLE,
+    })
 
     // ====================
     // points.
@@ -266,7 +272,10 @@ export default class Markji extends MarkjiBase {
       text: lodash.filter([question['一级目录'], question['二级目录'], question['三级目录']]).join('\n'),
     }
 
-    _meta.points['[P#L#[T#B#题目解析]]'] = await markji.parseHtml('', {imgSrcHandler, style: this.HTML_STYLE})
+    _meta.points['[P#L#[T#B#题目解析]]'] = await markji.parseHtml('', {
+      srcHandler,
+      style: this.HTML_STYLE,
+    })
 
     // _output.
     const _output = await html.toText(

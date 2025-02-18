@@ -6,7 +6,7 @@ import {find, throwError} from '../../../utils/index.js'
 import markji from '../../../utils/vendor/markji.js'
 import MarkjiBase from '../markji.js'
 
-const imgSrcHandler = (src: string): string => {
+const srcHandler = (src: string): string => {
   return src
 }
 
@@ -27,7 +27,7 @@ export default class Markji extends MarkjiBase {
       }
 
       output = await markji.parseHtml(_content.text.replaceAll(/\n+/g, '\n\n'), {
-        imgSrcHandler,
+        srcHandler,
         style: this.HTML_STYLE,
       })
 
@@ -53,7 +53,7 @@ export default class Markji extends MarkjiBase {
 
     // ===========================
     // _context.
-    _meta.content = await markji.parseHtml(question.shift_question, {imgSrcHandler, style: this.HTML_STYLE})
+    _meta.content = await markji.parseHtml(question.shift_question, {srcHandler, style: this.HTML_STYLE})
 
     // ===========================
     // _options.
@@ -64,7 +64,7 @@ export default class Markji extends MarkjiBase {
         .chain(_options)
         .map((_op, _idx) => {
           const _point = String.fromCodePoint(65 + _idx)
-          return markji.parseHtml(`${_point}. ${_op}`, {imgSrcHandler, style: this.HTML_STYLE})
+          return markji.parseHtml(`${_point}. ${_op}`, {srcHandler, style: this.HTML_STYLE})
         })
         .value(),
     )
@@ -84,7 +84,7 @@ export default class Markji extends MarkjiBase {
       }
 
       const _optsContent = await html.toImage(_opts.join('<br>'), {
-        imgSrcHandler,
+        srcHandler,
         style: `${this.HTML_STYLE}${_htmlStyle}`,
       })
 

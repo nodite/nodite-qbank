@@ -38,8 +38,12 @@ const parseDoc = async (str: string): Promise<string> => {
   const elements = []
 
   switch (data.name) {
-    case 'b': {
-      elements.push('<b>')
+    case 'b':
+    case 'i':
+    case 'p':
+    case 'u':
+    case 'ud': {
+      elements.push(`<${data.name}>`)
 
       if (!lodash.isEmpty(data.value)) {
         elements.push(data.value)
@@ -50,7 +54,7 @@ const parseDoc = async (str: string): Promise<string> => {
         elements.push(...children)
       }
 
-      elements.push('</b>')
+      elements.push(`</${data.name}>`)
 
       break
     }
@@ -87,23 +91,6 @@ const parseDoc = async (str: string): Promise<string> => {
       break
     }
 
-    case 'i': {
-      elements.push('<i>')
-
-      if (!lodash.isEmpty(data.value)) {
-        elements.push(data.value)
-      }
-
-      if (!lodash.isEmpty(data.children)) {
-        const children = await Promise.all(lodash.map(data.children, async (child) => parseDoc(JSON.stringify(child))))
-        elements.push(...children)
-      }
-
-      elements.push('</i>')
-
-      break
-    }
-
     case 'img': {
       elements.push(`<img src="https://fb.fenbike.cn/api/tarzan/images/${data.value}" />`)
 
@@ -126,23 +113,6 @@ const parseDoc = async (str: string): Promise<string> => {
       break
     }
 
-    case 'p': {
-      elements.push('<p>')
-
-      if (!lodash.isEmpty(data.value)) {
-        elements.push(data.value)
-      }
-
-      if (!lodash.isEmpty(data.children)) {
-        const children = await Promise.all(lodash.map(data.children, async (child) => parseDoc(JSON.stringify(child))))
-        elements.push(...children)
-      }
-
-      elements.push('</p>')
-
-      break
-    }
-
     case 'tex': {
       elements.push(`<img src="https://fb.fenbike.cn/api/planet/accessories/formulas?latex=${data.value}" />`)
 
@@ -151,23 +121,6 @@ const parseDoc = async (str: string): Promise<string> => {
 
     case 'txt': {
       elements.push(data.value)
-
-      break
-    }
-
-    case 'u': {
-      elements.push('<u>')
-
-      if (!lodash.isEmpty(data.value)) {
-        elements.push(data.value)
-      }
-
-      if (!lodash.isEmpty(data.children)) {
-        const children = await Promise.all(lodash.map(data.children, async (child) => parseDoc(JSON.stringify(child))))
-        elements.push(...children)
-      }
-
-      elements.push('</u>')
 
       break
     }

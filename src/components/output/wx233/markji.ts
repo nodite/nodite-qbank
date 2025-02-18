@@ -6,7 +6,7 @@ import {find, throwError} from '../../../utils/index.js'
 import markji from '../../../utils/vendor/markji.js'
 import MarkjiBase from '../markji.js'
 
-const imgSrcHandler = (src: string): string => {
+const srcHandler = (src: string): string => {
   // trim http://wx.233.com or https://wx.233.com
   src = src.replace(/^(https?:)?\/\/wx\.233\.com/, '')
 
@@ -98,12 +98,15 @@ export default class Markji extends MarkjiBase {
 
     // ===========================
     // _material.
-    _meta.material = await markji.parseHtml(question.material || '', {imgSrcHandler, style: this.HTML_STYLE})
+    _meta.material = await markji.parseHtml(question.material || '', {
+      srcHandler,
+      style: this.HTML_STYLE,
+    })
     _meta.material.text += '\n'
 
     // ===========================
     // _content.
-    _meta.content = await markji.parseHtml(question.content || '', {imgSrcHandler, style: this.HTML_STYLE})
+    _meta.content = await markji.parseHtml(question.content || '', {srcHandler, style: this.HTML_STYLE})
 
     if (question.sort && question.RealOrderNumber) {
       const _char = find(Object.values(_meta.content.assets), 'data:', {fuzzy: true}) ? '\n' : ' '
@@ -114,7 +117,7 @@ export default class Markji extends MarkjiBase {
     // _options.
     _meta.options = await Promise.all(
       lodash.map(question.questionOptionRspList, (option) =>
-        markji.parseHtml(lodash.trim(option.content), {imgSrcHandler, style: this.HTML_STYLE}),
+        markji.parseHtml(lodash.trim(option.content), {srcHandler, style: this.HTML_STYLE}),
       ),
     )
 
@@ -158,7 +161,7 @@ export default class Markji extends MarkjiBase {
 
     // ===========================
     // _explain.
-    _meta.explain = await markji.parseHtml(question.analysis || '', {imgSrcHandler, style: this.HTML_STYLE})
+    _meta.explain = await markji.parseHtml(question.analysis || '', {srcHandler, style: this.HTML_STYLE})
 
     // ===========================
     // _points.
@@ -211,12 +214,15 @@ export default class Markji extends MarkjiBase {
 
     // ===========================
     // _material.
-    _meta.material = await markji.parseHtml(question.material || '', {imgSrcHandler, style: this.HTML_STYLE})
+    _meta.material = await markji.parseHtml(question.material || '', {
+      srcHandler,
+      style: this.HTML_STYLE,
+    })
     _meta.material.text += '\n'
 
     // ===========================
     // _content.
-    _meta.content = await markji.parseHtml(question.content || '', {imgSrcHandler, style: this.HTML_STYLE})
+    _meta.content = await markji.parseHtml(question.content || '', {srcHandler, style: this.HTML_STYLE})
 
     if (question.sort && question.RealOrderNumber) {
       const _char = find(Object.values(_meta.content.assets), 'data:', {fuzzy: true}) ? '\n' : ' '
@@ -225,7 +231,10 @@ export default class Markji extends MarkjiBase {
 
     // ===========================
     // _translation.
-    _meta.translation = await markji.parseHtml(question.analysis || '', {imgSrcHandler, style: this.HTML_STYLE})
+    _meta.translation = await markji.parseHtml(question.analysis || '', {
+      srcHandler,
+      style: this.HTML_STYLE,
+    })
 
     // ===========================
     // _explain.

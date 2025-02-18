@@ -1,9 +1,15 @@
+import path from 'node:path'
+
 import {input} from '@inquirer/prompts'
 import fs from 'fs-extra'
 import lodash from 'lodash'
 
 import cacheManager from '../cache/cache.manager.js'
+import axios from '../components/axios/index.js'
 import {Vendor} from '../components/vendor/common.js'
+import {TMP_DIR} from '../env.js'
+import {ParseOptions} from '../types/common.js'
+import console from './console.js'
 
 export type FindOptions<T = object> = {
   excludeKey?: ('meta' | keyof T)[]
@@ -73,7 +79,7 @@ export function fiindAll<T>(items: T[], substrings: string[], options?: FindOpti
 }
 
 export function throwError(message: string | unknown, data: unknown): never {
-  let errFile = 'tmp/error.json'
+  let errFile = path.join(TMP_DIR, 'error.json')
 
   if (lodash.has(data, 'qbank')) {
     const qbank = data.qbank as Record<string, any>
@@ -139,4 +145,37 @@ export function isJSON(str: string): boolean {
 export function getMemoryUsage(): Record<string, string> {
   const memoryUsage = process.memoryUsage()
   return lodash.mapValues(memoryUsage, (value) => (value / 1024 / 1024).toFixed(2) + ' MB')
+}
+
+export async function handleImageSrc(src: string, srcHandler: ParseOptions['srcHandler']): Promise<string> {
+  if (!srcHandler || !src) return src
+
+  let srcs = srcHandler(src)
+  if (!lodash.isArray(srcs)) srcs = [srcs]
+
+  let _src =
+    srcs.length === 1
+      ? srcs.pop()
+      : lodash.find(
+          await Promise.all(
+            lodash.map(srcs, async (src) =>
+              axios
+                .get(src, {responseType: 'arraybuffer'})
+                .then(() => src)
+                .catch(() => {
+                  console.warn(`image not found: ${src}`)
+                  return false
+                }),
+            ),
+          ),
+          (src) => src,
+        )
+
+  if (!_src) {
+    await fs.ensureFile(path.join(TMP_DIR, 'srcs-missing.log'))
+    await fs.appendFile(path.join(TMP_DIR, 'srcs-missing.log'), `${srcs.join('\n')}\n\n`)
+    _src = srcs.shift()
+  }
+
+  return _src as string
 }

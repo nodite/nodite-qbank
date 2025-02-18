@@ -4,6 +4,7 @@ import {parse} from 'node-html-parser'
 
 import axios from '../components/axios/index.js'
 import {AssetString, ParseOptions} from '../types/common.js'
+import {handleImageSrc} from './index.js'
 
 const audio = async (url: string, _options?: ParseOptions): Promise<AssetString> => {
   const assetString = {assets: {}} as AssetString
@@ -36,7 +37,7 @@ const image = async (text: string, options?: ParseOptions): Promise<AssetString>
 
     if (!src || src === '</documentfragmentcontainer') continue
 
-    if (options?.imgSrcHandler) src = options.imgSrcHandler(src)
+    src = await handleImageSrc(src, options?.srcHandler)
 
     const hash = md5(JSON.stringify({index: idx, text, type: 'image'})).slice(0, 8)
 
@@ -177,20 +178,22 @@ const toAssets = async (text: string, options?: ParseOptions): Promise<AssetStri
   parsed.text = _images.text
   parsed.assets = {...parsed.assets, ..._images.assets}
 
-  // _inputs.
-  const _inputs = await input(parsed.text, options)
-  parsed.text = _inputs.text
-  parsed.assets = {...parsed.assets, ..._inputs.assets}
+  if (!options?.skipInput) {
+    // _inputs.
+    const _inputs = await input(parsed.text, options)
+    parsed.text = _inputs.text
+    parsed.assets = {...parsed.assets, ..._inputs.assets}
 
-  // _underline
-  const _underline = await underline(parsed.text, options)
-  parsed.text = _underline.text
-  parsed.assets = {...parsed.assets, ..._underline.assets}
+    // _underline
+    const _underline = await underline(parsed.text, options)
+    parsed.text = _underline.text
+    parsed.assets = {...parsed.assets, ..._underline.assets}
 
-  // _bracket
-  const _quotes = await quotes(parsed.text, options)
-  parsed.text = _quotes.text
-  parsed.assets = {...parsed.assets, ..._quotes.assets}
+    // _bracket
+    const _quotes = await quotes(parsed.text, options)
+    parsed.text = _quotes.text
+    parsed.assets = {...parsed.assets, ..._quotes.assets}
+  }
 
   return parsed
 }

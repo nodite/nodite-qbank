@@ -23,8 +23,9 @@ type ConvertOptions = {
 }
 
 type ParseOptions = {
-  imgSrcHandler?: (src: string) => string
   showIndex?: boolean
+  skipInput?: boolean
+  srcHandler?: (src: string) => string | string[]
   style?: string
   width?: number
 }
