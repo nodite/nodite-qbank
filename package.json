@@ -10,7 +10,7 @@
   "dependencies": {
     "@boterop/convert-excel-to-json": "^2.0.0",
     "@inquirer/prompts": "^7",
-    "@keyv/postgres": "^2.1.0",
+    "@keyv/postgres": "^2.1.1",
     "@langchain/community": "^0",
     "@langchain/core": "^0",
     "@langchain/ollama": "^0",
