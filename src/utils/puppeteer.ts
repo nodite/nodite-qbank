@@ -1,6 +1,7 @@
 import {AxiosRequestConfig} from 'axios'
 import md5 from 'md5'
-import puppeteer from 'puppeteer-extra'
+import {Browser, Page} from 'puppeteer'
+import _puppeteer from 'puppeteer-extra'
 import RecaptchaPlugin from 'puppeteer-extra-plugin-recaptcha'
 import StealthPlugin from 'puppeteer-extra-plugin-stealth'
 import {Cookie} from 'tough-cookie'
@@ -9,11 +10,13 @@ import memory from '../cache/memory.manager.js'
 import cookie from '../components/axios/plugin/cookie.js'
 import {TWOCAPTCHA_API_KEY} from '../env.js'
 
+const puppeteer = _puppeteer.default
+
 puppeteer.use(StealthPlugin())
 
 // @see https://github.com/berstend/puppeteer-extra/issues/916
 puppeteer.use(
-  RecaptchaPlugin({
+  RecaptchaPlugin.default({
     provider: {
       id: '2captcha',
       token: TWOCAPTCHA_API_KEY,
@@ -28,7 +31,7 @@ puppeteer.use(
 const browser = async (create: boolean = true) => {
   const cacheKey = 'puppeteer:browser'
 
-  let _browser = await memory.cache.get<puppeteer.Browser>(cacheKey)
+  let _browser = await memory.cache.get<Browser>(cacheKey)
 
   if ((!_browser || !_browser.connected) && create) {
     _browser = await puppeteer.launch({
@@ -49,10 +52,10 @@ const browser = async (create: boolean = true) => {
 const page = async (name: string, url: string, config?: AxiosRequestConfig) => {
   const pageCacheKey = `puppeteer:page:${md5(url)}`
 
-  let _page = await memory.cache.get<puppeteer.Page>(pageCacheKey)
+  let _page = await memory.cache.get<Page>(pageCacheKey)
 
   if (!_page || _page.isClosed()) {
-    const _browser = (await browser()) as puppeteer.Browser
+    const _browser = (await browser()) as Browser
 
     _page = await _browser.newPage()
 

@@ -3,7 +3,7 @@ import type {CacheRequestConfig} from 'axios-cache-interceptor'
 import lodash from 'lodash'
 import md5 from 'md5'
 import {HTMLElement, parse} from 'node-html-parser'
-import {Page} from 'puppeteer-extra'
+import {Page} from 'puppeteer'
 import sleep from 'sleep-promise'
 
 import {Bank} from '../../../@types/bank.js'

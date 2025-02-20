@@ -748,6 +748,9 @@ export default class Markji extends MarkjiBase {
       })
     }
 
+    // 190: cat
+    lodash.remove(question.solution.solutionAccessories, {label: 'cat', type: 190})
+
     if (!lodash.isEmpty(question.solution.solutionAccessories)) {
       throwError('Unsupported solution accessories.', {qbank, question})
     }
