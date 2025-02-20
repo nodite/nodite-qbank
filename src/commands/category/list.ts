@@ -3,11 +3,11 @@ import lodash from 'lodash'
 // @ts-expect-error because object-treeify v2 is not typed
 import treeify from 'object-treeify'
 
+import {Bank} from '../../@types/bank.js'
+import {Category} from '../../@types/category.js'
 import BaseCommand from '../../base.js'
 import {HashKeyScope} from '../../components/vendor/common.js'
 import VendorManager from '../../components/vendor/index.js'
-import {Bank} from '../../types/bank.js'
-import {Category} from '../../types/category.js'
 import {find} from '../../utils/index.js'
 
 export default class List extends BaseCommand {

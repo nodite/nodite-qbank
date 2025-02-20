@@ -6,11 +6,11 @@ import lodash from 'lodash'
 import md5 from 'md5'
 import sleep from 'sleep-promise'
 
+import {Bank} from '../../../@types/bank.js'
+import {Category} from '../../../@types/category.js'
+import {FetchOptions} from '../../../@types/common.js'
+import {Sheet} from '../../../@types/sheet.js'
 import cacheManager from '../../../cache/cache.manager.js'
-import {Bank} from '../../../types/bank.js'
-import {Category} from '../../../types/category.js'
-import {FetchOptions} from '../../../types/common.js'
-import {Sheet} from '../../../types/sheet.js'
 import {emitter} from '../../../utils/event.js'
 import {safeName} from '../../../utils/index.js'
 import puppeteer from '../../../utils/puppeteer.js'
@@ -44,7 +44,7 @@ export default class AwsMytodo extends Vendor {
 
     const elements = await page.$$('.card-body')
 
-    for (const [index, element] of elements.entries()) {
+    for (const element of elements) {
       const category = await (await element.$('.card-title'))?.evaluate((element) => element.textContent?.trim())
       const name = await (await element.$('.card-text'))?.evaluate((element) => element.textContent?.trim())
 
@@ -53,8 +53,7 @@ export default class AwsMytodo extends Vendor {
         meta: {
           category: String(category?.toLowerCase()),
         },
-        name: await safeName(String(name), 20),
-        order: index,
+        name: await safeName(String(name)),
       })
     }
 
@@ -65,14 +64,14 @@ export default class AwsMytodo extends Vendor {
    * Categories.
    */
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.CATEGORIES)})
-  protected async fetchCategories(params: {bank: Bank}): Promise<Category[]> {
+  protected async fetchCategories(qbank: {bank: Bank}): Promise<Category[]> {
     const config = await this.login()
 
     const page = await puppeteer.page('mytodo', 'https://mytodo.vip/', config)
 
     await Promise.all([
       page.waitForSelector('a[id^=sheet]'),
-      page.goto(`https://mytodo.vip/subjects/detail?type=1&category=${params.bank.meta?.category}`),
+      page.goto(`https://mytodo.vip/subjects/detail?type=1&category=${qbank.bank.meta?.category}`),
     ])
 
     // a id="sheet*", * is count
@@ -83,14 +82,14 @@ export default class AwsMytodo extends Vendor {
         ),
       ) || 0
 
-    return [{children: [], count, id: md5('0'), name: 'mytodo', order: 0}]
+    return [{children: [], count, id: md5('0'), name: '默认', order: 0}]
   }
 
   /**
    * Questions.
    */
   public async fetchQuestions(
-    params: {bank: Bank; category: Category; sheet: Sheet},
+    qbank: {bank: Bank; category: Category; sheet: Sheet},
     options?: FetchOptions,
   ): Promise<void> {
     // prepare
@@ -99,39 +98,39 @@ export default class AwsMytodo extends Vendor {
 
     // cache key
     const cacheKeyParams = {
-      bankId: params.bank.id,
-      categoryId: params.category.id,
-      sheetId: params.sheet.id,
+      bankId: qbank.bank.id,
+      categoryId: qbank.category.id,
+      sheetId: qbank.sheet.id,
       vendorKey: (this.constructor as typeof Vendor).META.key,
     }
 
-    const originQuestionKeys = await cacheClient.keys(
+    const orgQKeys = await cacheClient.keys(
       lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)({...cacheKeyParams, questionId: '*'}),
     )
 
     // refetch.
     if (options?.refetch) {
       await cacheClient.delHash(lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)({...cacheKeyParams, questionId: '*'}))
-      originQuestionKeys.length = 0
+      orgQKeys.length = 0
     }
 
-    emitter.emit('questions.fetch.count', originQuestionKeys.length)
+    emitter.emit('questions.fetch.count', orgQKeys.length)
 
-    if (originQuestionKeys.length < params.sheet.count) {
+    if (orgQKeys.length < qbank.sheet.count) {
       // for loop params.sheet.count
-      for (let i = 1; i <= params.sheet.count; i++) {
-        const _questionId = String(i)
+      for (let i = 1; i <= qbank.sheet.count; i++) {
+        const _qId = String(i)
 
-        const _questionCacheKey = lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)({
+        const _qCacheKey = lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)({
           ...cacheKeyParams,
-          questionId: _questionId,
+          questionId: _qId,
         })
 
-        if (originQuestionKeys.includes(_questionCacheKey)) continue
+        if (orgQKeys.includes(_qCacheKey)) continue
 
         const page = await puppeteer.page(
           'mytodo',
-          `https://mytodo.vip/subjects/detail?type=1&category=${params.bank.meta?.category}&sid=${_questionId}`,
+          `https://mytodo.vip/subjects/detail?type=1&category=${qbank.bank.meta?.category}&sid=${_qId}`,
           config,
         )
 
@@ -140,11 +139,11 @@ export default class AwsMytodo extends Vendor {
         // get html from div[class=container]
         const html = await page.$eval('div[class=container] > div:first-of-type', (element) => element.outerHTML)
 
-        await cacheClient.set(_questionCacheKey, html)
+        await cacheClient.set(_qCacheKey, html)
 
-        originQuestionKeys.push(_questionCacheKey)
+        orgQKeys.push(_qCacheKey)
 
-        emitter.emit('questions.fetch.count', originQuestionKeys.length)
+        emitter.emit('questions.fetch.count', orgQKeys.length)
 
         await page.close()
 
@@ -153,7 +152,7 @@ export default class AwsMytodo extends Vendor {
       }
     }
 
-    emitter.emit('questions.fetch.count', originQuestionKeys.length)
+    emitter.emit('questions.fetch.count', orgQKeys.length)
 
     await sleep(500)
 
@@ -164,8 +163,8 @@ export default class AwsMytodo extends Vendor {
    * Sheet.
    */
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.SHEETS)})
-  public async fetchSheet(params: {bank: Bank; category: Category}, _options?: FetchOptions): Promise<Sheet[]> {
-    return [{count: params.category.count, id: md5('0'), name: '默认'}]
+  public async fetchSheet(qbank: {bank: Bank; category: Category}, _options?: FetchOptions): Promise<Sheet[]> {
+    return [{count: qbank.category.count, id: md5('0'), name: '默认'}]
   }
 
   /**

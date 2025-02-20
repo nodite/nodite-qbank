@@ -2,7 +2,7 @@ import lodash from 'lodash'
 import {natsort} from 'natsort-esm'
 import sleep from 'sleep-promise'
 
-import {AssetString, ConvertOptions, QBankParams, UploadOptions} from '../../types/common.js'
+import {AssetString, ConvertOptions, QBankParams, UploadOptions} from '../../@types/common.js'
 import {emitter} from '../../utils/event.js'
 import {reverseTemplate, throwError} from '../../utils/index.js'
 import markji from '../../utils/vendor/markji.js'

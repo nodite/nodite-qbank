@@ -1,6 +1,6 @@
 import cacheManager from '@type-cacheable/core'
 
-import {ComponentMeta} from '../types/common.js'
+import {ComponentMeta} from '../@types/common.js'
 
 abstract class Component {
   public static META: ComponentMeta

@@ -1,4 +1,4 @@
-import {ConvertOptions, QBankParams, UploadOptions} from '../../types/common.js'
+import {ConvertOptions, QBankParams, UploadOptions} from '../../@types/common.js'
 import {Component} from '../common.js'
 
 abstract class Output extends Component {

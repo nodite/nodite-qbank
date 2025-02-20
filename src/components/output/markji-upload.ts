@@ -1,6 +1,6 @@
 import sleep from 'sleep-promise'
 
-import {ConvertOptions, QBankParams} from '../../types/common.js'
+import {ConvertOptions, QBankParams} from '../../@types/common.js'
 import {emitter} from '../../utils/event.js'
 import Markji from './markji.js'
 

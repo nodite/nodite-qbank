@@ -1,6 +1,6 @@
 import sleep from 'sleep-promise'
 
-import {ConvertOptions, QBankParams, UploadOptions} from '../../types/common.js'
+import {ConvertOptions, QBankParams, UploadOptions} from '../../@types/common.js'
 import {emitter} from '../../utils/event.js'
 import {Output} from './common.js'
 

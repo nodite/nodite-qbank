@@ -3,11 +3,11 @@ import {Command, Flags} from '@oclif/core'
 import colors from 'ansi-colors'
 import lodash from 'lodash'
 
+import {Bank} from './@types/bank.js'
+import {Category} from './@types/category.js'
 import cacheManager from './cache/cache.manager.js'
 import OutputManager from './components/output/index.js'
 import VendorManager from './components/vendor/index.js'
-import {Bank} from './types/bank.js'
-import {Category} from './types/category.js'
 import console from './utils/console.js'
 import {fiindAll, find} from './utils/index.js'
 

@@ -1,4 +1,4 @@
-import {ConvertOptions, QBankParams, UploadOptions} from '../../types/common.js'
+import {ConvertOptions, QBankParams, UploadOptions} from '../../@types/common.js'
 import {Output} from './common.js'
 
 export default class File extends Output {

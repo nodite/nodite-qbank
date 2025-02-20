@@ -48,6 +48,10 @@ type QBankParams = {
   vendor: Vendor
 }
 
+type SafeNameOptions = {
+  length?: number
+}
+
 export {
   AssetString,
   ComponentMeta,
@@ -56,5 +60,6 @@ export {
   LoginOptions,
   ParseOptions,
   QBankParams,
+  SafeNameOptions,
   UploadOptions,
 }

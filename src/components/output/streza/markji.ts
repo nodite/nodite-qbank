@@ -1,5 +1,4 @@
 import lodash from 'lodash'
-import {parse} from 'node-html-parser'
 
 import {AssetString, QBankParams} from '../../../@types/common.js'
 import html from '../../../utils/html.js'
@@ -20,28 +19,18 @@ export default class Markji extends MarkjiBase {
       points: {} as Record<string, AssetString>,
     }
 
-    const _html = parse(question)
-
     // ===========================
     // _content.
-    _meta.content = await markji.parseHtml(
-      lodash
-        .chain(_html.querySelector('div:first-of-type > div:first-of-type > p:first-of-type')?.innerHTML || '')
-        .trim()
-        .replace(/^【所有题目】/, '')
-        .value(),
-      {style: this.HTML_STYLE},
-    )
+    _meta.content = await markji.parseHtml(question.question)
+
+    delete question.question
 
     // ===========================
     // _options.
     _meta.options = await Promise.all(
-      lodash.map(_html.querySelectorAll('div[id^=choiceDiv]'), async (element) => {
-        const choice = lodash.trim(element.querySelector('label')?.innerHTML || '')
-        const content = markji.parseHtml(choice, {style: this.HTML_STYLE})
-
-        return content
-      }),
+      lodash.map(question.options, async (option, point) =>
+        markji.parseHtml(`${point}. ${option}`, {style: this.HTML_STYLE}),
+      ),
     )
 
     // 富文本选项
@@ -55,12 +44,9 @@ export default class Markji extends MarkjiBase {
 
       const _options: string[] = []
 
-      for (const option of _html.querySelectorAll('div[id^=choiceDiv]')) {
-        _options.push(lodash.trim(option.querySelector('label')?.outerHTML || ''))
-        _meta.options.push({
-          assets: [] as never,
-          text: lodash.trim(option.querySelector('label')?.querySelector('strong')?.textContent || ''),
-        })
+      for (const [_point, _option] of question.options.entries()) {
+        _options.push(`${_point}. ${_option}`)
+        _meta.options.push({assets: [] as never, text: _point})
       }
 
       const _optionsContent = await html.toImage(_options.join('<br>'), {style: `${this.HTML_STYLE}${_htmlStyle}`})
@@ -69,12 +55,14 @@ export default class Markji extends MarkjiBase {
       _meta.content.assets = lodash.merge({}, _meta.content.assets, _optionsContent.assets)
     }
 
+    delete question.options
+
     // ===========================
     // _answers.
     _meta.answers = lodash
-      .chain(lodash.trim(_html.querySelector('p[id=answerConcatenateStr]')?.innerHTML || ''))
+      .chain(question.answer)
       .split(',')
-      .map((answer) => lodash.find(_meta.options, (option) => option.text.startsWith(answer.trim())) as AssetString)
+      .map((answer) => lodash.find(_meta.options, (op) => op.text.startsWith(answer.trim())) as AssetString)
       .value()
 
     if (lodash.isEmpty(_meta.answers)) {
@@ -88,17 +76,18 @@ export default class Markji extends MarkjiBase {
       text: `${_meta.answers.includes(option) ? '*' : '-'} ${option.text}`,
     }))
 
+    delete question.answer
+
     // ===========================
-    // _explain.
-    _meta.points['[P#L#[T#B#解析]]'] = await markji.parseHtml(
-      lodash
-        .chain(_html.querySelectorAll('div#answerExplanation > p') || [])
-        .map((p) => lodash.trim(p.innerHTML))
-        .join('\n')
-        .trim()
-        .value(),
-      {style: this.HTML_STYLE},
-    )
+    // _points.
+    if (lodash.has(question, 'competency')) {
+      _meta.points['[P#L#[T#B#Competency]]'] = await markji.parseHtml(question.competency, {style: this.HTML_STYLE})
+      delete question.competency
+    }
+
+    if (!lodash.isEmpty(question)) {
+      throwError('Unknown attributes.', {qbank, question})
+    }
 
     // ===========================
     // _output.

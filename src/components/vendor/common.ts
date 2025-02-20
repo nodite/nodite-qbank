@@ -2,11 +2,11 @@ import {Cacheable, CacheKeyBuilder} from '@type-cacheable/core'
 import type {CacheRequestConfig} from 'axios-cache-interceptor'
 import lodash from 'lodash'
 
+import {Bank} from '../../@types/bank.js'
+import {Category} from '../../@types/category.js'
+import {FetchOptions, LoginOptions} from '../../@types/common.js'
+import {Sheet} from '../../@types/sheet.js'
 import cacheManager from '../../cache/cache.manager.js'
-import {Bank} from '../../types/bank.js'
-import {Category} from '../../types/category.js'
-import {FetchOptions, LoginOptions} from '../../types/common.js'
-import {Sheet} from '../../types/sheet.js'
 import {
   CACHE_KEY_BANKS,
   CACHE_KEY_CATEGORIES,
@@ -95,7 +95,7 @@ abstract class Vendor extends Component {
 
     return lodash
       .chain(banks)
-      .sortBy(['order', 'id', 'name'], ['asc', 'asc', 'asc'])
+      .sortBy(['order', 'name', 'id'], ['asc', 'asc', 'asc'])
       .map((_bank, idx) => ({
         ..._bank,
         order: options?.excludeTtl ? idx : idx - 1,
@@ -110,7 +110,7 @@ abstract class Vendor extends Component {
         })
       })
       .flatten()
-      .sortBy(['order', 'id', 'name'], ['asc', 'asc', 'asc'])
+      .sortBy(['order', 'name', 'id'], ['asc', 'asc', 'asc'])
       .value()
   }
 
@@ -144,7 +144,7 @@ abstract class Vendor extends Component {
 
       return lodash
         .chain(categories)
-        .sortBy(['order', 'id', 'name'], ['asc', 'asc', 'asc'])
+        .sortBy(['order', 'name', 'id'], ['asc', 'asc', 'asc'])
         .map((_cate, idx) => ({..._cate, order: options?.excludeTtl ? idx : idx - 1}))
         .groupBy('name')
         .map((_cates, _name) => {
@@ -156,7 +156,7 @@ abstract class Vendor extends Component {
           })
         })
         .flatten()
-        .sortBy(['order', 'id', 'name'], ['asc', 'asc', 'asc'])
+        .sortBy(['order', 'name', 'id'], ['asc', 'asc', 'asc'])
         .value()
     }
 
@@ -175,7 +175,7 @@ abstract class Vendor extends Component {
 
     return lodash
       .chain(sheets)
-      .sortBy(['order', 'id', 'name'], ['asc', 'asc', 'asc'])
+      .sortBy(['order', 'name', 'id'], ['asc', 'asc', 'asc'])
       .map((_sheet, idx) => ({..._sheet, order: options?.excludeTtl ? idx : idx - 1}))
       .groupBy('name')
       .map((_sheets, _name) => {
@@ -187,7 +187,7 @@ abstract class Vendor extends Component {
         })
       })
       .flatten()
-      .sortBy(['order', 'id', 'name'], ['asc', 'asc', 'asc'])
+      .sortBy(['order', 'name', 'id'], ['asc', 'asc', 'asc'])
       .value()
   }
 

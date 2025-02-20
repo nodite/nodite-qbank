@@ -114,6 +114,7 @@ export default [
       'sort-keys': 'off',
       'unicorn/error-message': 'off',
       'unicorn/no-array-for-each': 'off',
+      'unicorn/prefer-dom-node-dataset': 'off',
       'unicorn/prefer-global-this': 'off',
       'valid-jsdoc': 'off',
     },

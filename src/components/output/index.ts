@@ -1,4 +1,4 @@
-import {ComponentMeta} from '../../types/common.js'
+import {ComponentMeta} from '../../@types/common.js'
 import {Output, OutputClass} from './common.js'
 
 export default class OutputManager {

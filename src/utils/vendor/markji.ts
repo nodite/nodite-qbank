@@ -7,17 +7,17 @@ import {natsort} from 'natsort-esm'
 import sleep from 'sleep-promise'
 import * as streamifier from 'streamifier'
 
+import {Bank, MarkjiFolder} from '../../@types/bank.js'
+import {Category} from '../../@types/category.js'
+import {AssetString, ParseOptions, QBankParams} from '../../@types/common.js'
+import {MarkjiChapter, Sheet} from '../../@types/sheet.js'
+import {BulkUploadOptions, MarkjiInfo} from '../../@types/vendor/markji.js'
 import memory from '../../cache/memory.manager.js'
 import axios from '../../components/axios/index.js'
 import {CACHE_KEY_QUESTION_ITEM} from '../../components/cache-pattern.js'
 import {Output} from '../../components/output/common.js'
 import {HashKeyScope, Vendor} from '../../components/vendor/common.js'
 import VendorManager from '../../components/vendor/index.js'
-import {Bank, MarkjiFolder} from '../../types/bank.js'
-import {Category} from '../../types/category.js'
-import {AssetString, ParseOptions, QBankParams} from '../../types/common.js'
-import {MarkjiChapter, Sheet} from '../../types/sheet.js'
-import {BulkUploadOptions, MarkjiInfo} from '../../types/vendor/markji.js'
 import {emitter} from '../event.js'
 import html from '../html.js'
 import {find, safeName, throwError} from '../index.js'
@@ -71,12 +71,12 @@ const ensureContact = async (
  */
 const _folder = async (
   markji: {vendor: Vendor},
-  params: {vendor: Vendor},
+  qbank: {vendor: Vendor},
   requestConfig: CacheRequestConfig,
 ): Promise<MarkjiFolder> => {
   await markji.vendor.invalidate(HashKeyScope.BANKS)
 
-  const vendorMeta = (params.vendor.constructor as typeof Vendor).META
+  const vendorMeta = (qbank.vendor.constructor as typeof Vendor).META
 
   let folders = await markji.vendor.banks()
   let folder = find<MarkjiFolder>(folders, vendorMeta.name)
@@ -109,7 +109,9 @@ const _deck = async (
 
   const vendorMeta = (qbank.vendor.constructor as typeof Vendor).META
   let decks = await markji.vendor.categories({bank: markji.folder})
-  let deck = find<Category>(decks, qbank.bank.name)
+  let deck = lodash.find(decks, (deck) => {
+    return deck.name === qbank.bank.name && deck.meta?.description === vendorMeta.key
+  })
 
   // create.
   if (!deck) {
