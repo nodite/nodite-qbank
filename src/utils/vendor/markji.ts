@@ -22,29 +22,11 @@ import {emitter} from '../event.js'
 import html from '../html.js'
 import {find, safeName, throwError} from '../index.js'
 
-const ensureContact = async (
-  markji: {deck: Category; folder: Bank; vendor: Vendor},
-  requestConfig: CacheRequestConfig,
-) => {
+const ensureContact = async (markji: {deck: Category; folder: Bank; vendor: Vendor}, config: CacheRequestConfig) => {
   await markji.vendor.invalidate(HashKeyScope.SHEETS, {bank: markji.folder, category: markji.deck})
   const chapters = (await markji.vendor.sheets({bank: markji.folder, category: markji.deck})) as MarkjiChapter[]
   const defaultChapter = find<MarkjiChapter>(chapters, '默认章节') as MarkjiChapter
-  const cardId = defaultChapter.cardIds[0]
-
-  // if (cardId) {
-  //   bulkDelete({...params, chapter: defaultChapter, requestConfig}, [cardId])
-  // }
-
-  // const content = `
-  // [P#H1,center#[T#!36b59d#感谢大家的使用]]
-  // 由于 app 没有回复反馈的功能，关于牌组的使用问题，可以添加我的微信，请备注来自 Markji。
-  // 同时，如果希望[T#!36b59d,!!#添加新牌组]，请[T#!36b59d,!!#提供一下题库信息]，我也会评估工作量再决定是否添加。
-
-  // [P#L#[T#B#微信：]oscaner1997]
-  // [P#L#[T#B#新题库信息：]]
-  // 1. 题库来源（尽可能详细）
-  // 2. 如果是 vip 题库，请提供一个 vip 账号。（不强求，自行考虑）
-  // `
+  const cardId = defaultChapter.cardIds?.[0]
 
   const content = [
     '',
@@ -53,17 +35,28 @@ const ensureContact = async (
     '',
   ].join('\n')
 
-  await (cardId
-    ? axios.post(
-        `https://www.markji.com/api/v1/decks/${markji.deck.id}/cards/${cardId}`,
-        {card: {content, grammar_version: 3}, order: 0},
-        requestConfig,
-      )
-    : axios.post(
-        `https://www.markji.com/api/v1/decks/${markji.deck.id}/chapters/${defaultChapter.id}/cards`,
-        {card: {content, grammar_version: 3}, order: 0},
-        requestConfig,
-      ))
+  if (!cardId) {
+    await axios.post(
+      `https://www.markji.com/api/v1/decks/${markji.deck.id}/chapters/${defaultChapter.id}/cards`,
+      {card: {content, grammar_version: 3}, order: 0},
+      config,
+    )
+
+    return
+  }
+
+  const card = await axios.get(
+    `https://www.markji.com/api/v1/decks/${markji.deck.id}/cards/${cardId}`,
+    lodash.merge({id: `markji:card:${cardId}`}, config),
+  )
+
+  if (card.data.data.card.content === content) return
+
+  await axios.post(
+    `https://www.markji.com/api/v1/decks/${markji.deck.id}/cards/${cardId}`,
+    {card: {content, grammar_version: 3}, order: 0},
+    lodash.merge({cache: {update: {[`markji:card:${cardId}`]: 'delete'}}}, config),
+  )
 }
 
 /**
