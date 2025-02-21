@@ -6,50 +6,6 @@ import {throwError} from '../../../utils/index.js'
 import MarkjiBase from '../markji.js'
 
 export default class Markji extends MarkjiBase {
-  /**
-   * _output.
-   */
-  protected async _output(question: any, qbank: QBankParams): Promise<AssetString> {
-    const _questionType = question.type
-
-    let output = {} as AssetString
-
-    // ===========================
-    if (_questionType.includes('判断选择')) {
-      question.content += '\nA.正确\nB.错误'
-    }
-
-    if (_questionType === '') {
-      // nothing.
-    }
-    // 单项选择、多项选择、判断选择
-    else if (
-      _questionType.includes('单项选择') ||
-      _questionType.includes('多项选择') ||
-      _questionType.includes('判断选择')
-    ) {
-      output = await this._processChoice(question)
-    }
-    // 名词解释、简答题、论述题、案例分析题
-    else if (
-      _questionType.includes('名词解释') ||
-      _questionType.includes('简答') ||
-      _questionType.includes('论述') ||
-      _questionType.includes('案例分析')
-    ) {
-      output = await this._processTranslate(question)
-    }
-    // unknown.
-    else {
-      throwError('Unsupported question type.', {qbank, question})
-    }
-
-    return output
-  }
-
-  /**
-   * _processChoice.
-   */
   protected async _processChoice(question: any): Promise<AssetString> {
     const _meta = {
       answer: {assets: [] as never, text: ''} as AssetString,
@@ -104,9 +60,6 @@ export default class Markji extends MarkjiBase {
     return output
   }
 
-  /**
-   * _processTranslate
-   */
   protected async _processTranslate(question: any): Promise<AssetString> {
     const _meta = {
       content: {assets: [] as never, text: ''} as AssetString,
@@ -139,6 +92,44 @@ export default class Markji extends MarkjiBase {
     )
 
     output.assets = lodash.merge({}, _meta.content.assets, _meta.explain.assets, _meta.translation.assets)
+
+    return output
+  }
+
+  protected async toMarkjiOutput(question: any, qbank: QBankParams): Promise<AssetString> {
+    const _questionType = question.type
+
+    let output = {} as AssetString
+
+    // ===========================
+    if (_questionType.includes('判断选择')) {
+      question.content += '\nA.正确\nB.错误'
+    }
+
+    if (_questionType === '') {
+      // nothing.
+    }
+    // 单项选择、多项选择、判断选择
+    else if (
+      _questionType.includes('单项选择') ||
+      _questionType.includes('多项选择') ||
+      _questionType.includes('判断选择')
+    ) {
+      output = await this._processChoice(question)
+    }
+    // 名词解释、简答题、论述题、案例分析题
+    else if (
+      _questionType.includes('名词解释') ||
+      _questionType.includes('简答') ||
+      _questionType.includes('论述') ||
+      _questionType.includes('案例分析')
+    ) {
+      output = await this._processTranslate(question)
+    }
+    // unknown.
+    else {
+      throwError('Unsupported question type.', {qbank, question})
+    }
 
     return output
   }

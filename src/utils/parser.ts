@@ -4,24 +4,36 @@ import {parse} from 'node-html-parser'
 
 import {AssetString, ParseOptions} from '../@types/common.js'
 import axios from '../components/axios/index.js'
-import {handleImageSrc} from './index.js'
+import {handleImageSrc, isUrl} from './index.js'
 
-const audio = async (url: string, _options?: ParseOptions): Promise<AssetString> => {
+const audio = async (text: string, _options?: ParseOptions): Promise<AssetString> => {
+  if (!text.includes('.mp3')) return {assets: {}, text}
+
+  if (isUrl(text)) text = `<audio src="${text}"></audio>`
+
   const assetString = {assets: {}} as AssetString
 
-  const hash = md5(JSON.stringify({type: 'audio', url})).slice(0, 8)
+  const root = parse(text)
 
-  try {
-    const resp = await axios.get(url, {responseType: 'arraybuffer'})
+  for (const audio of root.querySelectorAll('audio')) {
+    const src = audio.getAttribute('src')!
 
-    const base64String = Buffer.from(resp.data, 'binary').toString('base64')
+    const hash = md5(JSON.stringify({src, type: 'audio'})).slice(0, 8)
 
-    assetString.assets[`[audio#${hash}]`] = `data:${resp.headers['content-type']};base64,${base64String}`
-  } catch (error: any) {
-    assetString.assets[`[audio#${error.status}#${url}]`] = ''
+    try {
+      const resp = await axios.get(src, {responseType: 'arraybuffer'})
+
+      const base64String = Buffer.from(resp.data, 'binary').toString('base64')
+
+      assetString.assets[`[audio#${hash}]`] = `data:${resp.headers['content-type']};base64,${base64String}`
+
+      audio.replaceWith(`[audio#${hash}]`)
+    } catch (error: any) {
+      audio.replaceWith(`[audio#${error.status}#${src}]`)
+    }
   }
 
-  assetString.text = `[audio#${hash}]`
+  assetString.text = root.toString()
 
   return assetString
 }
@@ -30,16 +42,15 @@ const image = async (text: string, options?: ParseOptions): Promise<AssetString>
   const assetString = {assets: {}} as AssetString
 
   const root = parse(text)
-  const images = root.querySelectorAll('img')
 
-  for (const [idx, image] of images.entries()) {
+  for (const image of root.querySelectorAll('img')) {
     let src = image.getAttribute('src')
 
     if (!src || src === '</documentfragmentcontainer') continue
 
     src = await handleImageSrc(src, options?.srcHandler)
 
-    const hash = md5(JSON.stringify({index: idx, text, type: 'image'})).slice(0, 8)
+    const hash = md5(JSON.stringify({src, type: 'image'})).slice(0, 8)
 
     try {
       const resp = await axios.get(src, {responseType: 'arraybuffer'})
@@ -177,6 +188,11 @@ const toAssets = async (text: string, options?: ParseOptions): Promise<AssetStri
   const _images = await image(parsed.text, options)
   parsed.text = _images.text
   parsed.assets = {...parsed.assets, ..._images.assets}
+
+  // _audio.
+  const _audio = await audio(parsed.text, options)
+  parsed.text = _audio.text
+  parsed.assets = {...parsed.assets, ..._audio.assets}
 
   if (!options?.skipInput) {
     // _inputs.

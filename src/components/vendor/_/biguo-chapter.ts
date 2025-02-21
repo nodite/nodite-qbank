@@ -16,9 +16,31 @@ import BiguoReal from './biguo-real.js'
 export default class BiguoChapter extends BiguoReal {
   public static META = {key: path.parse(import.meta.url).name, name: '笔果章节'}
 
-  /**
-   * Categories.
-   */
+  public async login(options?: LoginOptions): Promise<CacheRequestConfig> {
+    return new BiguoReal(this.getUsername()).login(options)
+  }
+
+  protected _biguoQuestionBankParam(qbank?: QBankParams): Record<string, any> {
+    return {
+      code: qbank?.sheet.id,
+      mainType: 5,
+      professions_id: qbank?.bank.meta?.professionId,
+      province_id: qbank?.bank.meta?.provinceId,
+      public_key:
+        'LS0tLS1CRUdJTiBSU0EgUFVCTElDIEtFWS0' +
+        'tLS0tCk1JR0pBb0dCQUxjNmR2MkFVaWRTR3' +
+        'NNTlFmS0VtSVpQZVRqeWRxdzJmZ2ErcGJXa' +
+        '3B3NGdrc09GR1gyWVRUOUQKOFp6K3FhWDJr' +
+        'eWFsYi9xU1FsN3VvMVBsZTd6UVBHbU01RXo' +
+        'yL2ErSU9TZVZYSTIxajBTZXV1SzJGZXpEcV' +
+        'NtTwpRdEQzTDNJUWFhSURmYUx6NTg3MFNVc' +
+        'CswRVBlZ2JkNTB3dEpqc2pnZzVZenU4WURP' +
+        'ZXg1QWdNQkFBRT0KLS0tLS1FTkQgUlNBIFB' +
+        'VQkxJQyBLRVktLS0tLQ==',
+      school_id: qbank?.bank.meta?.schoolId,
+    }
+  }
+
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.CATEGORIES)})
   protected async fetchCategories(params: {bank: Bank}): Promise<Category[]> {
     const config = await this.login()
@@ -56,42 +78,8 @@ export default class BiguoChapter extends BiguoReal {
     return categories
   }
 
-  /**
-   * Sheet.
-   */
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.SHEETS)})
   protected async fetchSheet(params: {bank: Bank; category: Category}): Promise<Sheet[]> {
     return params.category.children
-  }
-
-  /**
-   * Login.
-   */
-  public async login(options?: LoginOptions): Promise<CacheRequestConfig> {
-    return new BiguoReal(this.getUsername()).login(options)
-  }
-
-  /**
-   * _biguoQuestionBankParam.
-   */
-  protected _biguoQuestionBankParam(qbank?: QBankParams): Record<string, any> {
-    return {
-      code: qbank?.sheet.id,
-      mainType: 5,
-      professions_id: qbank?.bank.meta?.professionId,
-      province_id: qbank?.bank.meta?.provinceId,
-      public_key:
-        'LS0tLS1CRUdJTiBSU0EgUFVCTElDIEtFWS0' +
-        'tLS0tCk1JR0pBb0dCQUxjNmR2MkFVaWRTR3' +
-        'NNTlFmS0VtSVpQZVRqeWRxdzJmZ2ErcGJXa' +
-        '3B3NGdrc09GR1gyWVRUOUQKOFp6K3FhWDJr' +
-        'eWFsYi9xU1FsN3VvMVBsZTd6UVBHbU01RXo' +
-        'yL2ErSU9TZVZYSTIxajBTZXV1SzJGZXpEcV' +
-        'NtTwpRdEQzTDNJUWFhSURmYUx6NTg3MFNVc' +
-        'CswRVBlZ2JkNTB3dEpqc2pnZzVZenU4WURP' +
-        'ZXg1QWdNQkFBRT0KLS0tLS1FTkQgUlNBIFB' +
-        'VQkxJQyBLRVktLS0tLQ==',
-      school_id: qbank?.bank.meta?.schoolId,
-    }
   }
 }

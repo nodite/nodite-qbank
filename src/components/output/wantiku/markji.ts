@@ -8,49 +8,6 @@ import markji from '../../../utils/vendor/markji.js'
 import MarkjiBase from '../markji.js'
 
 export default class Markji extends MarkjiBase {
-  /**
-   * _output.
-   */
-  protected async _output(question: any, qbank: QBankParams): Promise<AssetString> {
-    const _questionType = question.QuestionTypeId
-
-    let output = {} as AssetString
-
-    // ===========================
-    switch (_questionType) {
-      // 10. 单选题
-      case 10: {
-        question.QuestionTypeName = '单选题'
-        output = await this._processChoice(question, qbank)
-        break
-      }
-
-      // 20. 多选题
-      case 20: {
-        question.QuestionTypeName = '多选题'
-        question.IsMultipleChoice = true
-        output = await this._processChoice(question, qbank)
-        break
-      }
-
-      // 50. 简答题
-      case 50: {
-        question.QuestionTypeName = '简答题'
-        output = await this._processTranslate(question, qbank)
-        break
-      }
-
-      default: {
-        throwError('Unsupported question type.', {qbank, question})
-      }
-    }
-
-    return output
-  }
-
-  /**
-   * _processChoice
-   */
   protected async _processChoice(question: any, qbank: QBankParams): Promise<AssetString> {
     const _meta = {
       answers: [] as AssetString[],
@@ -177,9 +134,6 @@ export default class Markji extends MarkjiBase {
     return _output
   }
 
-  /**
-   * _processTranslate
-   */
   protected async _processTranslate(question: any, qbank: QBankParams): Promise<AssetString> {
     const _meta = {
       content: {assets: [] as never, text: ''} as AssetString,
@@ -283,5 +237,42 @@ export default class Markji extends MarkjiBase {
     )
 
     return _output
+  }
+
+  protected async toMarkjiOutput(question: any, qbank: QBankParams): Promise<AssetString> {
+    const _questionType = question.QuestionTypeId
+
+    let output = {} as AssetString
+
+    // ===========================
+    switch (_questionType) {
+      // 10. 单选题
+      case 10: {
+        question.QuestionTypeName = '单选题'
+        output = await this._processChoice(question, qbank)
+        break
+      }
+
+      // 20. 多选题
+      case 20: {
+        question.QuestionTypeName = '多选题'
+        question.IsMultipleChoice = true
+        output = await this._processChoice(question, qbank)
+        break
+      }
+
+      // 50. 简答题
+      case 50: {
+        question.QuestionTypeName = '简答题'
+        output = await this._processTranslate(question, qbank)
+        break
+      }
+
+      default: {
+        throwError('Unsupported question type.', {qbank, question})
+      }
+    }
+
+    return output
   }
 }

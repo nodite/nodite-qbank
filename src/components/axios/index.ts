@@ -40,10 +40,24 @@ axiosInstance.interceptors.response.use(
   async (response) => response,
   async (error) => {
     console.error('\n')
-    console.error('host:', error?.request?.host)
-    console.error('path:', error?.request?.path)
-    console.error('message:', error?.response?.statusText)
-    console.error('response:', error?.response?.data)
+
+    const request = error?.request?._currentRequest || error?.request
+
+    if (!request?.host) {
+      console.error(error)
+    }
+
+    console.error('host:', request?.host)
+    console.error('path:', request?.path)
+    console.error('error:', error?.message)
+
+    if (error?.response) {
+      console.error('message:', error?.response?.statusText)
+      console.error('response:', error?.response?.data)
+    }
+
+    console.error('\n')
+
     throw error
   },
 )

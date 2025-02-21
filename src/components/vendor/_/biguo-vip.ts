@@ -12,24 +12,10 @@ import BiguoReal from './biguo-real.js'
 export default class BiguoVip extends BiguoReal {
   public static META = {key: path.parse(import.meta.url).name, name: '笔果💯'}
 
-  /**
-   * Categories.
-   */
-  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.CATEGORIES)})
-  protected async fetchCategories(params: {bank: Bank}): Promise<Category[]> {
-    return [{children: [], count: params.bank.count || 0, id: '0', name: '默认'}]
-  }
-
-  /**
-   * Login.
-   */
   public async login(options?: LoginOptions): Promise<CacheRequestConfig> {
     return new BiguoReal(this.getUsername()).login(options)
   }
 
-  /**
-   * _biguoQuestionBankParam.
-   */
   protected _biguoQuestionBankParam(qbank?: QBankParams): Record<string, any> {
     return {
       code: qbank?.bank.meta?.courseCode,
@@ -49,5 +35,10 @@ export default class BiguoVip extends BiguoReal {
         'VQkxJQyBLRVktLS0tLQ==',
       school_id: qbank?.bank.meta?.schoolId,
     }
+  }
+
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.CATEGORIES)})
+  protected async fetchCategories(params: {bank: Bank}): Promise<Category[]> {
+    return [{children: [], count: params.bank.count || 0, id: '0', name: '默认'}]
   }
 }

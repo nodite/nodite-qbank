@@ -22,25 +22,6 @@ export default class Demo extends Vendor {
     }
   }
 
-  /**
-   * Banks.
-   */
-  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.BANKS)})
-  protected async fetchBanks(): Promise<Bank[]> {
-    throw new Error('Method not implemented.')
-  }
-
-  /**
-   * Categories.
-   */
-  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.CATEGORIES)})
-  protected async fetchCategories(_qbank: {bank: Bank}): Promise<Category[]> {
-    throw new Error('Method not implemented.')
-  }
-
-  /**
-   * Questions.
-   */
   public async fetchQuestions(
     _qbank: {bank: Bank; category: Category; sheet: Sheet},
     _options?: FetchOptions,
@@ -48,17 +29,21 @@ export default class Demo extends Vendor {
     throw new Error('Method not implemented.')
   }
 
-  /**
-   * Sheet.
-   */
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.SHEETS)})
   public async fetchSheet(qbank: {bank: Bank; category: Category}, _options?: FetchOptions): Promise<Sheet[]> {
     return [{count: qbank.category.count, id: md5('0'), name: '默认'}]
   }
 
-  /**
-   * Login.
-   */
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.BANKS)})
+  protected async fetchBanks(): Promise<Bank[]> {
+    throw new Error('Method not implemented.')
+  }
+
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.CATEGORIES)})
+  protected async fetchCategories(_qbank: {bank: Bank}): Promise<Category[]> {
+    throw new Error('Method not implemented.')
+  }
+
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN), client: cacheManager.CommonClient})
   protected async toLogin(password: string): Promise<CacheRequestConfig> {
     return {

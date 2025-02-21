@@ -8,10 +8,7 @@ import markji from '../../../utils/vendor/markji.js'
 import MarkjiBase from '../markji.js'
 
 export default class Markji extends MarkjiBase {
-  /**
-   * _output.
-   */
-  protected async _output(question: any, qbank: QBankParams): Promise<AssetString> {
+  protected async toMarkjiOutput(question: any, qbank: QBankParams): Promise<AssetString> {
     const _meta = {
       answers: [] as AssetString[],
       content: {assets: [] as never, text: ''} as AssetString,

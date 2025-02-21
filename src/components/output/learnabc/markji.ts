@@ -11,37 +11,6 @@ const srcHandler = (src: string): string => {
 }
 
 export default class Markji extends MarkjiBase {
-  /**
-   * _output.
-   */
-  protected async _output(question: any, qbank: QBankParams): Promise<AssetString> {
-    let output = {} as AssetString
-
-    if (qbank.bank.meta?.type === 'topic' || qbank.bank.meta?.type === 'stage') {
-      output = await this._processChoice(question, qbank)
-    } else if (qbank.bank.meta?.type === 'grammar') {
-      const _content = await html.toText(lodash.trim(lodash.map(question, (c) => c.html_content).join('\n')))
-
-      for (const [key, value] of Object.entries(_content.assets)) {
-        _content.text = _content.text.replaceAll(key, value)
-      }
-
-      output = await markji.parseHtml(_content.text.replaceAll(/\n+/g, '\n\n'), {
-        srcHandler,
-        style: this.HTML_STYLE,
-      })
-
-      output.text = `[P#H2,center#[T#!36b59d#${question[0].title}]]\n${output.text}`
-    } else if (qbank.bank.meta?.type) {
-      throwError('Unsupported question type', {qbank, question})
-    }
-
-    return output
-  }
-
-  /**
-   * _processChoice
-   */
   protected async _processChoice(question: any, qbank: QBankParams): Promise<AssetString> {
     const _meta = {
       answers: [] as AssetString[],
@@ -148,5 +117,30 @@ export default class Markji extends MarkjiBase {
     )
 
     return _output
+  }
+
+  protected async toMarkjiOutput(question: any, qbank: QBankParams): Promise<AssetString> {
+    let output = {} as AssetString
+
+    if (qbank.bank.meta?.type === 'topic' || qbank.bank.meta?.type === 'stage') {
+      output = await this._processChoice(question, qbank)
+    } else if (qbank.bank.meta?.type === 'grammar') {
+      const _content = await html.toText(lodash.trim(lodash.map(question, (c) => c.html_content).join('\n')))
+
+      for (const [key, value] of Object.entries(_content.assets)) {
+        _content.text = _content.text.replaceAll(key, value)
+      }
+
+      output = await markji.parseHtml(_content.text.replaceAll(/\n+/g, '\n\n'), {
+        srcHandler,
+        style: this.HTML_STYLE,
+      })
+
+      output.text = `[P#H2,center#[T#!36b59d#${question[0].title}]]\n${output.text}`
+    } else if (qbank.bank.meta?.type) {
+      throwError('Unsupported question type', {qbank, question})
+    }
+
+    return output
   }
 }

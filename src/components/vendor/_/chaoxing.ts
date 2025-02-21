@@ -25,12 +25,17 @@ export default class ChaoXing extends Vendor {
     return {}
   }
 
-  /**
-   * Banks.
-   * @see api.py::getCourse
-   */
+  public async fetchQuestions(
+    _params: {bank: Bank; category: Category; sheet: Sheet},
+    _options?: FetchOptions,
+  ): Promise<void> {
+    throw new Error('Method not implemented.')
+  }
+
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.BANKS)})
   protected async fetchBanks(): Promise<Bank[]> {
+    // @see api.py::getCourse
+
     const config = await this.login()
 
     const resp = await axios.get(
@@ -95,35 +100,16 @@ export default class ChaoXing extends Vendor {
     return banks
   }
 
-  /**
-   * Categories.
-   */
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.CATEGORIES)})
   protected async fetchCategories(_params: {bank: Bank}): Promise<Category[]> {
     throw new Error('Method not implemented.')
   }
 
-  /**
-   * Fetch questions.
-   */
-  public async fetchQuestions(
-    _params: {bank: Bank; category: Category; sheet: Sheet},
-    _options?: FetchOptions,
-  ): Promise<void> {
-    throw new Error('Method not implemented.')
-  }
-
-  /**
-   * Sheet.
-   */
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.SHEETS)})
   protected async fetchSheet(_params: {bank: Bank; category: Category}, _options?: FetchOptions): Promise<Sheet[]> {
     throw new Error('Method not implemented.')
   }
 
-  /**
-   * Login.
-   */
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN), client: cacheManager.CommonClient})
   protected async toLogin(password: string): Promise<CacheRequestConfig> {
     const page = await puppeteer.page('chaoxing', 'https://passport2.chaoxing.com/login')

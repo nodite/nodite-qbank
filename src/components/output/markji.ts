@@ -8,7 +8,6 @@ import {reverseTemplate, throwError} from '../../utils/index.js'
 import markji from '../../utils/vendor/markji.js'
 import {CACHE_KEY_ORIGIN_QUESTION_ITEM, CACHE_KEY_QUESTION_ITEM, HashKeyScope} from '../cache-pattern.js'
 import {Vendor} from '../vendor/common.js'
-import VendorManager from '../vendor/index.js'
 import {Output} from './common.js'
 
 export default class Markji extends Output {
@@ -21,9 +20,6 @@ export default class Markji extends Output {
     '</style>',
   ].join(' ')
 
-  /**
-   * Convert.
-   */
   public async convert(qbank: QBankParams, options?: ConvertOptions): Promise<void> {
     // prepare.
     const cacheClient = this.getCacheClient()
@@ -80,7 +76,7 @@ export default class Markji extends Output {
       const _originQuestion = await cacheClient.get(lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)(_questionParam))
 
       // _output.
-      const output = await this._output(_originQuestion, qbank)
+      const output = await this.toMarkjiOutput(_originQuestion, qbank)
 
       if (output.text.length > 2500) {
         throwError('Output text is too long.', {output: output.text, qbank, question: _originQuestion})
@@ -91,7 +87,7 @@ export default class Markji extends Output {
 
       doneQuestionParams.push(_questionParam)
 
-      await sleep(500)
+      // await sleep(500)
     }
 
     emitter.emit('output.convert.count', doneQuestionParams.length)
@@ -101,27 +97,20 @@ export default class Markji extends Output {
     emitter.closeListener('output.convert.count')
   }
 
-  /**
-   * Upload.
-   */
   public async upload(qbank: QBankParams, options?: UploadOptions): Promise<void> {
     qbank.output = this
 
-    const markjiInfo = await markji.getInfo(qbank, this.getOutputUsername())
-    markjiInfo.config = await new (VendorManager.getClass('markji'))(this.getOutputUsername()).login()
+    const markjiParams = await markji.getMarkjiParams(qbank, this.getOutputUsername())
 
     await markji.bulkUpload({
       cacheClient: this.getCacheClient(),
-      markji: markjiInfo,
+      markji: markjiParams,
       qbank,
       uploadOptions: options,
     })
   }
 
-  /**
-   *
-   */
-  protected async _output(question: any, qbank: QBankParams): Promise<AssetString> {
+  protected async toMarkjiOutput(question: any, qbank: QBankParams): Promise<AssetString> {
     throwError('Not implemented.', {qbank, question})
   }
 }

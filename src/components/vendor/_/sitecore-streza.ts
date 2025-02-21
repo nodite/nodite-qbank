@@ -29,65 +29,6 @@ export default class SitecoreStreza extends Vendor {
     }
   }
 
-  /**
-   * Banks.
-   */
-  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.BANKS)})
-  protected async fetchBanks(): Promise<Bank[]> {
-    const resp = await axios.get('https://www.sitecoregabe.com/search/label/exam')
-
-    const as = parse(resp.data).querySelectorAll('.post-title > a')
-
-    const banks = [] as Bank[]
-
-    for (const a of as) {
-      const href = a.getAttribute('href')
-
-      if (!href) continue
-
-      const name = a.textContent.split(':')[0].trim()
-      const id = md5(name)
-
-      banks.push({id, meta: {href}, name: await safeName(name)})
-    }
-
-    return banks
-  }
-
-  /**
-   * Categories.
-   */
-  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.CATEGORIES)})
-  protected async fetchCategories(qbank: {bank: Bank}): Promise<Category[]> {
-    const resp = await axios.get(qbank.bank.meta?.href)
-
-    const as = parse(resp.data).querySelectorAll('a[href^="https://streza.dev"]')
-
-    const a = lodash.find(as, (a: HTMLElement) => {
-      return a.getAttribute('href')?.includes('/app')
-    }) as HTMLElement
-
-    if (!a || !a.getAttribute('href')) {
-      throwError('找不到题库', {qbank})
-    }
-
-    const qsHref = a.getAttribute('href')!.replace('/app', '/data.json')
-    const qs = await axios.get(qsHref)
-
-    return [
-      {
-        children: [],
-        count: qs.data?.metadata?.totalQuestions || qs.data?.questions?.length || 0,
-        id: md5('0'),
-        meta: {href: a.getAttribute('href'), json: qsHref},
-        name: '默认',
-      },
-    ]
-  }
-
-  /**
-   * Questions.
-   */
   public async fetchQuestions(
     qbank: {bank: Bank; category: Category; sheet: Sheet},
     options?: FetchOptions,
@@ -146,17 +87,61 @@ export default class SitecoreStreza extends Vendor {
     emitter.closeListener('questions.fetch.count')
   }
 
-  /**
-   * Sheet.
-   */
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.SHEETS)})
   public async fetchSheet(params: {bank: Bank; category: Category}, _options?: FetchOptions): Promise<Sheet[]> {
     return [{count: params.category.count, id: md5('0'), name: '默认'}]
   }
 
-  /**
-   * Login.
-   */
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.BANKS)})
+  protected async fetchBanks(): Promise<Bank[]> {
+    const resp = await axios.get('https://www.sitecoregabe.com/search/label/exam')
+
+    const as = parse(resp.data).querySelectorAll('.post-title > a')
+
+    const banks = [] as Bank[]
+
+    for (const a of as) {
+      const href = a.getAttribute('href')
+
+      if (!href) continue
+
+      const name = a.textContent.split(':')[0].trim()
+      const id = md5(name)
+
+      banks.push({id, meta: {href}, name: await safeName(name)})
+    }
+
+    return banks
+  }
+
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.CATEGORIES)})
+  protected async fetchCategories(qbank: {bank: Bank}): Promise<Category[]> {
+    const resp = await axios.get(qbank.bank.meta?.href)
+
+    const as = parse(resp.data).querySelectorAll('a[href^="https://streza.dev"]')
+
+    const a = lodash.find(as, (a: HTMLElement) => {
+      return a.getAttribute('href')?.includes('/app')
+    }) as HTMLElement
+
+    if (!a || !a.getAttribute('href')) {
+      throwError('找不到题库', {qbank})
+    }
+
+    const qsHref = a.getAttribute('href')!.replace('/app', '/data.json')
+    const qs = await axios.get(qsHref)
+
+    return [
+      {
+        children: [],
+        count: qs.data?.metadata?.totalQuestions || qs.data?.questions?.length || 0,
+        id: md5('0'),
+        meta: {href: a.getAttribute('href'), json: qsHref},
+        name: '默认',
+      },
+    ]
+  }
+
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN), client: cacheManager.CommonClient})
   protected async toLogin(_password: string): Promise<CacheRequestConfig> {
     return {}

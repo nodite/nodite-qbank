@@ -31,100 +31,6 @@ export default class Wx233 extends Vendor {
     }
   }
 
-  /**
-   * Banks.
-   */
-  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.BANKS)})
-  protected async fetchBanks(): Promise<Bank[]> {
-    const requestConfig = await this.login()
-
-    const sid = await wx233.sid()
-
-    const domains = await axios.get(
-      'https://japi.233.com/ess-study-api/user-course/buy-domain',
-      lodash.merge({}, requestConfig, {headers: {sid, sign: await wx233.sign('', sid, 'GET')}}),
-    )
-
-    const banks = [] as Bank[]
-
-    for (const domain of domains.data.data) {
-      const params = {domain: domain.domain}
-
-      const subjects = await axios.get(
-        'https://japi.233.com/ess-tiku-api/tiku-base/do/switch-subject',
-        lodash.merge({}, requestConfig, {
-          headers: {sid, sign: await wx233.sign(params, sid, 'GET')},
-          params,
-        }),
-      )
-
-      for (const subject of subjects.data?.data?.subjectList ?? []) {
-        for (const child of subject.childList) {
-          const _id = md5(JSON.stringify([domain.id, subject.id, child.id]))
-
-          banks.push({
-            id: _id,
-            meta: {
-              domainKey: domain.domain,
-              subjectId: lodash.findLast([domain.id, subject.id, child.id]),
-            },
-            name: await safeName([domain.cname, subject.cname, child.cname].join(' > ')),
-          })
-        }
-      }
-    }
-
-    return banks
-  }
-
-  /**
-   * Categories.
-   */
-  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.CATEGORIES)})
-  protected async fetchCategories(params: {bank: Bank}): Promise<Category[]> {
-    const requestConfig = await this.login()
-
-    const sid = await wx233.sid()
-    const reqParams = {chapterType: 1, isApplet: 0, subjectId: params.bank.meta?.subjectId}
-
-    const chapters = await axios.get(
-      'https://japi.233.com/ess-tiku-api/front/chapter/do/init',
-      lodash.merge({}, requestConfig, {
-        headers: {sid, sign: await wx233.sign(reqParams, sid, 'GET')},
-        params: reqParams,
-      }),
-    )
-
-    const categories = [] as Category[]
-
-    for (const chapter of chapters.data?.data?.chapterInfoFrontRspList ?? []) {
-      const children = [] as Category[]
-
-      for (const child of chapter?.childList ?? []) {
-        children.push({
-          children: [],
-          count: child.questionsNum,
-          id: String(child.id),
-          name: await safeName(child.name),
-          order: child.sort,
-        })
-      }
-
-      categories.push({
-        children,
-        count: chapter.questionsNum,
-        id: String(chapter.id),
-        name: await safeName(chapter.name),
-        order: chapter.sort,
-      })
-    }
-
-    return categories
-  }
-
-  /**
-   * Fetch Questions.
-   */
   public async fetchQuestions(
     params: {bank: Bank; category: Category; sheet: Sheet},
     options?: FetchOptions,
@@ -279,9 +185,6 @@ export default class Wx233 extends Vendor {
     emitter.closeListener('questions.fetch.count')
   }
 
-  /**
-   * Sheet.
-   */
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.SHEETS)})
   public async fetchSheet(params: {bank: Bank; category: Category}, _options?: FetchOptions): Promise<Sheet[]> {
     return lodash.isEmpty(params.category.children)
@@ -294,9 +197,91 @@ export default class Wx233 extends Vendor {
         }))
   }
 
-  /**
-   * Login.
-   */
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.BANKS)})
+  protected async fetchBanks(): Promise<Bank[]> {
+    const requestConfig = await this.login()
+
+    const sid = await wx233.sid()
+
+    const domains = await axios.get(
+      'https://japi.233.com/ess-study-api/user-course/buy-domain',
+      lodash.merge({}, requestConfig, {headers: {sid, sign: await wx233.sign('', sid, 'GET')}}),
+    )
+
+    const banks = [] as Bank[]
+
+    for (const domain of domains.data.data) {
+      const params = {domain: domain.domain}
+
+      const subjects = await axios.get(
+        'https://japi.233.com/ess-tiku-api/tiku-base/do/switch-subject',
+        lodash.merge({}, requestConfig, {
+          headers: {sid, sign: await wx233.sign(params, sid, 'GET')},
+          params,
+        }),
+      )
+
+      for (const subject of subjects.data?.data?.subjectList ?? []) {
+        for (const child of subject.childList) {
+          const _id = md5(JSON.stringify([domain.id, subject.id, child.id]))
+
+          banks.push({
+            id: _id,
+            meta: {
+              domainKey: domain.domain,
+              subjectId: lodash.findLast([domain.id, subject.id, child.id]),
+            },
+            name: await safeName([domain.cname, subject.cname, child.cname].join(' > ')),
+          })
+        }
+      }
+    }
+
+    return banks
+  }
+
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.CATEGORIES)})
+  protected async fetchCategories(params: {bank: Bank}): Promise<Category[]> {
+    const requestConfig = await this.login()
+
+    const sid = await wx233.sid()
+    const reqParams = {chapterType: 1, isApplet: 0, subjectId: params.bank.meta?.subjectId}
+
+    const chapters = await axios.get(
+      'https://japi.233.com/ess-tiku-api/front/chapter/do/init',
+      lodash.merge({}, requestConfig, {
+        headers: {sid, sign: await wx233.sign(reqParams, sid, 'GET')},
+        params: reqParams,
+      }),
+    )
+
+    const categories = [] as Category[]
+
+    for (const chapter of chapters.data?.data?.chapterInfoFrontRspList ?? []) {
+      const children = [] as Category[]
+
+      for (const child of chapter?.childList ?? []) {
+        children.push({
+          children: [],
+          count: child.questionsNum,
+          id: String(child.id),
+          name: await safeName(child.name),
+          order: child.sort,
+        })
+      }
+
+      categories.push({
+        children,
+        count: chapter.questionsNum,
+        id: String(chapter.id),
+        name: await safeName(chapter.name),
+        order: chapter.sort,
+      })
+    }
+
+    return categories
+  }
+
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN), client: cacheManager.CommonClient})
   protected async toLogin(password: string): Promise<CacheRequestConfig> {
     const page = await puppeteer.page('wx233', 'https://passport.233.com/login')

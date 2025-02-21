@@ -85,7 +85,10 @@ const toText = async (html: string, options?: ParseOptions): Promise<AssetString
   const _text = await parser.toAssets(_htmlPreprocess(html), options)
 
   _text.text = convert(_text.text, {
-    selectors: [{format: 'skip', selector: 'img'}],
+    selectors: [
+      {format: 'skip', selector: 'img'},
+      {format: 'skip', selector: 'audio'},
+    ],
     wordwrap: false,
   })
 

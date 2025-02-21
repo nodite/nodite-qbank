@@ -4,14 +4,15 @@ import {Cacheable} from '@type-cacheable/core'
 import {CacheRequestConfig} from 'axios-cache-interceptor'
 import lodash from 'lodash'
 
-import {Bank, MarkjiFolder} from '../../../@types/bank.js'
-import {Category} from '../../../@types/category.js'
-import {MarkjiChapter} from '../../../@types/sheet.js'
+import {Chapter, Deck, Folder} from '../../../@types/vendor/markji.js'
 import cacheManager from '../../../cache/cache.manager.js'
 import axios from '../../axios/index.js'
-import {OutputClass} from '../../output/common.js'
+import {Output, OutputClass} from '../../output/common.js'
 import {cacheKeyBuilder, HashKeyScope, Vendor} from '../common.js'
 
+/**
+ * Markji vendor.
+ */
 export default class Markji extends Vendor {
   public static META = {key: path.parse(import.meta.url).name, name: 'Markji'}
 
@@ -19,11 +20,66 @@ export default class Markji extends Vendor {
     return {}
   }
 
-  /**
-   * Banks = Markji Folders.
-   */
+  public async chapters(params: {deck: Deck; folder: Folder}, options?: {excludeTtl?: true}): Promise<Chapter[]> {
+    const _ = await this.sheets({bank: params.folder, category: params.deck}, options)
+    return _ as Chapter[]
+  }
+
+  public async decks(params: {folder: Folder}, options?: {excludeTtl?: true}): Promise<Deck[]> {
+    const _ = await this.categories({bank: params.folder}, options)
+    return _ as Deck[]
+  }
+
+  public async fetchQuestions(): Promise<void> {
+    throw new Error('Method not implemented.')
+  }
+
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.SHEETS)})
+  public async fetchSheet(params: {bank: Folder; category: Deck}): Promise<Chapter[]> {
+    const requestConfig = await this.login()
+
+    const response = await axios.get(
+      `https://www.markji.com/api/v1/decks/${params.category.id}/chapters`,
+      lodash.merge({}, requestConfig, {cache: false}),
+    )
+
+    if (response.data.success === false) {
+      throw new Error(response.data.errors)
+    }
+
+    return lodash.map(
+      response.data.data.chapters,
+      (item, idx): Chapter => ({
+        count: item.card_ids.length,
+        id: item.id,
+        meta: {
+          cardIds: item.card_ids,
+          revision: item.revision,
+          setRevision: response.data.data.chapterset.revision,
+        },
+        name: item.name,
+        order: Number(idx),
+      }),
+    )
+  }
+
+  public async folders(options?: {excludeTtl?: true}): Promise<Folder[]> {
+    const _ = await this.banks(options)
+    return _ as Folder[]
+  }
+
+  public async invalidate(
+    scope: HashKeyScope,
+    params?: {chapter?: Chapter; deck?: Deck; folder?: Folder; output?: Output; questionId?: string},
+  ): Promise<void> {
+    await super.invalidate(
+      scope,
+      lodash.merge({bank: params?.folder, category: params?.deck, sheet: params?.chapter}, params),
+    )
+  }
+
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.BANKS)})
-  protected async fetchBanks(): Promise<MarkjiFolder[]> {
+  protected async fetchBanks(): Promise<Folder[]> {
     const requestConfig = await this.login()
 
     const response = await axios.get(
@@ -38,29 +94,26 @@ export default class Markji extends Vendor {
     return lodash
       .chain(response.data.data.folders)
       .filter((item) => item.name !== 'root')
-      .map((item) => ({
-        id: item.id,
-        items: item.items,
-        name: item.name,
-        updated_time: item.updated_time,
-      }))
+      .map(
+        (item): Folder => ({
+          id: item.id,
+          meta: {
+            items: item.items,
+            updated_time: item.updated_time,
+          },
+          name: item.name,
+        }),
+      )
       .value()
   }
 
-  /**
-   * Categories = Markji Decks.
-   */
-  public async fetchQuestions(): Promise<void> {
-    throw new Error('Method not implemented.')
-  }
-
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.CATEGORIES)})
-  protected async fetchCategories(params: {bank: MarkjiFolder}): Promise<Category[]> {
-    const requestConfig = await this.login()
+  protected async fetchCategories(params: {bank: Folder}): Promise<Deck[]> {
+    const config = await this.login()
 
     const response = await axios.get(
       'https://www.markji.com/api/v1/decks',
-      lodash.merge({}, requestConfig, {
+      lodash.merge({}, config, {
         cache: false,
         params: {
           folder_id: params.bank.id,
@@ -72,9 +125,9 @@ export default class Markji extends Vendor {
 
     // the deck order stored in the folder is not the same as the order in the response
     await this.invalidate(HashKeyScope.BANKS)
-    params.bank = lodash.find(await this.banks({excludeTtl: true}), {id: params.bank.id}) as MarkjiFolder
+    params.bank = lodash.find(await this.banks({excludeTtl: true}), {id: params.bank.id}) as Folder
 
-    return lodash.map(params.bank.items, (item, idx) => {
+    return lodash.map(params.bank.meta.items, (item, idx): Deck => {
       const deck = lodash.find(response.data.data.decks, {id: item.object_id})
 
       return {
@@ -88,36 +141,6 @@ export default class Markji extends Vendor {
     })
   }
 
-  /**
-   * Sheet = Markji Chapters.
-   */
-  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.SHEETS)})
-  public async fetchSheet(params: {bank: Bank; category: Category}): Promise<MarkjiChapter[]> {
-    const requestConfig = await this.login()
-
-    const response = await axios.get(
-      `https://www.markji.com/api/v1/decks/${params.category.id}/chapters`,
-      lodash.merge({}, requestConfig, {cache: false}),
-    )
-
-    if (response.data.success === false) {
-      throw new Error(response.data.errors)
-    }
-
-    return lodash.map(response.data.data.chapters, (item, idx) => ({
-      cardIds: item.card_ids,
-      count: item.card_ids.length,
-      id: item.id,
-      name: item.name,
-      order: Number(idx),
-      revision: item.revision,
-      setRevision: response.data.data.chapterset.revision,
-    }))
-  }
-
-  /**
-   * Login.
-   */
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN), client: cacheManager.CommonClient})
   protected async toLogin(password: string): Promise<CacheRequestConfig> {
     const userAgent =

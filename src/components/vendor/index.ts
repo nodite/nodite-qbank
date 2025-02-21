@@ -9,12 +9,14 @@ import ChaoXingAssets from './_/chaoxing-assets.js'
 import ChaoXingExam from './_/chaoxing-exam.js'
 import ChaoXingWork from './_/chaoxing-work.js'
 import Demo from './_/demo.js'
+import FenbiJiaoyu from './_/fenbi-jiaoyu.js'
 import FenbiKaoyan from './_/fenbi-kaoyan.js'
-import Fenbi from './_/fenbi.js'
+import FenbiYy46j from './_/fenbi-yy46j.js'
 import _ from './_/index.js'
 import JsonFile from './_/json-file.js'
 import LearnABC from './_/learnabc.js'
 import Markji from './_/markji.js'
+import Rdyc from './_/rdyc.js'
 import Shangfen from './_/shangfen.js'
 import SitecoreITExams from './_/sitecore-itexams.js'
 import SitecoreStreza from './_/sitecore-streza.js'
@@ -25,29 +27,31 @@ import Yiguo from './_/yiguo.js'
 
 export default class VendorManager {
   protected static components = {
-    /** todo */ [AwsExamtopics.META.key]: AwsExamtopics,
-    /** todo */ [AwsITExams.META.key]: AwsITExams,
-    /** done */ [AwsMytodo.META.key]: AwsMytodo,
-    /** done */ [BiguoChapter.META.key]: BiguoChapter,
-    /** done */ [BiguoFree.META.key]: BiguoFree,
-    /** done */ [BiguoReal.META.key]: BiguoReal,
-    /** done */ [BiguoVip.META.key]: BiguoVip,
-    /** done */ [ChaoXingAssets.META.key]: ChaoXingAssets,
-    /** todo */ [ChaoXingExam.META.key]: ChaoXingExam,
-    /** todo */ [ChaoXingWork.META.key]: ChaoXingWork,
-    /** done */ [Demo.META.key]: Demo,
-    /** wip */ [Fenbi.META.key]: Fenbi,
-    /** done */ [FenbiKaoyan.META.key]: FenbiKaoyan,
-    /** done */ [JsonFile.META.key]: JsonFile,
-    /** done */ [LearnABC.META.key]: LearnABC,
-    /** done */ [Markji.META.key]: Markji,
-    /** done */ [Shangfen.META.key]: Shangfen,
-    /** todo */ [SitecoreITExams.META.key]: SitecoreITExams,
-    /** done */ [SitecoreStreza.META.key]: SitecoreStreza,
-    /** done */ [Wantiku.META.key]: Wantiku,
-    /** done */ [WantikuChapter.META.key]: WantikuChapter,
-    /** done */ [Wx233.META.key]: Wx233,
-    /** done */ [Yiguo.META.key]: Yiguo,
+    [AwsExamtopics.META.key]: AwsExamtopics /** todo */,
+    [AwsITExams.META.key]: AwsITExams /** todo */,
+    [AwsMytodo.META.key]: AwsMytodo,
+    [BiguoChapter.META.key]: BiguoChapter,
+    [BiguoFree.META.key]: BiguoFree,
+    [BiguoReal.META.key]: BiguoReal,
+    [BiguoVip.META.key]: BiguoVip,
+    [ChaoXingAssets.META.key]: ChaoXingAssets,
+    [ChaoXingExam.META.key]: ChaoXingExam /** todo */,
+    [ChaoXingWork.META.key]: ChaoXingWork /** todo */,
+    [Demo.META.key]: Demo,
+    [FenbiJiaoyu.META.key]: FenbiJiaoyu /** wip */,
+    [FenbiKaoyan.META.key]: FenbiKaoyan,
+    [FenbiYy46j.META.key]: FenbiYy46j /** wip */,
+    [JsonFile.META.key]: JsonFile,
+    [LearnABC.META.key]: LearnABC,
+    [Markji.META.key]: Markji,
+    [Rdyc.META.key]: Rdyc /** todo */,
+    [Shangfen.META.key]: Shangfen,
+    [SitecoreITExams.META.key]: SitecoreITExams /** todo */,
+    [SitecoreStreza.META.key]: SitecoreStreza,
+    [Wantiku.META.key]: Wantiku,
+    [WantikuChapter.META.key]: WantikuChapter,
+    [Wx233.META.key]: Wx233,
+    [Yiguo.META.key]: Yiguo,
   }
 
   public static getClass(name: string) {

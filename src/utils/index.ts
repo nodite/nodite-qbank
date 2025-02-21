@@ -78,7 +78,7 @@ export function fiindAll<T>(items: T[], substrings: string[], options?: FindOpti
     .value()
 }
 
-export function throwError(message: string | unknown, data: unknown): never {
+export function throwError(message: any | string, data: any): never {
   let errFile = path.join(TMP_DIR, 'error.json')
 
   if (lodash.has(data, 'qbank')) {
@@ -88,8 +88,14 @@ export function throwError(message: string | unknown, data: unknown): never {
   }
 
   fs.writeJsonSync(errFile, {data, message}, {spaces: 2})
-  if (typeof message === 'string') throw new Error(message)
-  throw message
+
+  if (lodash.isString(message)) throw new Error(message)
+
+  // is error
+  if (message instanceof Error) throw message
+
+  // otherwise
+  throw new Error(JSON.stringify(message))
 }
 
 export function reverseTemplate(template: string, result: string): Record<string, any> {
@@ -138,6 +144,16 @@ export async function safeName(name: string, options: SafeNameOptions = {}): Pro
 export function isJSON(str: string): boolean {
   try {
     JSON.parse(str)
+    return true
+  } catch {
+    return false
+  }
+}
+
+export function isUrl(str: string): boolean {
+  try {
+    // eslint-disable-next-line no-new
+    new URL(str)
     return true
   } catch {
     return false

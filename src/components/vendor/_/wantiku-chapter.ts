@@ -12,9 +12,6 @@ export default class WantikuChapter extends Wantiku {
 
   URL_QUESTION = 'https://api.wantiku.com/api/BrushQuestion/ChapterCustomPaper'
 
-  /**
-   * Login.
-   */
   public login(options?: LoginOptions): Promise<CacheRequestConfig> {
     return new Wantiku(this.getUsername()).login(options)
   }

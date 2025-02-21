@@ -35,68 +35,6 @@ export default class ITExams extends Vendor {
     throw new Error('Not implemented')
   }
 
-  /**
-   * Banks.
-   */
-  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.BANKS)})
-  protected async fetchBanks(): Promise<Bank[]> {
-    const resp = await axios.get(this.itxVendor)
-
-    const elements = parse(resp.data).querySelectorAll('.list-group-item > a')
-
-    const banks = [] as Bank[]
-
-    for (const element of elements) {
-      const href = element.getAttribute('href')
-      const name = element.textContent?.trim()
-
-      banks.push({
-        id: md5(String(href)),
-        meta: {
-          href: `https://www.itexams.com${href}`,
-          name,
-        },
-        name: await safeName(String(name)),
-      })
-    }
-
-    return banks
-  }
-
-  /**
-   * Categories.
-   */
-  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.CATEGORIES)})
-  protected async fetchCategories(_qbank: {bank: Bank}): Promise<Category[]> {
-    const resp = await axios.get(_qbank.bank.meta?.href)
-
-    const root = parse(resp.data)
-
-    const countElement = lodash.find(root.querySelectorAll('.info-list > li'), (element: HTMLElement) =>
-      element?.textContent?.includes('Exam Questions'),
-    )
-
-    const count = countElement?.textContent?.match(/(\d+)/)?.[1] ?? 0
-
-    const exam = root.querySelector('.goto_exam > a')?.getAttribute('href')
-
-    return [
-      {
-        children: [],
-        count: Number(count),
-        id: md5('0'),
-        meta: {
-          exam: `https://www.itexams.com${exam}`,
-        },
-        name: '默认',
-        order: 0,
-      },
-    ]
-  }
-
-  /**
-   * Questions.
-   */
   public async fetchQuestions(
     qbank: {bank: Bank; category: Category; sheet: Sheet},
     options?: FetchOptions,
@@ -197,17 +135,64 @@ export default class ITExams extends Vendor {
     emitter.closeListener('questions.fetch.count')
   }
 
-  /**
-   * Sheet.
-   */
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.SHEETS)})
   public async fetchSheet(qbank: {bank: Bank; category: Category}, _options?: FetchOptions): Promise<Sheet[]> {
     return [{count: qbank.category.count, id: md5('0'), name: '默认'}]
   }
 
-  /**
-   * Login.
-   */
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.BANKS)})
+  protected async fetchBanks(): Promise<Bank[]> {
+    const resp = await axios.get(this.itxVendor)
+
+    const elements = parse(resp.data).querySelectorAll('.list-group-item > a')
+
+    const banks = [] as Bank[]
+
+    for (const element of elements) {
+      const href = element.getAttribute('href')
+      const name = element.textContent?.trim()
+
+      banks.push({
+        id: md5(String(href)),
+        meta: {
+          href: `https://www.itexams.com${href}`,
+          name,
+        },
+        name: await safeName(String(name)),
+      })
+    }
+
+    return banks
+  }
+
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.CATEGORIES)})
+  protected async fetchCategories(_qbank: {bank: Bank}): Promise<Category[]> {
+    const resp = await axios.get(_qbank.bank.meta?.href)
+
+    const root = parse(resp.data)
+
+    const countElement = lodash.find(root.querySelectorAll('.info-list > li'), (element: HTMLElement) =>
+      element?.textContent?.includes('Exam Questions'),
+    )
+
+    const count = countElement?.textContent?.match(/(\d+)/)?.[1] ?? 0
+
+    const exam = root.querySelector('.goto_exam > a')?.getAttribute('href')
+
+    return [
+      {
+        children: [],
+        count: Number(count),
+        id: md5('0'),
+        meta: {
+          exam: `https://www.itexams.com${exam}`,
+        },
+        name: '默认',
+        order: 0,
+      },
+    ]
+  }
+
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN), client: cacheManager.CommonClient})
   protected async toLogin(_password: string): Promise<CacheRequestConfig> {
     return {}

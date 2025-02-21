@@ -31,7 +31,9 @@ const encrypt = async (data1: any | null, data2: any | null): Promise<null | str
   return encrypt as string
 }
 
-const parseDoc = async (str: string): Promise<string> => {
+const parseDoc = async (str: string | undefined): Promise<string> => {
+  if (lodash.isUndefined(str)) return ''
+
   if (!isJSON(str)) return str
 
   const data = JSON.parse(str)

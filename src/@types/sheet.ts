@@ -6,9 +6,3 @@ export type Sheet = {
   order?: number
   orgName?: string
 }
-
-export type MarkjiChapter = Sheet & {
-  cardIds: string[]
-  revision: number
-  setRevision: number
-}

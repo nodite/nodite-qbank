@@ -29,170 +29,6 @@ export default class BiguoReal extends Vendor {
     }
   }
 
-  /**
-   * Banks.
-   */
-  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.BANKS)})
-  protected async fetchBanks(): Promise<Bank[]> {
-    const LIMIT = [{profession_names: ['应用心理学（新）'], school_name: '福州大学'}]
-
-    const config = await this.login()
-
-    const cityResponse = await axios.get('https://www.biguotk.com/api/v5/getZkCity', config)
-
-    const provinces = lodash
-      .chain(cityResponse.data.data)
-      .map('list')
-      .flatten()
-      .map((city) => ({province_id: city.province_id, province_name: city.province_name}))
-      .uniqBy('province_id')
-      .value()
-
-    const banks = [] as Bank[]
-
-    // provinces.
-    for (const province of provinces) {
-      const provinceId = province.province_id
-
-      const schoolResponse = await axios.post(
-        'https://www.biguotk.com/api/schoolList',
-        {province_id: provinceId},
-        config,
-      )
-
-      const schools = lodash
-        .chain(schoolResponse.data.data)
-        .filter((school) => lodash.map(LIMIT, 'school_name').includes(school.name))
-        .value()
-
-      // schools.
-      for (const school of schools) {
-        const schoolId = school.id
-
-        const professionResponse = await axios.post(
-          'https://www.biguotk.com//api/v2/professions',
-          {province_id: provinceId, school_id: schoolId, schoolName: school.name},
-          config,
-        )
-
-        // professions.
-        for (const profession of professionResponse.data.data) {
-          const professionId = profession.id
-
-          const _limit_pnames = lodash
-            .chain(LIMIT)
-            .filter((item) => item.school_name === school.name)
-            .map('profession_names')
-            .flatten()
-            .value()
-
-          if (!lodash.some(_limit_pnames, (pname) => profession.name.includes(pname))) {
-            continue
-          }
-
-          const courseResponse = await axios.get(
-            'https://www.biguotk.com/api/v4/study/user_courses',
-            lodash.merge({}, config, {
-              params: {professions_id: professionId, province_id: provinceId, school_id: schoolId},
-            }),
-          )
-
-          // courses.
-          const courses = [
-            ...(courseResponse.data.data.courses_joined || []),
-            ...(courseResponse.data.data.courses_not_joined || []),
-            ...(courseResponse.data.data.courses_passed || []),
-          ]
-
-          for (const course of courses) {
-            const homeResponse = await axios.get(
-              'https://www.biguotk.com/api/v4/study/home',
-              lodash.merge({}, config, {
-                params: {
-                  courses_id: course.courses_id,
-                  professions_id: professionId,
-                  province_id: provinceId,
-                  school_id: schoolId,
-                },
-              }),
-            )
-
-            const _tikuHome = lodash.find(homeResponse.data.data.tikus, {type: this._biguoQuestionBankParam().mainType})
-
-            const _id = md5(JSON.stringify([provinceId, schoolId, professionId, course.courses_id, course.code]))
-
-            banks.push({
-              count: _tikuHome.total || 0,
-              id: _id,
-              meta: {
-                courseCode: course.code,
-                courseId: course.courses_id,
-                professionId,
-                provinceId,
-                schoolId,
-                version: _tikuHome.version,
-              },
-              name: await safeName(
-                [school.name, `${profession.name}(${profession.code})`, `${course.name}(${course.code})`].join(' > '),
-              ),
-            })
-          }
-        }
-      }
-    }
-
-    return lodash
-      .chain(banks)
-      .sortBy(['meta.schoolId', 'meta.professionId', 'meta.courseId'], ['asc', 'asc', 'asc'])
-      .map((b, idx) => ({
-        ...b,
-        order: idx,
-      }))
-      .value()
-  }
-
-  /**
-   * Categories.
-   */
-  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.CATEGORIES)})
-  protected async fetchCategories(params: {bank: Bank}): Promise<Category[]> {
-    const config = this.login()
-
-    const realResponse = await axios.get(
-      'https://www.biguotk.com/api/v4/exams/real_paper_list',
-      lodash.merge({}, config, {
-        params: {
-          courses_id: params.bank.meta?.courseId,
-          limit: 100,
-          page: 1,
-          professions_id: params.bank.meta?.professionId,
-          province_id: params.bank.meta?.provinceId,
-          school_id: params.bank.meta?.schoolId,
-        },
-      }),
-    )
-
-    const categories = [] as Category[]
-
-    for (const [idx, category] of (realResponse.data.data || []).entries()) {
-      categories.push({
-        children: [],
-        count: category.total_nums,
-        id: category.id,
-        meta: {
-          version: category.version,
-        },
-        name: await safeName(category.name),
-        order: idx,
-      })
-    }
-
-    return categories
-  }
-
-  /**
-   * Questions.
-   */
   public async fetchQuestions(
     params: {bank: Bank; category: Category; sheet: Sheet},
     options?: FetchOptions | undefined,
@@ -323,17 +159,187 @@ export default class BiguoReal extends Vendor {
     emitter.closeListener('questions.fetch.count')
   }
 
-  /**
-   * Sheet.
-   */
+  protected _biguoQuestionBankParam(qbank?: QBankParams): Record<string, any> {
+    return {
+      code: qbank?.category?.id,
+      mainType: 2,
+      professions_id: qbank?.bank.meta?.professionId,
+      province_id: qbank?.bank.meta?.provinceId,
+      public_key:
+        'LS0tLS1CRUdJTiBSU0EgUFVCTElDIEtFWS0' +
+        'tLS0tCk1JR0pBb0dCQUxjNmR2MkFVaWRTR3' +
+        'NNTlFmS0VtSVpQZVRqeWRxdzJmZ2ErcGJXa' +
+        '3B3NGdrc09GR1gyWVRUOUQKOFp6K3FhWDJr' +
+        'eWFsYi9xU1FsN3VvMVBsZTd6UVBHbU01RXo' +
+        'yL2ErSU9TZVZYSTIxajBTZXV1SzJGZXpEcV' +
+        'NtTwpRdEQzTDNJUWFhSURmYUx6NTg3MFNVc' +
+        'CswRVBlZ2JkNTB3dEpqc2pnZzVZenU4WURP' +
+        'ZXg1QWdNQkFBRT0KLS0tLS1FTkQgUlNBIFB' +
+        'VQkxJQyBLRVktLS0tLQ==',
+      school_id: qbank?.bank.meta?.schoolId,
+    }
+  }
+
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.BANKS)})
+  protected async fetchBanks(): Promise<Bank[]> {
+    const LIMIT = [{profession_names: ['应用心理学（新）'], school_name: '福州大学'}]
+
+    const config = await this.login()
+
+    const cityResponse = await axios.get('https://www.biguotk.com/api/v5/getZkCity', config)
+
+    const provinces = lodash
+      .chain(cityResponse.data.data)
+      .map('list')
+      .flatten()
+      .map((city) => ({province_id: city.province_id, province_name: city.province_name}))
+      .uniqBy('province_id')
+      .value()
+
+    const banks = [] as Bank[]
+
+    // provinces.
+    for (const province of provinces) {
+      const provinceId = province.province_id
+
+      const schoolResponse = await axios.post(
+        'https://www.biguotk.com/api/schoolList',
+        {province_id: provinceId},
+        config,
+      )
+
+      const schools = lodash
+        .chain(schoolResponse.data.data)
+        .filter((school) => lodash.map(LIMIT, 'school_name').includes(school.name))
+        .value()
+
+      // schools.
+      for (const school of schools) {
+        const schoolId = school.id
+
+        const professionResponse = await axios.post(
+          'https://www.biguotk.com//api/v2/professions',
+          {province_id: provinceId, school_id: schoolId, schoolName: school.name},
+          config,
+        )
+
+        // professions.
+        for (const profession of professionResponse.data.data) {
+          const professionId = profession.id
+
+          const _limit_pnames = lodash
+            .chain(LIMIT)
+            .filter((item) => item.school_name === school.name)
+            .map('profession_names')
+            .flatten()
+            .value()
+
+          if (!lodash.some(_limit_pnames, (pname) => profession.name.includes(pname))) {
+            continue
+          }
+
+          const courseResponse = await axios.get(
+            'https://www.biguotk.com/api/v4/study/user_courses',
+            lodash.merge({}, config, {
+              params: {professions_id: professionId, province_id: provinceId, school_id: schoolId},
+            }),
+          )
+
+          // courses.
+          const courses = [
+            ...(courseResponse.data.data.courses_joined || []),
+            ...(courseResponse.data.data.courses_not_joined || []),
+            ...(courseResponse.data.data.courses_passed || []),
+          ]
+
+          for (const course of courses) {
+            const homeResponse = await axios.get(
+              'https://www.biguotk.com/api/v4/study/home',
+              lodash.merge({}, config, {
+                params: {
+                  courses_id: course.courses_id,
+                  professions_id: professionId,
+                  province_id: provinceId,
+                  school_id: schoolId,
+                },
+              }),
+            )
+
+            const _tikuHome = lodash.find(homeResponse.data.data.tikus, {type: this._biguoQuestionBankParam().mainType})
+
+            const _id = md5(JSON.stringify([provinceId, schoolId, professionId, course.courses_id, course.code]))
+
+            banks.push({
+              count: _tikuHome.total || 0,
+              id: _id,
+              meta: {
+                courseCode: course.code,
+                courseId: course.courses_id,
+                professionId,
+                provinceId,
+                schoolId,
+                version: _tikuHome.version,
+              },
+              name: await safeName(
+                [school.name, `${profession.name}(${profession.code})`, `${course.name}(${course.code})`].join(' > '),
+              ),
+            })
+          }
+        }
+      }
+    }
+
+    return lodash
+      .chain(banks)
+      .sortBy(['meta.schoolId', 'meta.professionId', 'meta.courseId'], ['asc', 'asc', 'asc'])
+      .map((b, idx) => ({
+        ...b,
+        order: idx,
+      }))
+      .value()
+  }
+
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.CATEGORIES)})
+  protected async fetchCategories(params: {bank: Bank}): Promise<Category[]> {
+    const config = this.login()
+
+    const realResponse = await axios.get(
+      'https://www.biguotk.com/api/v4/exams/real_paper_list',
+      lodash.merge({}, config, {
+        params: {
+          courses_id: params.bank.meta?.courseId,
+          limit: 100,
+          page: 1,
+          professions_id: params.bank.meta?.professionId,
+          province_id: params.bank.meta?.provinceId,
+          school_id: params.bank.meta?.schoolId,
+        },
+      }),
+    )
+
+    const categories = [] as Category[]
+
+    for (const [idx, category] of (realResponse.data.data || []).entries()) {
+      categories.push({
+        children: [],
+        count: category.total_nums,
+        id: category.id,
+        meta: {
+          version: category.version,
+        },
+        name: await safeName(category.name),
+        order: idx,
+      })
+    }
+
+    return categories
+  }
+
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.SHEETS)})
   protected async fetchSheet(params: {bank: Bank; category: Category}): Promise<Sheet[]> {
     return [{count: params.category.count, id: '0', name: '默认'}]
   }
 
-  /**
-   * Login.
-   */
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN), client: cacheManager.CommonClient})
   protected async toLogin(password: string): Promise<CacheRequestConfig<any, any>> {
     const userAgent = 'Biguo_Pro/6.9.1 (com.depeng.biguo; build:2; iOS 17.5.1) Alamofire/5.9.1'
@@ -365,30 +371,6 @@ export default class BiguoReal extends Vendor {
         layer_id: 1,
         users_id: response.data.data.user_id,
       },
-    }
-  }
-
-  /**
-   * _biguoQuestionBankParam.
-   */
-  protected _biguoQuestionBankParam(qbank?: QBankParams): Record<string, any> {
-    return {
-      code: qbank?.category?.id,
-      mainType: 2,
-      professions_id: qbank?.bank.meta?.professionId,
-      province_id: qbank?.bank.meta?.provinceId,
-      public_key:
-        'LS0tLS1CRUdJTiBSU0EgUFVCTElDIEtFWS0' +
-        'tLS0tCk1JR0pBb0dCQUxjNmR2MkFVaWRTR3' +
-        'NNTlFmS0VtSVpQZVRqeWRxdzJmZ2ErcGJXa' +
-        '3B3NGdrc09GR1gyWVRUOUQKOFp6K3FhWDJr' +
-        'eWFsYi9xU1FsN3VvMVBsZTd6UVBHbU01RXo' +
-        'yL2ErSU9TZVZYSTIxajBTZXV1SzJGZXpEcV' +
-        'NtTwpRdEQzTDNJUWFhSURmYUx6NTg3MFNVc' +
-        'CswRVBlZ2JkNTB3dEpqc2pnZzVZenU4WURP' +
-        'ZXg1QWdNQkFBRT0KLS0tLS1FTkQgUlNBIFB' +
-        'VQkxJQyBLRVktLS0tLQ==',
-      school_id: qbank?.bank.meta?.schoolId,
     }
   }
 }

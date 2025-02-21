@@ -31,9 +31,88 @@ export default class Shangfen extends Vendor {
     }
   }
 
-  /**
-   * Banks.
-   */
+  public async fetchQuestions(
+    params: {bank: Bank; category: Category; sheet: Sheet},
+    options?: FetchOptions,
+  ): Promise<void> {
+    const cacheClient = this.getCacheClient()
+
+    // cache key.
+    const cacheKeyParams = {
+      bankId: params.bank.id,
+      categoryId: params.category.id,
+      sheetId: params.sheet.id,
+      vendorKey: (this.constructor as typeof Vendor).META.key,
+    }
+
+    const originQuestionKeys = await cacheClient.keys(
+      lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)({...cacheKeyParams, questionId: '*'}),
+    )
+
+    // refetch.
+    if (options?.refetch) {
+      await cacheClient.delHash(lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)({...cacheKeyParams, questionId: '*'}))
+      originQuestionKeys.length = 0
+    }
+
+    emitter.emit('questions.fetch.count', originQuestionKeys.length)
+
+    const data = await this.getData(params)
+
+    for (const _q of data) {
+      const _qId = String(_q.id)
+
+      const _qCacheKey = lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)({
+        ...cacheKeyParams,
+        questionId: _qId,
+      })
+
+      if (originQuestionKeys.includes(_qCacheKey)) continue
+
+      await cacheClient.set(_qCacheKey, _q)
+      originQuestionKeys.push(_qCacheKey)
+      emitter.emit('questions.fetch.count', originQuestionKeys.length)
+
+      await sleep(500)
+    }
+
+    emitter.emit('questions.fetch.count', originQuestionKeys.length)
+    await sleep(500)
+    emitter.closeListener('questions.fetch.count')
+  }
+
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.SHEETS)})
+  public async fetchSheet(params: {bank: Bank; category: Category}, _options?: FetchOptions): Promise<Sheet[]> {
+    if (params.category.children.length === 0) {
+      return [{count: params.category.count, id: '0', name: '默认'}]
+    }
+
+    return lodash.map(
+      params.category.children,
+      (category): Sheet => ({
+        count: category.count,
+        id: category.id,
+        meta: category.meta,
+        name: category.name,
+        order: category.order,
+      }),
+    )
+  }
+
+  public async login(options?: LoginOptions): Promise<CacheRequestConfig> {
+    const config = await super.login(options)
+
+    if (config?.params?.token) {
+      // s.base64Encode)(a.AES.encrypt(e+"#"+r,"ixunke").toString()+"#"+r)
+      const _timestamp = Date.now()
+      const _token = CryptoJS.AES.encrypt(`${config.params.token}#${_timestamp}`, 'ixunke').toString()
+      const _sign = Base64.encode(`${_token}#${_timestamp}`)
+      config.params.token = _sign
+    }
+
+    return config
+  }
+
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.BANKS)})
   protected async fetchBanks(): Promise<Bank[]> {
     const config = await this.login()
@@ -129,9 +208,6 @@ export default class Shangfen extends Vendor {
     return lodash.orderBy(banks, ['meta.category.0.id', 'meta.category.1.id', 'name'], ['asc', 'asc', 'asc'])
   }
 
-  /**
-   * Categories.
-   */
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.CATEGORIES)})
   protected async fetchCategories(params: {bank: Bank}): Promise<Category[]> {
     const config = await this.login()
@@ -168,100 +244,6 @@ export default class Shangfen extends Vendor {
     return categories
   }
 
-  /**
-   * Questions.
-   */
-  public async fetchQuestions(
-    params: {bank: Bank; category: Category; sheet: Sheet},
-    options?: FetchOptions,
-  ): Promise<void> {
-    const cacheClient = this.getCacheClient()
-
-    // cache key.
-    const cacheKeyParams = {
-      bankId: params.bank.id,
-      categoryId: params.category.id,
-      sheetId: params.sheet.id,
-      vendorKey: (this.constructor as typeof Vendor).META.key,
-    }
-
-    const originQuestionKeys = await cacheClient.keys(
-      lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)({...cacheKeyParams, questionId: '*'}),
-    )
-
-    // refetch.
-    if (options?.refetch) {
-      await cacheClient.delHash(lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)({...cacheKeyParams, questionId: '*'}))
-      originQuestionKeys.length = 0
-    }
-
-    emitter.emit('questions.fetch.count', originQuestionKeys.length)
-
-    const data = await this.getData(params)
-
-    for (const _q of data) {
-      const _qId = String(_q.id)
-
-      const _qCacheKey = lodash.template(CACHE_KEY_ORIGIN_QUESTION_ITEM)({
-        ...cacheKeyParams,
-        questionId: _qId,
-      })
-
-      if (originQuestionKeys.includes(_qCacheKey)) continue
-
-      await cacheClient.set(_qCacheKey, _q)
-      originQuestionKeys.push(_qCacheKey)
-      emitter.emit('questions.fetch.count', originQuestionKeys.length)
-
-      await sleep(500)
-    }
-
-    emitter.emit('questions.fetch.count', originQuestionKeys.length)
-    await sleep(500)
-    emitter.closeListener('questions.fetch.count')
-  }
-
-  /**
-   * Sheet.
-   */
-  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.SHEETS)})
-  public async fetchSheet(params: {bank: Bank; category: Category}, _options?: FetchOptions): Promise<Sheet[]> {
-    if (params.category.children.length === 0) {
-      return [{count: params.category.count, id: '0', name: '默认'}]
-    }
-
-    return lodash.map(
-      params.category.children,
-      (category): Sheet => ({
-        count: category.count,
-        id: category.id,
-        meta: category.meta,
-        name: category.name,
-        order: category.order,
-      }),
-    )
-  }
-
-  /**
-   * Get data.
-   */
-  public async login(options?: LoginOptions): Promise<CacheRequestConfig> {
-    const config = await super.login(options)
-
-    if (config?.params?.token) {
-      // s.base64Encode)(a.AES.encrypt(e+"#"+r,"ixunke").toString()+"#"+r)
-      const _timestamp = Date.now()
-      const _token = CryptoJS.AES.encrypt(`${config.params.token}#${_timestamp}`, 'ixunke').toString()
-      const _sign = Base64.encode(`${_token}#${_timestamp}`)
-      config.params.token = _sign
-    }
-
-    return config
-  }
-
-  /**
-   * Get data.
-   */
   protected async getData(params: {bank: Bank; category: Category}): Promise<Record<string, any>[]> {
     const config = await this.login()
 
@@ -279,9 +261,6 @@ export default class Shangfen extends Vendor {
     return questions
   }
 
-  /**
-   * Login.
-   */
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN), client: cacheManager.CommonClient})
   protected async toLogin(password: string): Promise<CacheRequestConfig> {
     const _headers = {
