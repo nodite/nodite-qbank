@@ -27,16 +27,53 @@ export default class ChaoXingExam extends ChaoXing {
     return {}
   }
 
-  /**
-   * Login.
-   */
+  public async fetchQuestions(
+    _params: {bank: Bank; category: Category; sheet: Sheet},
+    _options?: FetchOptions,
+  ): Promise<void> {
+    // const config = await this.login()
+
+    // goTest(courseId, tId/examId, id, endTime, paperId, isRetest,lookpaperEnc)
+    // const exam = await this.getExam(params)
+    // const click = exam?.querySelector('> div')?.getAttribute('onclick') ?? ''
+    // const examId = lodash.trim(click.match(/goTest\(([^)]+)\)/)![1].split(',')[1], "'")
+
+    // const examnotes = URL.parse('https://mooc1.chaoxing.com/exam-ans/exam/test/examcode/examnotes')!
+    // examnotes.searchParams.set('classId', params.bank.meta!.clazzId)
+    // examnotes.searchParams.set('courseId', params.bank.meta!.courseId)
+    // examnotes.searchParams.set('cpi', params.bank.meta!.cpi)
+    // examnotes.searchParams.set('examId', examId)
+
+    // const examnotesPage = await puppeteer.page('chaoxing-exam', examnotes.toString(), config)
+
+    // await examnotesPage.evaluate((data) => {})
+
+    // const examnotes = await axios.get(
+    //   'https://mooc1.chaoxing.com/exam-ans/exam/test/examcode/examnotes',
+    //   lodash.merge({}, config, {
+    //     params: {
+    //       classId: params.bank.meta!.clazzId,
+    //       courseId: params.bank.meta!.courseId,
+    //       cpi: params.bank.meta!.cpi,
+    //       examId,
+    //     },
+    //   }),
+    // )
+
+    // const examnotesRoot = parse(examnotes.data)
+    // const answerId = examnotesRoot.querySelector('input#answerId')?.getAttribute('value')
+    // const sdlkey = examnotesRoot.querySelector('input#secondDeviceLiveKey')?.getAttribute('value')
+    // const facekey = examnotesRoot.querySelector('input#facekey')?.getAttribute('value')
+    // const captchavalidate = examnotesRoot.querySelector('input#captchavalidate')?.getAttribute('value')
+    // const captchaCaptchaId = examnotesRoot.querySelector('input#captchaCaptchaId')?.getAttribute('value')
+
+    throw new Error('Method not implemented.')
+  }
+
   public async login(options?: LoginOptions): Promise<CacheRequestConfig> {
     return new ChaoXing(this.getUsername()).login(options)
   }
 
-  /**
-   * Categories.
-   */
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.CATEGORIES)})
   protected async fetchCategories(params: {bank: Bank}): Promise<Category[]> {
     const config = await this.login()
@@ -85,63 +122,11 @@ export default class ChaoXingExam extends ChaoXing {
     return categories
   }
 
-  /**
-   * Sheet.
-   */
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.SHEETS)})
   protected async fetchSheet(params: {bank: Bank; category: Category}, _options?: FetchOptions): Promise<Sheet[]> {
     return params.category.children
   }
 
-  /**
-   * Fetch questions.
-   */
-  public async fetchQuestions(
-    _params: {bank: Bank; category: Category; sheet: Sheet},
-    _options?: FetchOptions,
-  ): Promise<void> {
-    // const config = await this.login()
-
-    // goTest(courseId, tId/examId, id, endTime, paperId, isRetest,lookpaperEnc)
-    // const exam = await this.getExam(params)
-    // const click = exam?.querySelector('> div')?.getAttribute('onclick') ?? ''
-    // const examId = lodash.trim(click.match(/goTest\(([^)]+)\)/)![1].split(',')[1], "'")
-
-    // const examnotes = URL.parse('https://mooc1.chaoxing.com/exam-ans/exam/test/examcode/examnotes')!
-    // examnotes.searchParams.set('classId', params.bank.meta!.clazzId)
-    // examnotes.searchParams.set('courseId', params.bank.meta!.courseId)
-    // examnotes.searchParams.set('cpi', params.bank.meta!.cpi)
-    // examnotes.searchParams.set('examId', examId)
-
-    // const examnotesPage = await puppeteer.page('chaoxing-exam', examnotes.toString(), config)
-
-    // await examnotesPage.evaluate((data) => {})
-
-    // const examnotes = await axios.get(
-    //   'https://mooc1.chaoxing.com/exam-ans/exam/test/examcode/examnotes',
-    //   lodash.merge({}, config, {
-    //     params: {
-    //       classId: params.bank.meta!.clazzId,
-    //       courseId: params.bank.meta!.courseId,
-    //       cpi: params.bank.meta!.cpi,
-    //       examId,
-    //     },
-    //   }),
-    // )
-
-    // const examnotesRoot = parse(examnotes.data)
-    // const answerId = examnotesRoot.querySelector('input#answerId')?.getAttribute('value')
-    // const sdlkey = examnotesRoot.querySelector('input#secondDeviceLiveKey')?.getAttribute('value')
-    // const facekey = examnotesRoot.querySelector('input#facekey')?.getAttribute('value')
-    // const captchavalidate = examnotesRoot.querySelector('input#captchavalidate')?.getAttribute('value')
-    // const captchaCaptchaId = examnotesRoot.querySelector('input#captchaCaptchaId')?.getAttribute('value')
-
-    throw new Error('Method not implemented.')
-  }
-
-  /**
-   * Get exam.
-   */
   protected async getExam(params: {bank: Bank; category: Category; sheet: Sheet}): Promise<HTMLElement> {
     const config = await this.login()
 

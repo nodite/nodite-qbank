@@ -30,62 +30,6 @@ const srcHandler = (src: string): string => {
 }
 
 export default class Markji extends MarkjiBase {
-  /**
-   * _output.
-   */
-  protected async _output(question: any, qbank: QBankParams): Promise<AssetString> {
-    let _output = {} as AssetString
-
-    const _questionType = question.baseQuestionType
-
-    switch (_questionType) {
-      // 1. 单选题
-      case 1: {
-        question.baseQuestionTypeName = '单选题'
-        _output = await this._processChoice(question, qbank)
-        break
-      }
-
-      // 2. 多选题
-      case 2: {
-        question.baseQuestionTypeName = '多选题'
-        question.isMultipleChoice = true
-        _output = await this._processChoice(question, qbank)
-        break
-      }
-
-      case 3: {
-        question.baseQuestionTypeName = '阅读理解(不定项)'
-        question.isMultipleChoice = true
-        _output = await this._processChoice(question, qbank)
-        break
-      }
-
-      // 6. 填空题
-      case 6: {
-        question.baseQuestionTypeName = '填空题'
-        _output = await this._processTranslate(question, qbank)
-        break
-      }
-
-      // 7. 简答题
-      case 7: {
-        question.baseQuestionTypeName = '简答题/论述题/综合题'
-        _output = await this._processTranslate(question, qbank)
-        break
-      }
-
-      default: {
-        throwError('Unsupported question type.', {qbank, question})
-      }
-    }
-
-    return _output
-  }
-
-  /**
-   * _processChoice.
-   */
   protected async _processChoice(question: any, qbank: QBankParams): Promise<AssetString> {
     const _meta = {
       answers: [] as AssetString[],
@@ -201,9 +145,6 @@ export default class Markji extends MarkjiBase {
     return _output
   }
 
-  /**
-   * _processTranslate.
-   */
   protected async _processTranslate(question: any, _qbank: QBankParams): Promise<AssetString> {
     const _meta = {
       content: {assets: [] as never, text: ''} as AssetString,
@@ -273,6 +214,56 @@ export default class Markji extends MarkjiBase {
       _meta.material.assets,
       _meta.translation.assets,
     )
+
+    return _output
+  }
+
+  protected async toMarkjiOutput(question: any, qbank: QBankParams): Promise<AssetString> {
+    let _output = {} as AssetString
+
+    const _questionType = question.baseQuestionType
+
+    switch (_questionType) {
+      // 1. 单选题
+      case 1: {
+        question.baseQuestionTypeName = '单选题'
+        _output = await this._processChoice(question, qbank)
+        break
+      }
+
+      // 2. 多选题
+      case 2: {
+        question.baseQuestionTypeName = '多选题'
+        question.isMultipleChoice = true
+        _output = await this._processChoice(question, qbank)
+        break
+      }
+
+      case 3: {
+        question.baseQuestionTypeName = '阅读理解(不定项)'
+        question.isMultipleChoice = true
+        _output = await this._processChoice(question, qbank)
+        break
+      }
+
+      // 6. 填空题
+      case 6: {
+        question.baseQuestionTypeName = '填空题'
+        _output = await this._processTranslate(question, qbank)
+        break
+      }
+
+      // 7. 简答题
+      case 7: {
+        question.baseQuestionTypeName = '简答题/论述题/综合题'
+        _output = await this._processTranslate(question, qbank)
+        break
+      }
+
+      default: {
+        throwError('Unsupported question type.', {qbank, question})
+      }
+    }
 
     return _output
   }

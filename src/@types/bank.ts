@@ -6,8 +6,3 @@ export type Bank = {
   order?: number
   orgName?: string
 }
-
-export type MarkjiFolder = Bank & {
-  items?: {object_class: string; object_id: string}[]
-  updated_time?: string
-}

@@ -27,9 +27,18 @@ export default class AwsExamtopics extends Vendor {
     }
   }
 
-  /**
-   * Banks.
-   */
+  public async fetchQuestions(
+    _params: {bank: Bank; category: Category; sheet: Sheet},
+    _options?: FetchOptions,
+  ): Promise<void> {
+    throw new Error('Method not implemented.')
+  }
+
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.SHEETS)})
+  public async fetchSheet(params: {bank: Bank; category: Category}, _options?: FetchOptions): Promise<Sheet[]> {
+    return [{count: params.category.count, id: '0', name: '默认'}]
+  }
+
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.BANKS)})
   protected async fetchBanks(): Promise<Bank[]> {
     const banks = [] as Bank[]
@@ -58,9 +67,6 @@ export default class AwsExamtopics extends Vendor {
     return banks
   }
 
-  /**
-   * Categories.
-   */
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.CATEGORIES)})
   protected async fetchCategories(params: {bank: Bank}): Promise<Category[]> {
     const page = await puppeteer.page('examtopics', params.bank.meta!.href, await this.login())
@@ -84,27 +90,6 @@ export default class AwsExamtopics extends Vendor {
     throw new Error('Method not implemented.')
   }
 
-  /**
-   * Questions.
-   */
-  public async fetchQuestions(
-    _params: {bank: Bank; category: Category; sheet: Sheet},
-    _options?: FetchOptions,
-  ): Promise<void> {
-    throw new Error('Method not implemented.')
-  }
-
-  /**
-   * Sheet.
-   */
-  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.SHEETS)})
-  public async fetchSheet(params: {bank: Bank; category: Category}, _options?: FetchOptions): Promise<Sheet[]> {
-    return [{count: params.category.count, id: '0', name: '默认'}]
-  }
-
-  /**
-   * Login.
-   */
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN), client: cache.CommonClient})
   protected async toLogin(_password: string): Promise<CacheRequestConfig> {
     return {}

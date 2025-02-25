@@ -29,65 +29,6 @@ export default class AwsMytodo extends Vendor {
     }
   }
 
-  /**
-   * Banks.
-   */
-  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.BANKS)})
-  protected async fetchBanks(): Promise<Bank[]> {
-    const config = await this.login()
-
-    const banks = [] as Bank[]
-
-    const page = await puppeteer.page('mytodo', 'https://mytodo.vip/', config)
-
-    await page.waitForSelector('.card-body')
-
-    const elements = await page.$$('.card-body')
-
-    for (const element of elements) {
-      const category = await (await element.$('.card-title'))?.evaluate((element) => element.textContent?.trim())
-      const name = await (await element.$('.card-text'))?.evaluate((element) => element.textContent?.trim())
-
-      banks.push({
-        id: md5(String(category?.toLowerCase())),
-        meta: {
-          category: String(category?.toLowerCase()),
-        },
-        name: await safeName(String(name)),
-      })
-    }
-
-    return banks
-  }
-
-  /**
-   * Categories.
-   */
-  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.CATEGORIES)})
-  protected async fetchCategories(qbank: {bank: Bank}): Promise<Category[]> {
-    const config = await this.login()
-
-    const page = await puppeteer.page('mytodo', 'https://mytodo.vip/', config)
-
-    await Promise.all([
-      page.waitForSelector('a[id^=sheet]'),
-      page.goto(`https://mytodo.vip/subjects/detail?type=1&category=${qbank.bank.meta?.category}`),
-    ])
-
-    // a id="sheet*", * is count
-    const count: number =
-      lodash.max(
-        await page.$$eval('a[id^=sheet]', (elements) =>
-          elements.map((element) => Number(element.id.replace('sheet', ''))),
-        ),
-      ) || 0
-
-    return [{children: [], count, id: md5('0'), name: '默认', order: 0}]
-  }
-
-  /**
-   * Questions.
-   */
   public async fetchQuestions(
     qbank: {bank: Bank; category: Category; sheet: Sheet},
     options?: FetchOptions,
@@ -159,17 +100,61 @@ export default class AwsMytodo extends Vendor {
     emitter.closeListener('questions.fetch.count')
   }
 
-  /**
-   * Sheet.
-   */
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.SHEETS)})
   public async fetchSheet(qbank: {bank: Bank; category: Category}, _options?: FetchOptions): Promise<Sheet[]> {
     return [{count: qbank.category.count, id: md5('0'), name: '默认'}]
   }
 
-  /**
-   * Login.
-   */
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.BANKS)})
+  protected async fetchBanks(): Promise<Bank[]> {
+    const config = await this.login()
+
+    const banks = [] as Bank[]
+
+    const page = await puppeteer.page('mytodo', 'https://mytodo.vip/', config)
+
+    await page.waitForSelector('.card-body')
+
+    const elements = await page.$$('.card-body')
+
+    for (const element of elements) {
+      const category = await (await element.$('.card-title'))?.evaluate((element) => element.textContent?.trim())
+      const name = await (await element.$('.card-text'))?.evaluate((element) => element.textContent?.trim())
+
+      banks.push({
+        id: md5(String(category?.toLowerCase())),
+        meta: {
+          category: String(category?.toLowerCase()),
+        },
+        name: await safeName(String(name)),
+      })
+    }
+
+    return banks
+  }
+
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.CATEGORIES)})
+  protected async fetchCategories(qbank: {bank: Bank}): Promise<Category[]> {
+    const config = await this.login()
+
+    const page = await puppeteer.page('mytodo', 'https://mytodo.vip/', config)
+
+    await Promise.all([
+      page.waitForSelector('a[id^=sheet]'),
+      page.goto(`https://mytodo.vip/subjects/detail?type=1&category=${qbank.bank.meta?.category}`),
+    ])
+
+    // a id="sheet*", * is count
+    const count: number =
+      lodash.max(
+        await page.$$eval('a[id^=sheet]', (elements) =>
+          elements.map((element) => Number(element.id.replace('sheet', ''))),
+        ),
+      ) || 0
+
+    return [{children: [], count, id: md5('0'), name: '默认', order: 0}]
+  }
+
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN), client: cacheManager.CommonClient})
   protected async toLogin(password: string): Promise<CacheRequestConfig> {
     const page = await puppeteer.page('mytodo', 'https://mytodo.vip/login')

@@ -20,6 +20,10 @@ abstract class Component {
   }
 
   public getUsername = () => this.username
+
+  public getVendorKey = () => (this.constructor as typeof Component).META.key
+
+  public getVendorName = () => (this.constructor as typeof Component).META.name
 }
 
 export {Component}

@@ -29,181 +29,6 @@ export default class LearnABC extends Vendor {
     }
   }
 
-  /**
-   * Banks.
-   */
-  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.BANKS)})
-  protected async fetchBanks(): Promise<Bank[]> {
-    const config = await this.login()
-
-    const banks = [] as Bank[]
-
-    // topic.
-    const _topicResp = await axios.get('http://m.beauty-story.cn/api/englishpaper/getTopicList', config)
-
-    for (const [_idx, _topic] of (_topicResp.data.data || []).entries()) {
-      const _id = md5(JSON.stringify({id: _topic.id, type: 'topic'}))
-
-      banks.push({
-        count: Number(_topic.paper_count),
-        id: _id,
-        meta: {
-          _index: _idx,
-          name: _topic.topic_name,
-          topic: _topic,
-          type: 'topic',
-        },
-        name: await safeName(`英语习题册 > 语法 > ${_topic.topic_name}`),
-      })
-    }
-
-    // stage.
-    const _stageResp = await axios.get('http://m.beauty-story.cn/api/englishpaper/allcategory2', config)
-
-    for (const [_idx, _stage] of (_stageResp.data.data.active || []).entries()) {
-      const _stgKey = _stage.stage
-      const _stgMeta = lodash.find(_stageResp.data.data.stage, {key: _stgKey})
-
-      banks.push({
-        id: md5(JSON.stringify({stage: _stgKey})),
-        meta: {
-          _index: _idx,
-          categories: lodash.map(_stage.category, (c) => {
-            const _catMeta = lodash.find(_stageResp.data.data.category, {key: c.key})
-            return {..._catMeta, ...c}
-          }),
-          name: _stgMeta.value,
-          stage: _stgMeta,
-          type: 'stage',
-        },
-        name: await safeName(`英语习题册 > 阶段 > ${_stgMeta.value}`),
-      })
-    }
-
-    // 语法
-    const _articleResp = await axios.get('http://api.beauty-story.cn/api/learnabc/grammar_list', config)
-
-    for (const [_idx, _grammar] of (_articleResp.data.data || []).entries()) {
-      banks.push({
-        count: _grammar.article_count,
-        id: md5(String(_grammar.id)),
-        meta: {
-          _index: _idx,
-          grammar: _grammar,
-          type: 'grammar',
-        },
-        name: await safeName(`英语习题册 > 文章 > ${_grammar.title}`),
-      })
-    }
-
-    // others.
-    // TODO
-
-    return lodash
-      .chain(banks)
-      .sortBy(['meta.type', 'meta._index'], ['asc', 'asc'])
-      .map((_bank, _idx) => ({..._bank, order: _idx}))
-      .value()
-  }
-
-  /**
-   * Categories.
-   */
-  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.CATEGORIES)})
-  protected async fetchCategories(params: {bank: Bank}): Promise<Category[]> {
-    const config = await this.login()
-
-    const _cats = [] as Category[]
-
-    switch (params.bank.meta?.type) {
-      case 'grammar': {
-        _cats.push({
-          children: [],
-          count: params.bank.count || 0,
-          id: '0',
-          meta: {
-            articles: (
-              await axios.get(
-                'http://api.beauty-story.cn/api/learnabc/grammar_article_list',
-                lodash.merge({}, config, {params: {category_name: params.bank.meta?.grammar.title}}),
-              )
-            ).data.data,
-          },
-          name: '默认',
-        })
-        break
-      }
-
-      case 'stage': {
-        for (const [_idx, _cat] of params.bank.meta.categories.entries()) {
-          _cats.push({
-            children: [],
-            count: _cat.count,
-            id: _cat.key,
-            name: await safeName(_cat.value),
-            order: _idx,
-          })
-        }
-
-        break
-      }
-
-      case 'topic': {
-        _cats.push({
-          children: [],
-          count: params.bank.count || 0,
-          id: '0',
-          name: params.bank.meta.topic.topic_name,
-        })
-
-        break
-      }
-
-      default: {
-        _cats.push({children: [], count: params.bank.count || 0, id: '0', name: '默认'})
-
-        break
-      }
-    }
-
-    return _cats
-  }
-
-  /**
-   * Sheet.
-   */
-  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.SHEETS)})
-  public async fetchSheet(params: {bank: Bank; category: Category}, _options?: FetchOptions): Promise<Sheet[]> {
-    const config = await this.login()
-
-    const _sheets = [] as Sheet[]
-
-    if (params.bank.meta?.type === 'grammar') {
-      const contents = await Promise.all(
-        lodash.map(params.category.meta?.articles, async (art) => {
-          return (
-            await axios.get(
-              'http://api.beauty-story.cn/api/learnabc/grammar_article_content',
-              lodash.merge({}, config, {params: art}),
-            )
-          ).data.data
-        }),
-      )
-
-      _sheets.push({
-        count: params.category.count,
-        id: '0',
-        meta: {contents},
-        name: '默认',
-      })
-    }
-
-    return _sheets
-  }
-
-  /**
-   * Questions.
-   */
   public async fetchQuestions(
     params: {bank: Bank; category: Category; sheet: Sheet},
     options?: FetchOptions,
@@ -324,9 +149,169 @@ export default class LearnABC extends Vendor {
     emitter.closeListener('questions.fetch.count')
   }
 
-  /**
-   * Login.
-   */
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.SHEETS)})
+  public async fetchSheet(params: {bank: Bank; category: Category}, _options?: FetchOptions): Promise<Sheet[]> {
+    const config = await this.login()
+
+    const _sheets = [] as Sheet[]
+
+    if (params.bank.meta?.type === 'grammar') {
+      const contents = await Promise.all(
+        lodash.map(params.category.meta?.articles, async (art) => {
+          return (
+            await axios.get(
+              'http://api.beauty-story.cn/api/learnabc/grammar_article_content',
+              lodash.merge({}, config, {params: art}),
+            )
+          ).data.data
+        }),
+      )
+
+      _sheets.push({
+        count: params.category.count,
+        id: '0',
+        meta: {contents},
+        name: '默认',
+      })
+    }
+
+    return _sheets
+  }
+
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.BANKS)})
+  protected async fetchBanks(): Promise<Bank[]> {
+    const config = await this.login()
+
+    const banks = [] as Bank[]
+
+    // topic.
+    const _topicResp = await axios.get('http://m.beauty-story.cn/api/englishpaper/getTopicList', config)
+
+    for (const [_idx, _topic] of (_topicResp.data.data || []).entries()) {
+      const _id = md5(JSON.stringify({id: _topic.id, type: 'topic'}))
+
+      banks.push({
+        count: Number(_topic.paper_count),
+        id: _id,
+        meta: {
+          _index: _idx,
+          name: _topic.topic_name,
+          topic: _topic,
+          type: 'topic',
+        },
+        name: await safeName(`英语习题册 > 语法 > ${_topic.topic_name}`),
+      })
+    }
+
+    // stage.
+    const _stageResp = await axios.get('http://m.beauty-story.cn/api/englishpaper/allcategory2', config)
+
+    for (const [_idx, _stage] of (_stageResp.data.data.active || []).entries()) {
+      const _stgKey = _stage.stage
+      const _stgMeta = lodash.find(_stageResp.data.data.stage, {key: _stgKey})
+
+      banks.push({
+        id: md5(JSON.stringify({stage: _stgKey})),
+        meta: {
+          _index: _idx,
+          categories: lodash.map(_stage.category, (c) => {
+            const _catMeta = lodash.find(_stageResp.data.data.category, {key: c.key})
+            return {..._catMeta, ...c}
+          }),
+          name: _stgMeta.value,
+          stage: _stgMeta,
+          type: 'stage',
+        },
+        name: await safeName(`英语习题册 > 阶段 > ${_stgMeta.value}`),
+      })
+    }
+
+    // 语法
+    const _articleResp = await axios.get('http://api.beauty-story.cn/api/learnabc/grammar_list', config)
+
+    for (const [_idx, _grammar] of (_articleResp.data.data || []).entries()) {
+      banks.push({
+        count: _grammar.article_count,
+        id: md5(String(_grammar.id)),
+        meta: {
+          _index: _idx,
+          grammar: _grammar,
+          type: 'grammar',
+        },
+        name: await safeName(`英语习题册 > 文章 > ${_grammar.title}`),
+      })
+    }
+
+    // others.
+    // TODO
+
+    return lodash
+      .chain(banks)
+      .sortBy(['meta.type', 'meta._index'], ['asc', 'asc'])
+      .map((_bank, _idx) => ({..._bank, order: _idx}))
+      .value()
+  }
+
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.CATEGORIES)})
+  protected async fetchCategories(params: {bank: Bank}): Promise<Category[]> {
+    const config = await this.login()
+
+    const _cats = [] as Category[]
+
+    switch (params.bank.meta?.type) {
+      case 'grammar': {
+        _cats.push({
+          children: [],
+          count: params.bank.count || 0,
+          id: '0',
+          meta: {
+            articles: (
+              await axios.get(
+                'http://api.beauty-story.cn/api/learnabc/grammar_article_list',
+                lodash.merge({}, config, {params: {category_name: params.bank.meta?.grammar.title}}),
+              )
+            ).data.data,
+          },
+          name: '默认',
+        })
+        break
+      }
+
+      case 'stage': {
+        for (const [_idx, _cat] of params.bank.meta.categories.entries()) {
+          _cats.push({
+            children: [],
+            count: _cat.count,
+            id: _cat.key,
+            name: await safeName(_cat.value),
+            order: _idx,
+          })
+        }
+
+        break
+      }
+
+      case 'topic': {
+        _cats.push({
+          children: [],
+          count: params.bank.count || 0,
+          id: '0',
+          name: params.bank.meta.topic.topic_name,
+        })
+
+        break
+      }
+
+      default: {
+        _cats.push({children: [], count: params.bank.count || 0, id: '0', name: '默认'})
+
+        break
+      }
+    }
+
+    return _cats
+  }
+
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN), client: cacheManager.CommonClient})
   protected async toLogin(_password: string): Promise<CacheRequestConfig> {
     return {

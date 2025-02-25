@@ -12,49 +12,6 @@ const srcHandler = (src: string): string => {
 }
 
 export default class Markji extends MarkjiBase {
-  /**
-   * _output.
-   */
-  protected async _output(question: any, qbank: QBankParams): Promise<AssetString> {
-    const _questionType = question.type
-
-    let output = {} as AssetString
-
-    // ===========================
-    switch (_questionType) {
-      // 1. 单选题
-      case '1': {
-        question.typeName = '单选题'
-        output = await this._processChoice(question, qbank)
-        break
-      }
-
-      // 2. 多选题
-      case '2': {
-        question.typeName = '多选题'
-        question.isMultipleChoice = true
-        output = await this._processChoice(question, qbank)
-        break
-      }
-
-      // 5. 名词解释/问答题
-      case '5': {
-        question.typeName = '名词解释/问答题'
-        output = await this._processTranslate(question, qbank)
-        break
-      }
-
-      default: {
-        throwError('Unsupported question type.', {qbank, question})
-      }
-    }
-
-    return output
-  }
-
-  /**
-   * _processChoice.
-   */
   protected async _processChoice(question: any, qbank: QBankParams): Promise<AssetString> {
     const _meta = {
       answers: [] as AssetString[],
@@ -170,9 +127,6 @@ export default class Markji extends MarkjiBase {
     return _output
   }
 
-  /**
-   * _processTranslate.
-   */
   protected async _processTranslate(question: any, qbank: QBankParams): Promise<AssetString> {
     const _meta = {
       content: {assets: [] as never, text: ''} as AssetString,
@@ -248,5 +202,42 @@ export default class Markji extends MarkjiBase {
     )
 
     return _output
+  }
+
+  protected async toMarkjiOutput(question: any, qbank: QBankParams): Promise<AssetString> {
+    const _questionType = question.type
+
+    let output = {} as AssetString
+
+    // ===========================
+    switch (_questionType) {
+      // 1. 单选题
+      case '1': {
+        question.typeName = '单选题'
+        output = await this._processChoice(question, qbank)
+        break
+      }
+
+      // 2. 多选题
+      case '2': {
+        question.typeName = '多选题'
+        question.isMultipleChoice = true
+        output = await this._processChoice(question, qbank)
+        break
+      }
+
+      // 5. 名词解释/问答题
+      case '5': {
+        question.typeName = '名词解释/问答题'
+        output = await this._processTranslate(question, qbank)
+        break
+      }
+
+      default: {
+        throwError('Unsupported question type.', {qbank, question})
+      }
+    }
+
+    return output
   }
 }

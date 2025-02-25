@@ -28,41 +28,6 @@ export default class JsonFile extends Vendor {
     }
   }
 
-  /**
-   * Fetch banks.
-   */
-  protected async fetchBanks(): Promise<Bank[]> {
-    return [
-      {
-        id: 'assets/心理咨询原理与技术(课程代码 07049).json',
-        name: '自考 > 心理咨询原理与技术 (07049)',
-      },
-    ]
-  }
-
-  /**
-   * Fetch categories.
-   */
-  protected async fetchCategories(params: {bank: Bank}): Promise<Category[]> {
-    const data = await this.getData(params.bank)
-
-    const categories = [] as Category[]
-
-    for (const category of data.categories) {
-      categories.push({
-        children: [],
-        count: lodash.filter(data.questions, {category}).length,
-        id: category,
-        name: await safeName(category),
-      })
-    }
-
-    return categories
-  }
-
-  /**
-   * Questions.
-   */
   public async fetchQuestions(
     params: {bank: Bank; category: Category; sheet: Sheet},
     options?: FetchOptions | undefined,
@@ -117,16 +82,36 @@ export default class JsonFile extends Vendor {
     emitter.closeListener('questions.fetch.count')
   }
 
-  /**
-   * Fetch sheet.
-   */
+  protected async fetchBanks(): Promise<Bank[]> {
+    return [
+      {
+        id: 'assets/心理咨询原理与技术(课程代码 07049).json',
+        name: '自考 > 心理咨询原理与技术 (07049)',
+      },
+    ]
+  }
+
+  protected async fetchCategories(params: {bank: Bank}): Promise<Category[]> {
+    const data = await this.getData(params.bank)
+
+    const categories = [] as Category[]
+
+    for (const category of data.categories) {
+      categories.push({
+        children: [],
+        count: lodash.filter(data.questions, {category}).length,
+        id: category,
+        name: await safeName(category),
+      })
+    }
+
+    return categories
+  }
+
   protected async fetchSheet(params: {bank: Bank; category: Category}): Promise<Sheet[]> {
     return [{count: params.category.count, id: '0', name: '默认'}]
   }
 
-  /**
-   * Get data.
-   */
   protected async getData(bank: Bank): Promise<any> {
     if (!bank.id.endsWith('.json')) throw new Error(`Invalid bank ID: ${bank.id}`)
 
@@ -142,9 +127,6 @@ export default class JsonFile extends Vendor {
     return data
   }
 
-  /**
-   * Login.
-   */
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN), client: cacheManager.CommonClient})
   protected async toLogin(_password: string): Promise<CacheRequestConfig<any, any>> {
     return {}

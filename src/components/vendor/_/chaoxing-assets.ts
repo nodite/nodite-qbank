@@ -32,16 +32,6 @@ export default class ChaoXingAssets extends ChaoXingExam {
     }
   }
 
-  /**
-   * Login.
-   */
-  public async login(options?: LoginOptions): Promise<CacheRequestConfig> {
-    return new ChaoXingExam(this.getUsername()).login(options)
-  }
-
-  /**
-   * Fetch questions.
-   */
   public async fetchQuestions(
     params: {bank: Bank; category: Category; sheet: Sheet},
     options?: FetchOptions,
@@ -112,9 +102,10 @@ export default class ChaoXingAssets extends ChaoXingExam {
     emitter.closeListener('questions.fetch.count')
   }
 
-  /**
-   * Training
-   */
+  public async login(options?: LoginOptions): Promise<CacheRequestConfig> {
+    return new ChaoXingExam(this.getUsername()).login(options)
+  }
+
   protected async training(params: {bank: Bank; category: Category; sheet: Sheet}): Promise<void> {
     const filepaths = lodash.filter(
       await glob(path.join(PKG_ASSETS_DIR, 'chaoxing', params.bank.name, '*.xls')),

@@ -32,104 +32,6 @@ export default class Wantiku extends Vendor {
     }
   }
 
-  /**
-   * Banks.
-   */
-  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.BANKS)})
-  protected async fetchBanks(): Promise<Bank[]> {
-    const requestConfig = await this.login()
-
-    // Parent subject.
-    const parentSubjectsResponse = await axios.get(
-      'https://api.wantiku.com/api/ExamSubject/GetAllSubjects',
-      lodash.merge({}, requestConfig, {params: {time: Date.now()}}),
-    )
-
-    const groups = fiindAll(parentSubjectsResponse.data.SubjectEntities, ['自考类', '成考类'], {
-      fuzzy: true,
-    }) as Record<string, any>[]
-
-    const banks: Bank[] = []
-
-    for (const group of groups) {
-      for (const parentSubject of group.SubjectEntities) {
-        const subjectsResponse = await axios.get(
-          'https://api.wantiku.com/api/User/UserSubjectNew',
-          lodash.merge({}, requestConfig, {
-            headers: {SubjectLevel: 1, SubjectParentID: parentSubject.SubjectParentId},
-            params: {SubjectLevel: parentSubject.SubjectLevel, time: Date.now()},
-          }),
-        )
-
-        const subjects = lodash.filter(subjectsResponse.data.SubjectEntities ?? [], (subject) =>
-          Boolean(subject.IsSelect),
-        )
-
-        if (subjects.length === 0) {
-          throw new Error('请前往 <万题库> App 加入题库: 发现 > 头像 > 设置 > 考试科目管理')
-        }
-
-        for (const subject of subjects) {
-          const _id = md5(
-            JSON.stringify([parentSubject.SubjectParentId, parentSubject.SubjectLevel, subject.SubjectId]),
-          )
-
-          banks.push({
-            id: _id,
-            meta: {
-              groupId: group.GroupId,
-              parentSubjectId: parentSubject.SubjectParentId,
-              subjectId: subject.SubjectId,
-              subjectLevel: parentSubject.SubjectLevel,
-            },
-            name: await safeName([group.GroupName, parentSubject.SubjectName, subject.SubjectName].join(' > ')),
-          })
-        }
-      }
-    }
-
-    return lodash
-      .chain(banks)
-      .sortBy(
-        ['meta.groupId', 'meta.parentSubjectId', 'meta.subjectLevel', 'meta.subjectId'],
-        ['asc', 'asc', 'asc', 'asc'],
-      )
-      .map((bank, idx) => ({...bank, order: idx}))
-      .value()
-  }
-
-  /**
-   * Categories.
-   */
-  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.CATEGORIES)})
-  protected async fetchCategories(params: {bank: Bank}): Promise<Category[]> {
-    const requestConfig = await this.login()
-
-    const response = await axios.get(
-      this.URL_CATEGORY,
-      lodash.merge({}, requestConfig, {
-        headers: {SubjectLevel: params.bank.meta?.subjectLevel, SubjectParentID: params.bank.meta?.parentSubjectId},
-        params: {SubjectId: params.bank.meta?.subjectId, time: Date.now()},
-      }),
-    )
-
-    const categories = [] as Category[]
-
-    for (const ct of response.data.SpecialTreeList ?? []) {
-      categories.push({
-        children: [],
-        count: ct.TotalQuestions,
-        id: ct.ExamSiteId,
-        name: await safeName(ct.ExamSiteName),
-      })
-    }
-
-    return categories
-  }
-
-  /**
-   * Fetch Questions.
-   */
   public async fetchQuestions(
     params: {bank: Bank; category: Category; sheet: Sheet},
     options?: FetchOptions,
@@ -227,16 +129,99 @@ export default class Wantiku extends Vendor {
     emitter.closeListener('questions.fetch.count')
   }
 
-  /**
-   * Fetch Sheet.
-   */
   public async fetchSheet(params: {bank: Bank; category: Category}, _options?: FetchOptions): Promise<Sheet[]> {
     return [{count: params.category.count, id: '0', name: '默认'}]
   }
 
-  /**
-   * Login.
-   */
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.BANKS)})
+  protected async fetchBanks(): Promise<Bank[]> {
+    const requestConfig = await this.login()
+
+    // Parent subject.
+    const parentSubjectsResponse = await axios.get(
+      'https://api.wantiku.com/api/ExamSubject/GetAllSubjects',
+      lodash.merge({}, requestConfig, {params: {time: Date.now()}}),
+    )
+
+    const groups = fiindAll(parentSubjectsResponse.data.SubjectEntities, ['自考类', '成考类'], {
+      fuzzy: true,
+    }) as Record<string, any>[]
+
+    const banks: Bank[] = []
+
+    for (const group of groups) {
+      for (const parentSubject of group.SubjectEntities) {
+        const subjectsResponse = await axios.get(
+          'https://api.wantiku.com/api/User/UserSubjectNew',
+          lodash.merge({}, requestConfig, {
+            headers: {SubjectLevel: 1, SubjectParentID: parentSubject.SubjectParentId},
+            params: {SubjectLevel: parentSubject.SubjectLevel, time: Date.now()},
+          }),
+        )
+
+        const subjects = lodash.filter(subjectsResponse.data.SubjectEntities ?? [], (subject) =>
+          Boolean(subject.IsSelect),
+        )
+
+        if (subjects.length === 0) {
+          throw new Error('请前往 <万题库> App 加入题库: 发现 > 头像 > 设置 > 考试科目管理')
+        }
+
+        for (const subject of subjects) {
+          const _id = md5(
+            JSON.stringify([parentSubject.SubjectParentId, parentSubject.SubjectLevel, subject.SubjectId]),
+          )
+
+          banks.push({
+            id: _id,
+            meta: {
+              groupId: group.GroupId,
+              parentSubjectId: parentSubject.SubjectParentId,
+              subjectId: subject.SubjectId,
+              subjectLevel: parentSubject.SubjectLevel,
+            },
+            name: await safeName([group.GroupName, parentSubject.SubjectName, subject.SubjectName].join(' > ')),
+          })
+        }
+      }
+    }
+
+    return lodash
+      .chain(banks)
+      .sortBy(
+        ['meta.groupId', 'meta.parentSubjectId', 'meta.subjectLevel', 'meta.subjectId'],
+        ['asc', 'asc', 'asc', 'asc'],
+      )
+      .map((bank, idx) => ({...bank, order: idx}))
+      .value()
+  }
+
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.CATEGORIES)})
+  protected async fetchCategories(params: {bank: Bank}): Promise<Category[]> {
+    const requestConfig = await this.login()
+
+    const response = await axios.get(
+      this.URL_CATEGORY,
+      lodash.merge({}, requestConfig, {
+        headers: {SubjectLevel: params.bank.meta?.subjectLevel, SubjectParentID: params.bank.meta?.parentSubjectId},
+        params: {SubjectId: params.bank.meta?.subjectId, time: Date.now()},
+      }),
+    )
+
+    const categories = [] as Category[]
+
+    for (const ct of response.data.SpecialTreeList ?? []) {
+      categories.push({
+        children: [],
+        count: ct.TotalQuestions,
+        id: ct.ExamSiteId,
+        name: await safeName(ct.ExamSiteName),
+      })
+    }
+
+    return categories
+  }
+
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.LOGIN), client: cacheManager.CommonClient})
   protected async toLogin(password: string): Promise<CacheRequestConfig> {
     const response = await axios.get('https://api.wantiku.com/api/Login/LoginV2', {

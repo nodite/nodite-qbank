@@ -20,16 +20,10 @@ export default class ChaoXingWork extends ChaoXing {
     return {}
   }
 
-  /**
-   * Login.
-   */
   public async login(options?: LoginOptions): Promise<CacheRequestConfig> {
     return new ChaoXing(this.getUsername()).login(options)
   }
 
-  /**
-   * Categories.
-   */
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.CATEGORIES)})
   protected async fetchCategories(_params: {bank: Bank}): Promise<Category[]> {
     // const config = await this.login()
