@@ -18,7 +18,14 @@ export default class Markji extends MarkjiBase {
   protected async _processBlankFilling(question: any, _qbank: QBankParams): Promise<AssetString> {
     const _meta = {
       content: {assets: [] as never, text: ''} as AssetString,
+      material: {assets: [] as never, text: ''} as AssetString,
       points: {} as Record<string, AssetString>,
+    }
+
+    // ====================
+    // _material.
+    if (question['材料']) {
+      _meta.material = await markji.parseHtml(question['材料'], {srcHandler, style: this.HTML_STYLE})
     }
 
     // ====================
@@ -66,6 +73,7 @@ export default class Markji extends MarkjiBase {
       lodash
         .filter([
           `[${question.KeyType}]`,
+          lodash.trim(_meta.material.text),
           lodash.trim(_meta.content.text),
           '---',
           ...lodash
@@ -81,7 +89,12 @@ export default class Markji extends MarkjiBase {
         .replaceAll('\n', '<br>'),
     )
 
-    _output.assets = lodash.merge({}, _meta.content.assets, ...lodash.map(_meta.points, 'assets'))
+    _output.assets = lodash.merge(
+      {},
+      _meta.material.assets,
+      _meta.content.assets,
+      ...lodash.map(_meta.points, 'assets'),
+    )
 
     return _output
   }
@@ -90,9 +103,16 @@ export default class Markji extends MarkjiBase {
     const _meta = {
       answers: [] as AssetString[],
       content: {assets: [] as never, text: ''} as AssetString,
+      material: {assets: [] as never, text: ''} as AssetString,
       options: [] as AssetString[],
       optionsAttr: question.IsMultipleChoice ? 'fixed,multi' : 'fixed',
       points: {} as Record<string, AssetString>,
+    }
+
+    // ===========================
+    // _material.
+    if (question['材料']) {
+      _meta.material = await markji.parseHtml(question['材料'], {srcHandler, style: this.HTML_STYLE})
     }
 
     // ===========================
@@ -138,7 +158,9 @@ export default class Markji extends MarkjiBase {
     // ===========================
     // _answers.
     _meta.answers = lodash.filter(_meta.options, (op) => {
-      const correctOptions = lodash.split(question.RightKey, '')
+      const correctOptions = question.RightKey.includes(',')
+        ? lodash.split(question.RightKey, ',')
+        : lodash.split(question.RightKey, '')
       return correctOptions.includes(op.text[0])
     })
 
@@ -165,6 +187,7 @@ export default class Markji extends MarkjiBase {
       lodash
         .filter([
           `[${question.KeyType}]`,
+          lodash.trim(_meta.material.text),
           lodash.trim(_meta.content.text),
           `[Choice#${_meta.optionsAttr}#\n${lodash.trim(lodash.map(_meta.options, 'text').join('\n'))}\n]\n`,
           '---\n',
@@ -183,6 +206,7 @@ export default class Markji extends MarkjiBase {
 
     _output.assets = lodash.merge(
       {},
+      _meta.material.assets,
       ...lodash.map(_meta.answers, 'assets'),
       _meta.content.assets,
       ...lodash.map(_meta.points, 'assets'),
@@ -195,8 +219,15 @@ export default class Markji extends MarkjiBase {
   protected async _processTranslate(question: any, _qbank: QBankParams): Promise<AssetString> {
     const _meta = {
       content: {assets: [] as never, text: ''} as AssetString,
+      material: {assets: [] as never, text: ''} as AssetString,
       points: {} as Record<string, AssetString>,
       translation: {assets: [] as never, text: ''} as AssetString,
+    }
+
+    // ===========================
+    // _material.
+    if (question['材料']) {
+      _meta.material = await markji.parseHtml(question['材料'], {srcHandler, style: this.HTML_STYLE})
     }
 
     // ===========================
@@ -227,6 +258,7 @@ export default class Markji extends MarkjiBase {
       lodash
         .filter([
           `[${question.KeyType}]`,
+          lodash.trim(_meta.material.text),
           lodash.trim(_meta.content.text),
           '---',
           _meta.translation.text,
@@ -246,6 +278,7 @@ export default class Markji extends MarkjiBase {
 
     _output.assets = lodash.merge(
       {},
+      _meta.material.assets,
       _meta.content.assets,
       _meta.translation.assets,
       ...lodash.map(_meta.points, 'assets'),
@@ -276,7 +309,11 @@ export default class Markji extends MarkjiBase {
         break
       }
 
-      case '单选': {
+      case '判断题':
+      case '单选':
+      case '单选题':
+      case '完型填空':
+      case '阅读理解': {
         output = await this._processChoice(question, qbank)
         break
       }
@@ -286,7 +323,8 @@ export default class Markji extends MarkjiBase {
         break
       }
 
-      case '多选': {
+      case '多选':
+      case '多选题': {
         question.IsMultipleChoice = true
         output = await this._processChoice(question, qbank)
         break
