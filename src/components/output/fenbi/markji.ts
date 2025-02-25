@@ -134,9 +134,7 @@ export default class Markji extends MarkjiBase {
       if (!lodash.isEmpty(material.accessories)) {
         // 181+transcript
         const _transcript = lodash.find(material.accessories, {label: 'transcript', type: 181})
-
         if (_transcript) lodash.remove(material.accessories, _transcript)
-
         if (_transcript?.content) {
           meta.points['[P#L#[T#B#材料转录]]'] = await html.toImage(await fenbi.parseDoc(_transcript?.content), {
             srcHandler,
@@ -146,9 +144,7 @@ export default class Markji extends MarkjiBase {
 
         // 151: 材料翻译
         const _materialTrans = lodash.find(material.accessories, {type: 151})
-
         if (_materialTrans) lodash.remove(material.accessories, _materialTrans)
-
         if (_materialTrans?.translation) {
           meta.points['[P#L#[T#B#材料翻译]]'] = await markji.parseHtml(
             await fenbi.parseDoc(_materialTrans?.translation),
@@ -158,9 +154,7 @@ export default class Markji extends MarkjiBase {
 
         // 181+materialExplain: 材料解析
         const _materialExplain = lodash.find(material.accessories, {label: 'materialExplain', type: 181})
-
         if (_materialExplain) lodash.remove(material.accessories, _materialExplain)
-
         if (_materialExplain?.content) {
           meta.points['[P#L#[T#B#材料解析]]'] = await html.toImage(await fenbi.parseDoc(_materialExplain?.content), {
             srcHandler,
@@ -170,9 +164,7 @@ export default class Markji extends MarkjiBase {
 
         // 181+zdch: 重点词汇
         const _zdch = lodash.find(material.accessories, {label: 'zdch', type: 181})
-
         if (_zdch) lodash.remove(material.accessories, _zdch)
-
         if (_zdch?.content) {
           meta.points['[P#L#[T#B#材料词汇]]'] = await html.toImage(await fenbi.parseDoc(_zdch?.content), {
             srcHandler,
@@ -182,9 +174,7 @@ export default class Markji extends MarkjiBase {
 
         // 181+clyw: 材料译文
         const _clyw = lodash.find(material.accessories, {label: 'clyw', type: 181})
-
         if (_clyw) lodash.remove(material.accessories, _clyw)
-
         if (_clyw?.content) {
           meta.points['[P#L#[T#B#材料译文]]'] = await html.toImage(await fenbi.parseDoc(_clyw?.content), {
             srcHandler,
@@ -194,9 +184,7 @@ export default class Markji extends MarkjiBase {
 
         // 181+cltg: 材料题干
         const _cltg = lodash.find(material.accessories, {label: 'cltg', type: 181})
-
         if (_cltg) lodash.remove(material.accessories, _cltg)
-
         if (_cltg?.content) {
           const _cltgAssets = await html.toImage(await fenbi.parseDoc(_cltg?.content), {
             srcHandler,
@@ -208,11 +196,16 @@ export default class Markji extends MarkjiBase {
 
         // 185: 音频
         const _audio = lodash.find(material.accessories, {type: 185})
-
         if (_audio) lodash.remove(material.accessories, _audio)
-
         if (_audio?.url) {
           meta.materials.push(await parser.audio(_audio?.url))
+        }
+
+        // 1003: lrc
+        const _lrc = lodash.find(material.accessories, {type: 1003})
+        if (_lrc) lodash.remove(material.accessories, _lrc)
+        if (_lrc?.lrcMetas) {
+          meta.materials.push({assets: {}, text: '[LRC 暂不支持]'})
         }
 
         // 1005: 关键词
@@ -242,43 +235,32 @@ export default class Markji extends MarkjiBase {
   }
 
   protected async __makeQuestionAccessories(qbank: QBankParams, question: any, meta: any): Promise<any> {
+    meta.points['[P#L#[T#B#题目类别]]'] = {assets: {}, text: `${qbank.category.name} / ${qbank.sheet.name}`}
+
     // 112: 连线
     const _link = lodash.find(question.accessories, {type: 112})
-
     if (_link) lodash.remove(question.accessories, _link)
-
     if (_link?.leftElements) {
       meta.points['[P#L#[T#B#题目连线]]'] = {assets: {}, text: '暂不支持'}
     }
 
     // 186+module+category
     const _cat = lodash.find(question.accessories, {type: 186})
-
     if (_cat) lodash.remove(question.accessories, _cat)
-
-    const _catText =
-      `${qbank.category.name} / ${qbank.sheet.name}` + (_cat?.module ? `\n${_cat?.module} (${_cat?.category})` : '')
-
-    meta.points['[P#L#[T#B#题目类别]]'] = await markji.parseHtml(_catText, {
-      skipInput: true,
-      srcHandler,
-      style: this.HTML_STYLE,
-    })
+    if (_cat?.module) {
+      question.typeName = lodash.chain([_cat?.module, question.typeName]).filter().uniq().join(' / ').value()
+    }
 
     // 103: 问题类型
     const _qType = lodash.find(question.accessories, {type: 103})
-
     if (_qType) lodash.remove(question.accessories, _qType)
-
     if (_qType?.name) {
       meta.points['[P#L#[T#B#问题类型]]'] = {assets: {}, text: _qType.name}
     }
 
     // 151: 题目翻译
     const _questionTrans = lodash.find(question.accessories, {type: 151})
-
     if (_questionTrans) lodash.remove(question.accessories, _questionTrans)
-
     if (_questionTrans?.translation) {
       meta.points['[P#L#[T#B#题目翻译]]'] = await markji.parseHtml(await fenbi.parseDoc(_questionTrans?.translation), {
         skipInput: true,
@@ -296,9 +278,7 @@ export default class Markji extends MarkjiBase {
 
     // 181+questionDesc: 题目描述
     const _questionDesc = lodash.find(question.accessories, {label: 'questionDesc', type: 181})
-
     if (_questionDesc) lodash.remove(question.accessories, _questionDesc)
-
     if (_questionDesc?.content) {
       const questionDesc = await markji.parseHtml(await fenbi.parseDoc(_questionDesc?.content), {
         srcHandler,
@@ -310,11 +290,8 @@ export default class Markji extends MarkjiBase {
 
     // 181+source: 题目来源
     const _source = lodash.find(question.accessories, {label: 'source', type: 181})
-
     if (_source) lodash.remove(question.accessories, _source)
-
     const _sourceText = question.solution.source || _source?.content || ''
-
     if (_sourceText) {
       meta.points['[P#L#[T#B#题目来源]]'] = await markji.parseHtml(await fenbi.parseDoc(_sourceText), {
         skipInput: true,
@@ -329,9 +306,7 @@ export default class Markji extends MarkjiBase {
 
     // 181+listenQuestionStem: 听力题干
     const _listenQuestionStem = lodash.find(question.accessories, {label: 'listenQuestionStem', type: 181})
-
     if (_listenQuestionStem) lodash.remove(question.accessories, _listenQuestionStem)
-
     if (_listenQuestionStem?.content) {
       meta.points['[P#L#[T#B#听力题干]]'] = await markji.parseHtml(await fenbi.parseDoc(_listenQuestionStem?.content), {
         skipInput: true,
@@ -340,26 +315,22 @@ export default class Markji extends MarkjiBase {
       })
     }
 
-    // 181+stfx: 试题分析
+    // 181+stfx: 审题分析
     const _stfx = lodash.find(question.accessories, {label: 'stfx', type: 181})
-
     if (_stfx) lodash.remove(question.accessories, _stfx)
-
     if (_stfx?.content) {
-      meta.points['[P#L#[T#B#试题分析]]'] = await html.toImage(await fenbi.parseDoc(_stfx.content), {
+      meta.points['[P#L#[T#B#审题分析]]'] = await html.toImage(await fenbi.parseDoc(_stfx.content), {
         skipInput: true,
         srcHandler,
         style: this.HTML_STYLE,
       })
     }
 
-    // 181+xztg: 写作题干
+    // 181+xztg: 写作提纲
     const _xztg = lodash.find(question.accessories, {label: 'xztg', type: 181})
-
     if (_xztg) lodash.remove(question.accessories, _xztg)
-
     if (_xztg?.content) {
-      meta.points['[P#L#[T#B#写作题干]]'] = await html.toImage(await fenbi.parseDoc(_xztg.content), {
+      meta.points['[P#L#[T#B#写作提纲]]'] = await html.toImage(await fenbi.parseDoc(_xztg.content), {
         skipInput: true,
         srcHandler,
         style: this.HTML_STYLE,
@@ -369,15 +340,35 @@ export default class Markji extends MarkjiBase {
     // 181+relatedMaterialId: 关联材料ID
     lodash.remove(question.accessories, {label: 'relatedMaterialId', type: 181})
 
+    // 181+qwfx: 全文分析
+    const _qwfx = lodash.find(question.accessories, {label: 'qwfx', type: 181})
+    if (_qwfx) lodash.remove(question.accessories, _qwfx)
+    if (_qwfx?.content) {
+      meta.points['[P#L#[T#B#全文分析]]'] = await html.toImage(await fenbi.parseDoc(_qwfx.content), {
+        skipInput: true,
+        srcHandler,
+        style: this.HTML_STYLE,
+      })
+    }
+
+    // 181+zdch: 重点词汇
+    const _zdch = lodash.find(question.accessories, {label: 'zdch', type: 181})
+    if (_zdch) lodash.remove(question.accessories, _zdch)
+    if (_zdch?.content) {
+      meta.points['[P#L#[T#B#重点词汇]]'] = await html.toImage(await fenbi.parseDoc(_zdch?.content), {
+        skipInput: true,
+        srcHandler,
+        style: this.HTML_STYLE,
+      })
+    }
+
     // 182: 材料标题
     // TODO
     lodash.remove(question.accessories, {type: 182})
 
     // 1001: 选项翻译
     const _optionsTrans = lodash.find(question.accessories, {type: 1001})
-
     if (_optionsTrans) lodash.remove(question.accessories, _optionsTrans)
-
     if (!lodash.isEmpty(_optionsTrans?.choiceTranslations)) {
       const choiceTrans = lodash.map(_optionsTrans?.choiceTranslations, (translation) => {
         const trans = lodash.map(translation, (t) => {
@@ -401,9 +392,7 @@ export default class Markji extends MarkjiBase {
 
     // 1004. 单词释义
     const _wordAnalysis = lodash.find(question.accessories, {type: 1004})
-
     if (_wordAnalysis) lodash.remove(question.accessories, _wordAnalysis)
-
     if (_wordAnalysis) {
       const _word = [
         `单词: ${_wordAnalysis?.word || ''}`,
@@ -433,9 +422,7 @@ export default class Markji extends MarkjiBase {
   protected async __makeSolutionAccessories(qbank: QBankParams, question: any, meta: any): Promise<any> {
     // 181+transcript
     const _transcript = lodash.find(question.solution.solutionAccessories, {label: 'transcript', type: 181})
-
     if (_transcript) lodash.remove(question.solution.solutionAccessories, _transcript)
-
     if (_transcript?.content) {
       meta.points['[P#L#[T#B#解析转录]]'] = await html.toImage(await fenbi.parseDoc(_transcript?.content), {
         skipInput: true,
@@ -446,9 +433,7 @@ export default class Markji extends MarkjiBase {
 
     // 181+translate: 翻译
     const _translate = lodash.find(question.solution.solutionAccessories, {label: 'translate', type: 181})
-
     if (_translate) lodash.remove(question.solution.solutionAccessories, _translate)
-
     if (_translate?.content) {
       meta.points['[P#L#[T#B#解析翻译]]'] = await markji.parseHtml(await fenbi.parseDoc(_translate?.content), {
         skipInput: true,
@@ -459,39 +444,65 @@ export default class Markji extends MarkjiBase {
 
     // 181+tyzd: 题意指导
     const _tyzd = lodash.find(question.solution.solutionAccessories, {label: 'tyzd', type: 181})
-
     if (_tyzd) lodash.remove(question.solution.solutionAccessories, _tyzd)
+    if (_tyzd?.content) {
+      meta.points['[P#L#[T#B#题意指导]]'] = await markji.parseHtml(await fenbi.parseDoc(_tyzd?.content), {
+        skipInput: true,
+        srcHandler,
+        style: this.HTML_STYLE,
+      })
+    }
 
     // 181+interferenceAnalysis: 干扰项分析
     const _interferenceAnalysis = lodash.find(question.solution.solutionAccessories, {
       label: 'interferenceAnalysis',
       type: 181,
     })
-
     if (_interferenceAnalysis) lodash.remove(question.solution.solutionAccessories, _interferenceAnalysis)
+    if (_interferenceAnalysis?.content) {
+      meta.points['[P#L#[T#B#干扰项分析]]'] = await markji.parseHtml(
+        await fenbi.parseDoc(_interferenceAnalysis?.content),
+        {
+          skipInput: true,
+          srcHandler,
+          style: this.HTML_STYLE,
+        },
+      )
+    }
 
+    // solution
     // 181+explain: 解析
+    // 1007: 解析详情
+    const _explainAssember = []
+
+    const _solution = question.solution.solution
+    if (_solution) _explainAssember.push(await fenbi.parseDoc(_solution))
+
     const _explain = lodash.find(question.solution.solutionAccessories, {label: 'explain', type: 181})
-
     if (_explain) lodash.remove(question.solution.solutionAccessories, _explain)
+    if (_explain?.content) _explainAssember.push('', await fenbi.parseDoc(_explain?.content))
 
-    meta.points['[P#L#[T#B#题目解析]]'] = await markji.parseHtml(
-      lodash
-        .filter([
-          await fenbi.parseDoc(_tyzd?.content),
-          await fenbi.parseDoc(_interferenceAnalysis?.content),
-          await fenbi.parseDoc(question.solution.solution),
-          await fenbi.parseDoc(_explain),
-        ])
-        .join('\n'),
-      {skipInput: true, srcHandler, style: this.HTML_STYLE},
-    )
+    const _solutionDetails = lodash.find(question.solution.solutionAccessories, {type: 1007})
+    if (_solutionDetails) lodash.remove(question.solution.solutionAccessories, _solutionDetails)
+    if (lodash.isArray(_solutionDetails?.solutionDetails)) {
+      for (const detail of _solutionDetails.solutionDetails) {
+        _explainAssember.push(
+          '',
+          (await fenbi.parseDoc(detail?.solutionEnglish)) + ` <audio src="${detail?.url}"></audio>`,
+          await fenbi.parseDoc(detail?.solutionChinese),
+        )
+      }
+    }
+
+    meta.points['[P#L#[T#B#题目解析]]'] = await markji.parseHtml(_explainAssember.join('\n'), {
+      skipInput: true,
+      srcHandler,
+      style: this.HTML_STYLE,
+    })
 
     // 181+expand: 拓展
     const _expand = lodash.find(question.solution.solutionAccessories, {label: 'expand', type: 181})
-
     if (_expand) lodash.remove(question.solution.solutionAccessories, _expand)
-
     if (_expand?.content) {
       meta.points['[P#L#[T#B#解析拓展]]'] = await markji.parseHtml(await fenbi.parseDoc(_expand.content), {
         skipInput: true,
@@ -502,9 +513,7 @@ export default class Markji extends MarkjiBase {
 
     // 181+jcjs: 解题技巧
     const _jcjs = lodash.find(question.solution.solutionAccessories, {label: 'jcjs', type: 181})
-
     if (_jcjs) lodash.remove(question.solution.solutionAccessories, _jcjs)
-
     if (_jcjs?.content) {
       meta.points['[P#L#[T#B#解题技巧]]'] = await html.toImage(await fenbi.parseDoc(_jcjs.content), {
         skipInput: true,
@@ -515,9 +524,7 @@ export default class Markji extends MarkjiBase {
 
     // 181+fwfy: 仿写翻译
     const _fwfy = lodash.find(question.solution.solutionAccessories, {label: 'fwfy', type: 181})
-
     if (_fwfy) lodash.remove(question.solution.solutionAccessories, _fwfy)
-
     if (_fwfy?.content) {
       meta.points['[P#L#[T#B#仿写翻译]]'] = await html.toImage(await fenbi.parseDoc(_fwfy.content), {
         skipInput: true,
@@ -528,9 +535,7 @@ export default class Markji extends MarkjiBase {
 
     // 181+ldch: 亮点词汇
     const _ldch = lodash.find(question.solution.solutionAccessories, {label: 'ldch', type: 181})
-
     if (_ldch) lodash.remove(question.solution.solutionAccessories, _ldch)
-
     if (_ldch?.content) {
       meta.points['[P#L#[T#B#亮点词汇]]'] = await html.toImage(await fenbi.parseDoc(_ldch.content), {
         skipInput: true,
@@ -541,9 +546,7 @@ export default class Markji extends MarkjiBase {
 
     // 181+demonstrate: 维度分析
     const _demonstrate = lodash.find(question.solution.solutionAccessories, {label: 'demonstrate', type: 181})
-
     if (_demonstrate) lodash.remove(question.solution.solutionAccessories, _demonstrate)
-
     if (_demonstrate?.content) {
       meta.points['[P#L#[T#B#维度分析]]'] = await html.toImage(await fenbi.parseDoc(_demonstrate.content), {
         skipInput: true,
@@ -554,9 +557,7 @@ export default class Markji extends MarkjiBase {
 
     // 181+stzd: 试题指导
     const _stzd = lodash.find(question.solution.solutionAccessories, {label: 'stzd', type: 181})
-
     if (_stzd) lodash.remove(question.solution.solutionAccessories, _stzd)
-
     if (_stzd?.content) {
       meta.points['[P#L#[T#B#试题指导]]'] = await html.toImage(await fenbi.parseDoc(_stzd.content), {
         skipInput: true,
@@ -567,9 +568,7 @@ export default class Markji extends MarkjiBase {
 
     // 181+swdt: 思维导图
     const _swdt = lodash.find(question.solution.solutionAccessories, {label: 'swdt', type: 181})
-
     if (_swdt) lodash.remove(question.solution.solutionAccessories, _swdt)
-
     if (_swdt?.content) {
       meta.points['[P#L#[T#B#思维导图]]'] = await html.toImage(await fenbi.parseDoc(_swdt.content), {
         skipInput: true,
@@ -583,9 +582,7 @@ export default class Markji extends MarkjiBase {
 
     // 181+wjlj
     const _wjlj = lodash.find(question.solution.solutionAccessories, {label: 'wjlj', type: 181})
-
     if (_wjlj) lodash.remove(question.solution.solutionAccessories, _wjlj)
-
     if (_wjlj?.content) {
       meta.points['[P#L#[T#B#wjlj]]'] = await html.toImage(await fenbi.parseDoc(_wjlj.content), {
         skipInput: true,
