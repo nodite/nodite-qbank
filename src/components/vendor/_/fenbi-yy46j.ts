@@ -62,7 +62,7 @@ export default class FenbiYy46j extends Fenbi {
 
   @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.BANKS)})
   protected async fetchBanks(): Promise<Bank[]> {
-    const config = await this.login()
+    // const config = await this.login()
 
     const parents = [
       {
@@ -106,31 +106,26 @@ export default class FenbiYy46j extends Fenbi {
       }
 
       // 模块
-      const modules = await axios.get(
-        lodash.template(this.apiDelegate.GetCategoryMetaApi)({bankPrefix: parent.id, moduleId: 0}),
-        config,
-      )
+      // const modules = await axios.get(
+      //   lodash.template(this.apiDelegate.GetCategoryMetaApi)({bankPrefix: parent.id, moduleId: 0}),
+      //   config,
+      // )
 
-      for (const mdl of modules.data.children || []) {
-        banks.push({
-          count: mdl.count,
-          id: md5(JSON.stringify([parent.id, mdl.id])),
-          meta: lodash.merge({}, parent.meta, {module: mdl}),
-          name: await safeName(`${parent.name} > 模块 > ${mdl.name}`),
-          order: banks.length,
-        })
-      }
+      // for (const mdl of modules.data.children || []) {
+      //   banks.push({
+      //     count: mdl.count,
+      //     id: md5(JSON.stringify([parent.id, mdl.id])),
+      //     meta: lodash.merge({}, parent.meta, {module: mdl}),
+      //     name: await safeName(`${parent.name} > 模块 > ${mdl.name}`),
+      //     order: banks.length,
+      //   })
+      // }
     }
 
     return lodash
       .chain(banks)
       .orderBy(['meta.bankPrefix', 'order'], ['asc', 'asc'])
-      .map(
-        (bank, idx): Bank => ({
-          ...bank,
-          order: idx,
-        }),
-      )
+      .map((bank, idx): Bank => ({...bank, order: idx}))
       .value()
   }
 
