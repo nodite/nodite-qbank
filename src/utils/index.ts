@@ -117,6 +117,8 @@ export function reverseTemplate(template: string, result: string): Record<string
  * Safe name.
  */
 export async function safeName(name: string, options: SafeNameOptions = {}): Promise<string> {
+  name = lodash.trim(name)
+
   if (!options?.length) options.length = 48
 
   const cacheClient = cacheManager.CommonClient

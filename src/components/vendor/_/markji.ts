@@ -1,23 +1,34 @@
 import path from 'node:path'
 
+import {useAdapter} from '@nodite/cache-manager-adapter'
 import {Cacheable} from '@type-cacheable/core'
 import {CacheRequestConfig} from 'axios-cache-interceptor'
 import lodash from 'lodash'
+import md5 from 'md5'
 
 import {Chapter, Deck, Folder} from '../../../@types/vendor/markji.js'
 import cacheManager from '../../../cache/cache.manager.js'
 import axios from '../../axios/index.js'
 import {Output, OutputClass} from '../../output/common.js'
+import Skip from '../../output/skip.js'
 import {cacheKeyBuilder, HashKeyScope, Vendor} from '../common.js'
+
+const MarkjiKey = path.parse(import.meta.url).name
+
+const MarkjiStore = await cacheManager.initStore(MarkjiKey)
+
+const MarkjiClient = useAdapter(MarkjiStore.cache as never, [MarkjiStore.keyv as never])
 
 /**
  * Markji vendor.
  */
 export default class Markji extends Vendor {
-  public static META = {key: path.parse(import.meta.url).name, name: 'Markji'}
+  public static META = {key: MarkjiKey, name: 'Markji'}
 
   public get allowedOutputs(): Record<string, OutputClass> {
-    return {}
+    return {
+      [Skip.META.key]: Skip,
+    }
   }
 
   public async chapters(params: {deck: Deck; folder: Folder}, options?: {excludeTtl?: true}): Promise<Chapter[]> {
@@ -34,13 +45,13 @@ export default class Markji extends Vendor {
     throw new Error('Method not implemented.')
   }
 
-  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.SHEETS)})
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.SHEETS), client: MarkjiClient})
   public async fetchSheet(params: {bank: Folder; category: Deck}): Promise<Chapter[]> {
-    const requestConfig = await this.login()
+    const config = await this.login()
 
     const response = await axios.get(
       `https://www.markji.com/api/v1/decks/${params.category.id}/chapters`,
-      lodash.merge({}, requestConfig, {cache: false}),
+      lodash.merge({}, config, {cache: false}),
     )
 
     if (response.data.success === false) {
@@ -74,17 +85,20 @@ export default class Markji extends Vendor {
   ): Promise<void> {
     await super.invalidate(
       scope,
-      lodash.merge({bank: params?.folder, category: params?.deck, sheet: params?.chapter}, params),
+      lodash.merge(
+        {bank: params?.folder, category: params?.deck, client: MarkjiClient, sheet: params?.chapter},
+        params,
+      ),
     )
   }
 
-  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.BANKS)})
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.BANKS), client: MarkjiClient})
   protected async fetchBanks(): Promise<Folder[]> {
-    const requestConfig = await this.login()
+    const config = await this.login()
 
     const response = await axios.get(
       'https://www.markji.com/api/v1/decks/folders',
-      lodash.merge({}, requestConfig, {cache: false}),
+      lodash.merge({}, config, {cache: false}),
     )
 
     if (response.data.success === false) {
@@ -107,7 +121,7 @@ export default class Markji extends Vendor {
       .value()
   }
 
-  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.CATEGORIES)})
+  @Cacheable({cacheKey: cacheKeyBuilder(HashKeyScope.CATEGORIES), client: MarkjiClient})
   protected async fetchCategories(params: {bank: Folder}): Promise<Deck[]> {
     const config = await this.login()
 
@@ -124,8 +138,15 @@ export default class Markji extends Vendor {
     )
 
     // the deck order stored in the folder is not the same as the order in the response
-    await this.invalidate(HashKeyScope.BANKS)
-    params.bank = lodash.find(await this.banks({excludeTtl: true}), {id: params.bank.id}) as Folder
+    const _hash = md5(JSON.stringify(params.bank))
+
+    const _realBank = lodash.find(await this.fetchBanks(), {id: params.bank.id}) as Folder
+    const _realHash = md5(JSON.stringify(_realBank))
+
+    if (_hash !== _realHash) {
+      await this.invalidate(HashKeyScope.BANKS)
+      params.bank = lodash.find(await this.folders({excludeTtl: true}), {id: params.bank.id}) as Folder
+    }
 
     return lodash.map(params.bank.meta.items, (item, idx): Deck => {
       const deck = lodash.find(response.data.data.decks, {id: item.object_id})

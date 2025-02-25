@@ -1,6 +1,7 @@
 import cacheManager from '@type-cacheable/core'
 import {CacheRequestConfig} from 'axios-cache-interceptor'
 
+import Markji from '../../components/vendor/_/markji.js'
 import {Bank} from '../bank.js'
 import {Category} from '../category.js'
 import {QBankParams, UploadOptions} from '../common.js'
@@ -30,6 +31,7 @@ type MarkjiParams = {
   config: CacheRequestConfig
   deck: Deck
   folder: Folder
+  vendor: Markji
 }
 
 type BulkUploadOptions = {

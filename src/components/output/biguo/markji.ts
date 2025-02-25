@@ -68,7 +68,10 @@ export default class Markji extends MarkjiBase {
 
     // ====================
     // _explain.
-    _meta.points['[P#L#[T#B#题目解析]]'] = await markji.parseHtml(question.explanation, {style: this.HTML_STYLE})
+    _meta.points['[P#L#[T#B#题目解析]]'] = await markji.parseHtml(question.explanation, {
+      skipInput: true,
+      style: this.HTML_STYLE,
+    })
 
     // ====================
     // _points.
@@ -160,7 +163,10 @@ export default class Markji extends MarkjiBase {
 
     // ====================
     // _explain.
-    _meta.points['[P#L#[T#B#题目解析]]'] = await markji.parseHtml(question.explanation, {style: this.HTML_STYLE})
+    _meta.points['[P#L#[T#B#题目解析]]'] = await markji.parseHtml(question.explanation, {
+      skipInput: true,
+      style: this.HTML_STYLE,
+    })
 
     // ====================
     // _points.
@@ -224,7 +230,10 @@ export default class Markji extends MarkjiBase {
 
     // ===========================
     // _explain.
-    _meta.points['[P#L#[T#B#题目解析]]'] = await markji.parseHtml(question.explanation || '', {style: this.HTML_STYLE})
+    _meta.points['[P#L#[T#B#题目解析]]'] = await markji.parseHtml(question.explanation || '', {
+      skipInput: true,
+      style: this.HTML_STYLE,
+    })
 
     // ===========================
     // _points.
