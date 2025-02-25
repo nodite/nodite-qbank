@@ -1,7 +1,7 @@
 import {exit} from 'node:process'
 
 import {KeyvPostgres} from '@keyv/postgres'
-import {useAdapter} from '@oscaner/cache-manager-adapter'
+import {useAdapter} from '@nodite/cache-manager-adapter'
 import cacheManager, {CacheManagerOptions} from '@type-cacheable/core'
 import {createCache} from 'cache-manager'
 import {Keyv} from 'keyv'

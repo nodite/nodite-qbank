@@ -1,12 +1,12 @@
 {
-  "name": "qbank",
+  "name": "nodite-qbank",
   "description": "The framework working for track online question banks",
   "version": "0.0.0",
   "author": "Oscaner",
   "bin": {
     "qbank": "./bin/run.js"
   },
-  "bugs": "https://github.com/oscaner/qbank/issues",
+  "bugs": "https://github.com/nodite/nodite-qbank/issues",
   "dependencies": {
     "@boterop/convert-excel-to-json": "^2",
     "@inquirer/prompts": "^7",
@@ -18,7 +18,7 @@
     "@oclif/core": "^4",
     "@oclif/plugin-help": "^6",
     "@oclif/plugin-plugins": "^5",
-    "@oscaner/cache-manager-adapter": "github:Oscaner/type-cacheable-cache-manager-adapter#main",
+    "@nodite/cache-manager-adapter": "github:nodite/type-cacheable-cache-manager-adapter#main",
     "@type-cacheable/core": "^14",
     "@xenova/transformers": "^2",
     "ansi-colors": "^4",
@@ -119,7 +119,7 @@
     "/dist",
     "/oclif.manifest.json"
   ],
-  "homepage": "https://github.com/oscaner/qbank",
+  "homepage": "https://github.com/nodite/nodite-qbank",
   "keywords": [
     "oclif"
   ],
@@ -163,7 +163,7 @@
       }
     }
   },
-  "repository": "https://github.com/oscaner/qbank",
+  "repository": "https://github.com/nodite/nodite-qbank",
   "scripts": {
     "build": "shx rm -rf dist && tsc -b",
     "lint": "eslint . -c eslint.config.mjs",
